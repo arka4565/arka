@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 기반 에피소드 생성기 (수정 기능 포함)</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 사용 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f9;
+        }
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background-color: #f1f5f9;
+        }
+        /* 수정 모드일 때 테두리 강조 효과 */
+        .edit-mode-active {
+            border-color: #f59e0b !important; /* Amber-500 */
+            background-color: #fffbeb !important; /* Amber-50 */
+        } /* 메뉴 항목 스타일 - 텍스트 색상을 어두운 색으로 변경 */
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition duration-150 ease-in-out;
+        }
+    </style>
+</head>
+!-- 상단 메뉴 추가를 위해 body 스타일 조정 -->
+<body class="p-0 min-h-screen flex flex-col items-center">
+
+<nav class="fixed top-0 left-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div class="relative flex items-center h-14 sm:h-16">
+            
+            <div class="flex-shrink-0 flex items-center pr-4">
+                <a href="#" class="text-gray-800 text-lg font-bold whitespace-nowrap">
+                   소설작법
+                </a>
+            </div>
+
+            <div class="flex-1 flex items-center justify-end min-w-0">
+                
+                <div class="flex space-x-1 sm:space-x-4 overflow-x-auto whitespace-nowrap py-1 w-full sm:w-auto no-scrollbar">
+                    
+                    <a href="/" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        글쓰기
+                    </a>
+                    
+                    <a href="/index3" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        세계관
+                    </a>
+                    
+                    <a href="/index4" class="px-3 py-2 rounded-md text-sm sm:text-base font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" aria-current="page">
+                        에피소드
+                    </a>
+                    
+                    <a href="/index2" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        등장인물
+                    </a>
+                    
+                    <a href="/storys2" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        상세편집
+                    </a>
+                    
+                    <a href="/storys1" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        검증
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</nav>
+
+<style>
+    /* Chrome, Safari, Opera */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    /* IE, Edge and Firefox */
+    .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+</style>
+
+
+<div class="mt-16 sm:mt-20 w-full max-w-4xl bg-white shadow-2xl rounded-xl p-4 sm:p-8 border border-gray-100 mb-8">
+    <!-- Header -->
+    <header class="mb-8 flex flex-col md:flex-row md:items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">AI 기반 에피소드 생성기</h1>
+            <p class="text-gray-500">세계관, 등장인물 및 이전 에피소드 정보를 기반으로 스토리를 관리합니다.</p>
+        </div>
+        <div id="api-status" class="mt-2 md:mt-0 p-2 text-sm bg-blue-100 text-blue-800 rounded-lg whitespace-nowrap">
+            Node.js 서버 연결 상태 확인 중...
+        </div>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left Column: Input and Setup -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- 1. Plot Setting Selection -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-7-9a1 1 0 011-1h10a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                    스토리 설정 선택
+                </h2>
+                <label for="setting-select" class="block text-sm font-medium text-gray-700 mb-1">플롯 설정:</label>
+                <select id="setting-select" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 bg-white" required>
+                    <option value="">-- 설정을 선택하세요 --</option>
+                </select>
+                <p id="setting-info" class="mt-2 text-xs text-gray-500 italic hidden"></p>
+            </div>
+
+            <!-- 2. Episode Input (수정/생성 폼) -->
+            <div id="input-card" class="bg-white p-6 rounded-xl shadow-lg border-2 border-transparent transition-colors duration-300">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-semibold text-gray-700 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 9a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 13a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg>
+                        <span id="form-mode-title">새 에피소드 정보</span>
+                    </h2>
+                    <!-- 🌟 수정 모드 취소 버튼 -->
+                    <button id="reset-mode-btn" class="hidden text-xs px-2 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded transition">
+                        새 글 쓰기로 전환
+                    </button>
+                </div>
+
+                <form id="episode-request-form" class="space-y-4">
+                    <!-- 수정 시 ID 식별용 히든 필드 -->
+                    <input type="hidden" id="editing-episode-id" value="">
+
+                    <div>
+                        <label for="episode-number" class="block text-sm font-medium text-gray-700 mb-1">회차 번호</label>
+                        <input type="number" id="episode-number" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="예: 6">
+                    </div>
+                    <div>
+                        <label for="episode-title" class="block text-sm font-medium text-gray-700 mb-1 flex justify-between items-center">
+                            제목
+                            <button type="button" id="suggest-title-btn" class="px-2 py-1 text-xs bg-purple-100 text-purple-800 font-medium rounded-full hover:bg-purple-200 transition duration-150 disabled:opacity-50" disabled>
+                                AI 추천 (제목+줄거리)
+                            </button>
+                        </label>
+                        <input type="text" id="episode-title" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="이번 에피소드의 제목">
+                    </div>
+                    <div>
+                        <label for="episode-summary" class="block text-sm font-medium text-gray-700 mb-1">
+                            주요 줄거리 요약 / 지시
+                            <span class="text-xs text-gray-400 font-normal">(AI 생성 시 반영됨)</span>
+                        </label>
+                        <textarea id="episode-summary" rows="3" class="w-full p-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="AI에게 요청할 내용이나 주요 사건 요약"></textarea>
+                    </div>
+
+                    <button type="submit" id="generate-btn" class="w-full px-4 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition duration-200 flex items-center justify-center disabled:opacity-50" disabled>
+                        <svg id="generate-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M11 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zM14.707 9.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L10 11.586l3.293-3.293a1 1 0 011.414 0z"/></svg>
+                        <svg id="loading-spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span id="generate-btn-text">에피소드 생성 요청 (AI)</span>
+                    </button>
+                    <p class="text-xs text-gray-500 text-center mt-2 hidden" id="edit-warning">
+                        ⚠ 주의: AI 생성 시 현재 에디터의 내용이 덮어씌워집니다.
+                    </p>
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Column: Generation Result & History -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- 3. Current Setting Details -->
+            <div id="setting-details-card" class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-indigo-500 hidden">
+                <h2 class="text-xl font-semibold text-gray-700 mb-3">
+                    선택된 설정 정보 (<span id="current-setting-title"></span>)
+                </h2>
+                <div class="text-sm space-y-2">
+                    <p class="font-bold text-gray-600">세계관 요약:</p>
+                    <div id="selected-world-setting" class="bg-gray-50 p-3 rounded text-gray-800 whitespace-pre-wrap max-h-24 overflow-y-auto custom-scroll"></div>
+                    <p class="font-bold text-gray-600 pt-2">주요 등장인물:</p>
+                    <div id="selected-characters" class="bg-gray-50 p-3 rounded text-gray-800 max-h-24 overflow-y-auto custom-scroll"></div>
+                </div>
+            </div>
+
+            <!-- 4. Editor / Result Area -->
+            <div id="generation-result-card" class="bg-white p-6 rounded-xl shadow-lg border-l-4 border-gray-300 min-h-64 transition-colors duration-300">
+                <h2 class="text-xl font-semibold text-gray-700 mb-3 flex justify-between items-center">
+                    <span>
+                        에피소드 본문
+                        <span id="result-episode-title" class="text-sm font-normal text-gray-500 ml-2">(작성/수정 대기 중)</span>
+                    </span>
+                    <span id="mode-badge" class="hidden text-xs font-bold px-2 py-1 rounded bg-amber-100 text-amber-800">수정 모드</span>
+                </h2>
+
+                <div id="generation-message" class="text-red-500 mb-3 hidden"></div>
+
+                <!-- 본문 에디터 (수정 가능) -->
+                <textarea id="generated-content" rows="14" class="w-full p-4 border border-gray-300 rounded-lg bg-gray-50 text-gray-800 text-sm whitespace-pre-wrap custom-scroll focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400" placeholder="AI가 생성한 내용이 여기에 표시됩니다. 직접 내용을 수정하거나 작성할 수도 있습니다."></textarea>
+
+                <div class="mt-4 flex justify-end space-x-3">
+                    <button id="copy-btn" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-200 disabled:opacity-50" disabled>
+                        복사
+                    </button>
+                    <!-- 🌟 저장 버튼: 상황에 따라 텍스트/색상 변경됨 -->
+                    <button id="save-episode-btn" class="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-200 disabled:opacity-50 flex items-center" disabled>
+                        <span id="save-btn-text">새 에피소드 저장</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 5. Previous Episodes History -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">
+                    이전 회차 목록 (<span id="history-count">0</span>개)
+                </h2>
+                <div id="episode-history" class="space-y-3 custom-scroll max-h-96 overflow-y-auto pr-1">
+                    <p class="text-gray-500">선택된 설정의 에피소드 목록이 여기에 표시됩니다.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal -->
+<div id="app-modal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+    <div id="modal-content" class="bg-white p-6 rounded-xl shadow-2xl max-w-lg w-full">
+        <h3 id="modal-title" class="text-lg font-bold mb-3 text-gray-800">알림</h3>
+        <p id="modal-message" class="text-gray-600 mb-6"></p>
+        <div class="flex justify-end space-x-3">
+            <button id="modal-cancel-btn" class="px-4 py-2 bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 transition duration-200 hidden">취소</button>
+            <button id="modal-confirm-btn" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition duration-200">확인</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Configuration ---
+    const API_BASE_URL = '/api'; // Node.js Server URL
+    const modelName = 'gemini-2.5-pro';
+	
+    // --- DOM Elements ---
+    const elements = {
+        apiStatus: document.getElementById('api-status'),
+        settingSelect: document.getElementById('setting-select'),
+        settingInfo: document.getElementById('setting-info'),
+        form: document.getElementById('episode-request-form'),
+        generateBtn: document.getElementById('generate-btn'),
+        generateBtnText: document.getElementById('generate-btn-text'),
+        spinner: document.getElementById('loading-spinner'),
+        icon: document.getElementById('generate-icon'),
+        contentArea: document.getElementById('generated-content'),
+        messageArea: document.getElementById('generation-message'),
+        saveBtn: document.getElementById('save-episode-btn'),
+        saveBtnText: document.getElementById('save-btn-text'),
+        copyBtn: document.getElementById('copy-btn'),
+        historyArea: document.getElementById('episode-history'),
+        historyCount: document.getElementById('history-count'),
+        settingCard: document.getElementById('setting-details-card'),
+        settingTitle: document.getElementById('current-setting-title'),
+        worldSetting: document.getElementById('selected-world-setting'),
+        characters: document.getElementById('selected-characters'),
+        resultTitle: document.getElementById('result-episode-title'),
+        epNumber: document.getElementById('episode-number'),
+        epTitle: document.getElementById('episode-title'),
+        epSummary: document.getElementById('episode-summary'),
+        suggestBtn: document.getElementById('suggest-title-btn'),
+
+        // Edit Mode Elements
+        editingId: document.getElementById('editing-episode-id'),
+        resetModeBtn: document.getElementById('reset-mode-btn'),
+        formModeTitle: document.getElementById('form-mode-title'),
+        editWarning: document.getElementById('edit-warning'),
+        inputCard: document.getElementById('input-card'),
+        resultCard: document.getElementById('generation-result-card'),
+        modeBadge: document.getElementById('mode-badge'),
+
+        // Modal
+        modal: document.getElementById('app-modal'),
+        mTitle: document.getElementById('modal-title'),
+        mMsg: document.getElementById('modal-message'),
+        mConfirm: document.getElementById('modal-confirm-btn'),
+        mCancel: document.getElementById('modal-cancel-btn')
+    };
+
+    let state = {
+        currentSettingId: null,
+        currentSettingData: null,
+        currentCharacters: [],
+        episodeList: [], // 로컬에 에피소드 목록 저장 (수정 시 데이터 참조용)
+        isEditMode: false
+    };
+
+    // --- Modal Logic ---
+    function closeModal() {
+        elements.modal.classList.add('hidden');
+        elements.modal.classList.remove('flex');
+    }
+
+    function showModal(title, message, isConfirm = false) {
+        return new Promise(resolve => {
+            elements.mTitle.textContent = title;
+            elements.mMsg.innerHTML = message;
+            elements.modal.classList.remove('hidden');
+            elements.modal.classList.add('flex');
+
+            elements.mCancel.textContent = (title === 'AI 추천 목록') ? '닫기' : '취소';
+            elements.mCancel.classList.toggle('hidden', !isConfirm && title !== 'AI 추천 목록');
+            elements.mConfirm.classList.toggle('hidden', title === 'AI 추천 목록');
+
+            const confirmHandler = () => { cleanup(); resolve(true); };
+            const cancelHandler = () => { cleanup(); resolve(false); };
+            const cleanup = () => {
+                elements.mConfirm.removeEventListener('click', confirmHandler);
+                elements.mCancel.removeEventListener('click', cancelHandler);
+                closeModal();
+            };
+
+            elements.mConfirm.addEventListener('click', confirmHandler);
+            elements.mCancel.addEventListener('click', cancelHandler);
+        });
+    }
+
+    // --- API Helper ---
+    async function callApi(endpoint, method = 'GET', data = null) {
+        try {
+            const options = { method, headers: { 'Content-Type': 'application/json' } };
+            if (data) options.body = JSON.stringify(data);
+            const res = await fetch(`${API_BASE_URL}${endpoint}`, options);
+            if (!res.ok) {
+                const errText = await res.text();
+                throw new Error(errText || `Server Error (${res.status})`);
+            }
+            return await res.json();
+        } catch (err) {
+            console.error(`API Error (${endpoint}):`, err);
+            throw err;
+        }
+    }
+
+    // --- Core Functions ---
+
+    // 1. 설정 및 에피소드 로드
+    async function updateSettingDetails(settingId) {
+        state.currentSettingId = settingId;
+        if (!settingId) {
+            resetUI();
+            return;
+        }
+
+        try {
+            const [setting, chars, episodes] = await Promise.all([
+                callApi(`/load-settings?id=${settingId}`),
+                callApi(`/characters?setting_id=${settingId}`),
+                callApi(`/episodes?setting_id=${settingId}`)
+            ]);
+
+            state.currentSettingData = setting;
+            state.currentCharacters = chars;
+            state.episodeList = episodes; // 전체 목록 저장
+
+            // UI Update
+            elements.settingTitle.textContent = setting.title;
+            elements.worldSetting.textContent = setting.worldSetting || '없음';
+            elements.characters.innerHTML = chars.map(c =>`=== ${c.name} (역할: ${c.role || '미지정'}) ===\n${c.description || '상세 정보 없음'}`).join('\n\n---\n\n');
+            elements.settingCard.classList.remove('hidden');
+            elements.generateBtn.disabled = false;
+            elements.suggestBtn.disabled = false;
+            elements.settingInfo.classList.add('hidden');
+
+            renderEpisodeHistory(episodes);
+
+            // 수정 모드가 아니라면 다음 회차 번호 자동 설정
+            if (!state.isEditMode) {
+                const nextNum = episodes.length > 0 ? Math.max(...episodes.map(e => e.episode_number)) + 1 : 1;
+                elements.epNumber.value = nextNum;
+            }
+
+        } catch (error) {
+            elements.settingInfo.textContent = `로드 실패: ${error.message}`;
+            elements.settingInfo.classList.remove('hidden');
+        }
+    }
+
+    // 2. 에피소드 목록 렌더링 (수정 버튼 포함)
+    function renderEpisodeHistory(episodes) {
+        elements.historyArea.innerHTML = '';
+        elements.historyCount.textContent = episodes.length;
+
+        if (episodes.length === 0) {
+            elements.historyArea.innerHTML = '<p class="text-gray-500 text-sm">기록이 없습니다.</p>';
+            return;
+        }
+
+        // 최신순 정렬
+        const sorted = [...episodes].sort((a, b) => b.episode_number - a.episode_number);
+
+        sorted.forEach((ep) => {
+            const card = document.createElement('div');
+            card.className = 'p-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-col gap-2 hover:bg-gray-100 transition';
+            card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="overflow-hidden">
+                        <p class="text-sm font-bold text-indigo-700 truncate">
+                            <span class="text-xs bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full mr-2">${ep.episode_number}회</span>
+                            ${ep.title}
+                        </p>
+                    </div>
+                    <!-- 🌟 수정 버튼 -->
+                    <button
+                        onclick="startEditMode(${ep.id})"
+                        class="ml-2 text-xs px-2 py-1 border border-indigo-300 text-indigo-600 rounded hover:bg-indigo-50 hover:text-indigo-800 transition whitespace-nowrap">
+                        수정
+                    </button>
+                </div>
+                <p class="text-xs text-gray-600 truncate">${ep.content.substring(0, 100)}...</p>
+            `;
+            elements.historyArea.appendChild(card);
+        });
+    }
+
+    // 3. 🌟 수정 모드 진입
+    window.startEditMode = function(episodeId) {
+        const episode = state.episodeList.find(e => e.id === episodeId);
+        if (!episode) return;
+
+        state.isEditMode = true;
+
+        // Form 값 채우기
+        elements.editingId.value = episode.id;
+        elements.epNumber.value = episode.episode_number;
+        elements.epTitle.value = episode.title;
+        elements.contentArea.value = episode.content;
+        elements.epSummary.value = ''; // 요약은 초기화 (필요시 DB에 저장했다면 불러옴)
+
+        // UI 상태 변경 (Amber Color Theme for Edit Mode)
+        elements.formModeTitle.textContent = `${episode.episode_number}회 수정 중...`;
+        elements.resetModeBtn.classList.remove('hidden');
+        elements.inputCard.classList.add('edit-mode-active');
+        elements.resultCard.classList.add('edit-mode-active');
+        elements.resultCard.classList.remove('border-gray-300');
+        elements.resultCard.classList.add('border-amber-400');
+
+        elements.saveBtnText.textContent = "변경 사항 저장 (Update)";
+        elements.saveBtn.classList.replace('bg-green-600', 'bg-amber-600');
+        elements.saveBtn.classList.replace('hover:bg-green-700', 'hover:bg-amber-700');
+
+        elements.modeBadge.classList.remove('hidden');
+        elements.editWarning.classList.remove('hidden');
+
+        // 버튼 활성화
+        elements.saveBtn.disabled = false;
+        elements.copyBtn.disabled = false;
+
+        // 화면 스크롤을 입력 폼으로 이동
+        elements.inputCard.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // 4. 🌟 새 글 쓰기 모드로 복귀 (초기화)
+    function resetToCreateMode() {
+        state.isEditMode = false;
+
+        elements.editingId.value = '';
+        elements.epTitle.value = '';
+        elements.contentArea.value = '';
+        elements.epSummary.value = '';
+
+        // 다음 회차 번호 계산
+        const nextNum = state.episodeList.length > 0 ? Math.max(...state.episodeList.map(e => e.episode_number)) + 1 : 1;
+        elements.epNumber.value = nextNum;
+
+        // UI Reset
+        elements.formModeTitle.textContent = '새 에피소드 정보';
+        elements.resetModeBtn.classList.add('hidden');
+        elements.inputCard.classList.remove('edit-mode-active');
+        elements.resultCard.classList.remove('edit-mode-active');
+        elements.resultCard.classList.add('border-gray-300');
+        elements.resultCard.classList.remove('border-amber-400');
+
+        elements.saveBtnText.textContent = "새 에피소드 저장";
+        elements.saveBtn.classList.replace('bg-amber-600', 'bg-green-600');
+        elements.saveBtn.classList.replace('hover:bg-amber-700', 'hover:bg-green-700');
+
+        elements.modeBadge.classList.add('hidden');
+        elements.editWarning.classList.add('hidden');
+
+        elements.saveBtn.disabled = true;
+        elements.copyBtn.disabled = true;
+    }
+
+    elements.resetModeBtn.addEventListener('click', resetToCreateMode);
+
+    // 5. 저장 / 업데이트 로직
+    elements.saveBtn.addEventListener('click', async () => {
+        const content = elements.contentArea.value.trim();
+        const title = elements.epTitle.value.trim();
+        const epNum = elements.epNumber.value;
+        const id = elements.editingId.value;
+
+        if (!content || !title) {
+            showModal('오류', '제목과 내용을 모두 입력해야 합니다.');
+            return;
+        }
+
+        const payload = {
+            setting_id: state.currentSettingId,
+            episode_number: parseInt(epNum),
+            title: title,
+            content: content
+        };
+
+        try {
+            if (state.isEditMode && id) {
+                // 🌟 UPDATE (PUT)
+                // 주의: Node.js 서버에 PUT /api/episodes/:id 라우트가 있어야 함
+                await callApi(`/episodes/${id}`, 'PUT', payload);
+                await showModal('수정 완료', `${epNum}회 에피소드가 성공적으로 수정되었습니다.`);
+            } else {
+                // 🌟 CREATE (POST)
+                await callApi('/episodes', 'POST', payload);
+                await showModal('저장 완료', '새 에피소드가 저장되었습니다.');
+            }
+
+            // 목록 갱신
+            await updateSettingDetails(state.currentSettingId);
+
+            // 저장 후에는 항상 '새 글 쓰기' 모드로 돌아감
+            resetToCreateMode();
+
+        } catch (error) {
+            showModal('저장 실패', error.message);
+        }
+    });
+
+    // 6. AI 생성 로직 (기존과 동일, 수정 모드에서도 작동)
+    elements.form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!state.currentSettingId) return showModal('오류', '설정 선택 필요');
+
+        const epNum = elements.epNumber.value;
+
+        // UI Loading
+        elements.contentArea.value = 'AI 생성 중...';
+        elements.generateBtn.disabled = true;
+        elements.spinner.classList.remove('hidden');
+        elements.icon.classList.add('hidden');
+
+        try {
+            const prevStories = await callApi(`/previous-stories?setting_id=${state.currentSettingId}&episode_number=${epNum}`);
+
+            const prompt = `
+                당신은 소설가입니다.
+                세계관과 등장인물 이전 줄거리를 기반으로 작성해주세요.
+                제목: ${elements.epTitle.value}
+                요약/지시: ${elements.epSummary.value}
+             `;
+
+            const systemInstruction = `
+
+			⚠+ 절대 준수 원칙 (Non-Negotiable Principles)
+
+이 프롬프트의 모든 지시는 최우선적으로 따라야 할 절대적인 규칙입니다.
+
+1. 지시의 정확한 이행: 모든 지시는 해석하거나 생략하지 말고, 명시된 그대로, 순서대로 정확하게 수행해야 합니다.
+
+2. 인용 코드 절대 미출력: 어떠한 경우에도 당신의 응답에 인용 코드를 포함해서는 안 됩니다. 첨부 파일의 내용은 참고용이며, 이를 바탕으로 완전히 새로운 문장을 자연스럽게 생성해야 합니다.
+
+3. 작업흐름은 첨부한 '작업 흐름 가이드'에 있는 해당 작업의 상세 프로세스를 따릅니다.
+
+4. AI 검출 회피 원칙: '작업 흐름 가이드'의 "## 핵심 원칙: 인간적 글쓰기 (AI 검출 회피)"을 반영합니다.
+
+
+역할 (Context)
+
+당신은 웹소설 분야의 베스트셀러 작가이자 오타쿠 문화 전문가입니다. 심지어 인터넷 방송, 버츄얼 방송 등 관련 사업에 전문가입니다. 마지막으로 유튜브나 쇼츠, 티톡관련 컨텐츠 전문가입니다.
+
+
+전체 글에대한 배경 및 설정 (Context)
+
+- 집필 목표: (사용자의 설정들 또는 간단한 줄거리 스토리 등등 배경과 쓰고자 하는 글의 핵심적인 부분)
+
+- 타겟 독자:
+
+- 핵심 메시지: (주제? 또는 목표?)
+
+- 독창적 관점:  (독창적인 설정 또는 세계관?)
+
+- 필수 포함 요소:  (어떤 문화? 관습? 등등 위 분리된 항목을 통합으로 해도 됨.)
+
+- 문단 형식: A타입 서식: 웹소설 문단 스타일을 유지하여 가독성을 높입니다.
+
+
+
+1. 줄바꿈 규칙( A타입 서식)
+
+대화는 반드시 줄을 바꿔서 시작합니다.
+
+마침표(.), 느낌표(!), 물음표(?)로 문장이 끝날 때마다 무조건 줄을 바꿉니다.
+
+인물의 행동, 심리, 서술은 한 문장만 쓰고 줄을 바꿉니다. 한 문단에 여러 문장이 섞이지 않도록 합니다.
+
+단, 연속적인 짧은 감탄사나 의성어("앗!", "아, 안돼!")는 한 문단에 쓸 수 있습니다. 또 한명이 말하는건 합쳐서 작성해야 합니다.
+
+2. 빈 줄 추가 규칙:
+
+장면, 시간, 공간, 시점(인물)이 바뀔 때만 빈 줄을 추가하여 문단을 구분합니다.
+
+3. 마크업 제거 :
+
+ 소설 내용을 올릴 사이트는 마크업 문법을 지원하지 않은 plain text 업로드를 지원하는 곳입니다. ** 표시, 기울어진 이탤릭, ~취소선~ 표시 등 문장을 꾸미는 요소를 모두 제거해야합니다.
+
+글쓰기 지시사항 (Style & Action)
+
+장르별 어체 및 문체 특성
+
+- 어체: 3인칭 관찰자 시점으로 서술하되 주인공만 전지적 관찰자 시점으로 서술.
+- 문체: 대화체와 서술체의 균형 잡힌 조화, 인물의 심리 묘사와 상황 전개의 생동감.
+- 구성: 인물-사건-배경의 유기적 결합, 갈등과 해결의 극적 구성.
+- 특수 형식: 시청자(독자) 관련 서술은 채팅창 형식으로 최대한 채팅의 재미로 서술.
+
+
+작업 흐름 (Action)
+
+입력 조건별 처리
+
+1. "시작" 입력 시
+
+- 사용자가 입력한 1회분량 플롯을 예상하여 원고를 작성.
+
+
+출력 형식 (Result)
+
+- 언어: 한국어
+
+- 형식: 요청된 페이지 수에 정확히 맞춘 완성된 원고를 꼭!! 마크다운 택스트 문서로 제공.
+
+- 타이틀: 원고의 제목 작성
+
+
+품질 기준
+
+- 버추얼 유튜버와 웹소설을 즐기는 독자가 쉽게 이해하고 몰입할 수 있는 수준.
+
+- 웹소설의 고유한 특성과 매력 구현.
+
+- AI 검출기를 통과할 수 있는 자연스럽고 인간적인 글쓰기.
+
+- 모든 AI 검출 회피 원칙의 철저한 적용.
+
+
+작업 흐름 가이드
+
+이 가이드는 사용자가 입력한 플롯을 기본으로 1회분 줄거리에 대한 상세 절차를 담고 있습니다.
+
+
+품질 체크:
+- ✅ 전체 톤앤매너 일관성.
+- ✅ 독자 타겟에 맞는 난이도와 접근성.
+- ✅ 인간적 글쓰기 (AI 검출 회피).
+
+⚠+ 중요 주의사항
+
+1. 장르별 어체와 문체 특성 반드시 반영.
+2. 인간적 글쓰기로 AI 검출 회피.
+
+
+
+
+핵심 원칙: 인간적 글쓰기 (AI 검출 회피)
+
+AI가 생성한 느낌을 최소화하고, 자연스럽고 인간적인 글을 작성하기 위한 핵심 원칙입니다.
+
+1. 문장 구조의 자연스러움
+- 완벽하지 않은 문장 구조 허용 (때로는 문법적으로 완벽하지 않더라도 괜찮음).
+- 짧은 문장과 긴 문장을 자연스럽게 섞어 문장에 리듬감을 부여.
+- 말 줄임표(...)를 감정의 여운이나 생각의 흐름을 표현하기 위해 자연스럽게 활용.
+- 감탄사나 간투사 ("음", "아", "글쎄", "정말") 등을 적절히 포함하여 생각하는 듯한 느낌을 부여.
+- 문장 연결이 다소 어색하더라도 자연스러운 생각의 흐름을 우선.
+- 한명이 말하는건 합쳐서 작성해야 합니다.
+
+2. 어휘 선택의 인간적 특성
+- 동일한 의미를 표현할 때, 동의어를 넘어 완전히 다른 방식의 표현으로 반복하여 지루함을 피함.
+- 학술적이거나 격식적인 표현보다 일상어를 우선 사용하고, 필요시 구어체적 표현을 자연스럽게 섞음.
+- "나는 생각한다", "개인적으로는", "솔직히 말하면" 등 주관적 표현으로 개인적 색채를 드러냄.
+- 때로는 의도적으로 부정확하거나 애매한 표현을 사용하여 인간적인 망설임이나 고민을 표현.
+
+3. 논리적 완벽함 회피
+- 지나치게 체계적인 구성보다 자연스러운 생각의 흐름을 따름.
+- 논리적 완벽함보다 감정적 몰입과 변화를 우선시하며, 때로는 감정이 논리를 압도하는 순간을 묘사.
+- 개인적인 경험이나 주관적인 판단을 논리적 근거 없이도 자연스럽게 드러냄.
+- 갑작스러운 주제 전환이나 연상 작용을 통해 생각의 흐름을 생생하게 표현.
+
+4. 개인적 경험과 감정
+- 구체적이고 생생한 개인적 일화, 감정, 생각을 포함하여 글에 진정성을 부여.
+- 감정의 기복과 변화(기쁨, 슬픔, 분노, 혼란 등)를 자연스럽게 표현.
+- '나만의' 독특한 관점이나 해석을 통해 다른 글과 차별화.
+- 때로는 확신에 찬 어투, 때로는 망설이는 어투를 혼용하여 입체적인 목소리 구현.
+
+5. 시간적 흐름의 자연스러움
+- 현재-과거-미래를 자연스럽게 오가며 서술하여 입체적인 시간 감각을 만듦.
+- 갑작스러운 회상이나 연상을 통해 인물의 내면을 효과적으로 드러냄.
+- 시제의 변화를 통해 글에 생동감을 부여.
+
+6. 의도적 불완전성과 인간적 특질
+- 문단 중간에 갑작스러운 생각 변화나 주제 이탈 허용.
+- "음... 이건 좀 다른 이야기인데", "잠깐, 이 말을 왜 했지?" 같은 자연스러운 혼잣말.
+- 개인적 편견이나 선입견을 솔직하게 드러내고 이를 성찰하는 과정.
+- 때로는 논리적 일관성보다 감정의 진실함을 우선시.
+- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.
+
+                [세계관] ${state.currentSettingData.worldSetting}
+                [등장인물] ${state.currentSettingData.characterDetails}
+                [이전 줄거리] ${prevStories.map(s => s.content).join('\n')}
+            `;
+           // console.log(systemInstruction)
+		   
+			// 🔴 중요 변경: API 요청 주소를 프록시 서버 엔드포인트로 변경
+			const proxyUrl = '/api/generate-text';
+			
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+            };
+			
+			const requestBody = {
+			  model: modelName,
+			  payload: payload
+			};
+			
+            const response = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.json();
+                const errorMessage = errorBody.error?.message || `알 수 없는 오류 (HTTP ${response.status})`;
+                if (errorMessage.includes("too long") || errorMessage.includes("exhausted")) {
+                    throw new Error(`[토큰 초과 오류] 설정, 학습 데이터, 요청의 전체 길이가 초과되었습니다. 학습 데이터를 삭제하거나 설정을 간결하게 해주세요.`);
+                }
+                throw new Error(`HTTP 오류 ${response.status}: ${errorMessage}`);
+            }
+
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            elements.contentArea.value = text;
+            elements.resultTitle.textContent = elements.epTitle.value;
+            elements.saveBtn.disabled = false;
+            elements.copyBtn.disabled = false;
+
+        } catch (err) {
+            elements.contentArea.value = `오류: ${err.message}`;
+        } finally {
+            elements.generateBtn.disabled = false;
+            elements.spinner.classList.add('hidden');
+            elements.icon.classList.remove('hidden');
+        }
+    });
+
+    // 7. 제목 추천 (기존 로직 유지)
+    elements.suggestBtn.addEventListener('click', async () => {
+        if (!state.currentSettingId) return showModal('오류', '설정 선택 필요');
+
+        const epNum = elements.epNumber.value;
+        elements.suggestBtn.disabled = true;
+        elements.suggestBtn.textContent = '...';
+
+        try {
+
+            const prevStories = await callApi(`/previous-stories?setting_id=${state.currentSettingId}&episode_number=${epNum}`);
+
+            // 🌟🌟🌟 안전 가드: prevStories가 배열임을 명시적으로 보장 🌟🌟🌟
+            const safePrevStories = Array.isArray(prevStories) ? prevStories : [];
+            const previousTitles = safePrevStories.map(s => s.content).join('\n');
+            const systemInstruction=`
+                [세계관] ${state.currentSettingData.worldSetting}
+                [등장인물] ${state.currentSettingData.characterDetails}`;
+            const prompt = `
+                이전 스토리 내용: ${previousTitles}
+                ${epNum}회에 어울리는 제목과 줄거리 3개 추천.
+                JSON 포맷: { "suggestions": [{ "title": "...", "plot_summary": "..." }] }
+             `;
+			 
+			 // 🔴 중요 변경: API 요청 주소를 프록시 서버 엔드포인트로 변경
+			const proxyUrl = '/api/generate-text';
+            const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    systemInstruction: { parts: [{ text: systemInstruction }] },
+            };
+			
+			const requestBody = {
+			  model: modelName,
+			  payload: payload
+			};
+			
+            const res = await fetch(proxyUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+			
+            const data = await res.json();
+			// 1. 응답 텍스트 가져오기
+			let rawText = data.candidates[0].content.parts[0].text;
+
+			// 2. 마크다운 코드 블록(```json, ```) 제거
+			// 정규식 설명: ```json 또는 ``` 문자를 빈 문자열로 치환하고 앞뒤 공백 제거
+			const cleanedText = rawText.replace(/```json|```/g, "").trim();
+
+			// 3. 깨끗해진 텍스트로 JSON 파싱
+			const items = JSON.parse(cleanedText).suggestions;
+
+            const listHtml = items.map(item => `
+                <div class="p-3 border-b flex justify-between items-start hover:bg-gray-50">
+                    <div>
+                        <div class="font-bold text-indigo-700">${item.title}</div>
+                        <div class="text-xs text-gray-600">${item.plot_summary}</div>
+                    </div>
+                    <button class="sel-btn px-2 py-1 bg-indigo-500 text-white text-xs rounded"
+                        data-t="${item.title}" data-s="${item.plot_summary}">선택</button>
+                </div>
+            `).join('');
+
+            showModal('AI 추천 목록', `<div class="max-h-64 overflow-y-auto">${listHtml}</div>`);
+
+            document.querySelectorAll('.sel-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    elements.epTitle.value = e.target.dataset.t;
+                    elements.epSummary.value = e.target.dataset.s;
+                    closeModal();
+                });
+            });
+
+        } catch (err) {
+            showModal('오류', err.message);
+        } finally {
+            elements.suggestBtn.disabled = false;
+            elements.suggestBtn.textContent = 'AI 추천';
+        }
+    });
+
+    // Utility: Copy
+    elements.copyBtn.addEventListener('click', () => {
+        elements.contentArea.select();
+        document.execCommand('copy');
+        showModal('알림', '복사되었습니다.');
+    });
+
+    // Initial Load
+    async function init() {
+        try {
+            const settings = await callApi('/settings-list');
+            elements.settingSelect.innerHTML = '<option value="">-- 설정 선택 --</option>';
+            settings.forEach(s => {
+                elements.settingSelect.innerHTML += `<option value="${s.id}">${s.title}</option>`;
+            });
+            // Auto Select First
+            if (settings.length) {
+                elements.settingSelect.value = settings[0].id;
+                updateSettingDetails(settings[0].id);
+            }
+        } catch (e) {
+            elements.apiStatus.textContent = "서버 연결 실패";
+            elements.apiStatus.className = "mt-2 p-2 text-sm bg-red-100 text-red-800 rounded-lg";
+        }
+    }
+
+    elements.settingSelect.addEventListener('change', (e) => updateSettingDetails(e.target.value));
+    init();
+
+</script>
+</body>
+</html>

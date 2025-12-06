@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소설 플롯 및 에피소드 관리 (MySQL/API 연동)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Tailwind CSS를 사용하지만, 사용자 지정 스타일도 추가합니다. */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        :root {
+            font-family: 'Inter', sans-serif;
+        }
+        .ai-output-container {
+            white-space: pre-wrap;
+            background-color: #f7f7f7;
+            border-left: 4px solid #3b82f6;
+        }
+        /* 로딩 스피너 애니메이션 */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* 스크롤바 스타일링 */
+        .custom-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        } /* 메뉴 항목 스타일 - 텍스트 색상을 어두운 색으로 변경 */
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition duration-150 ease-in-out;
+        }
+    </style>
+</head>
+!-- 상단 메뉴 추가를 위해 body 스타일 조정 -->
+<body class="p-0 min-h-screen flex flex-col items-center">
+
+<nav class="fixed top-0 left-0 z-50 w-full bg-white border-b border-gray-200 shadow-lg">
+   <nav class="fixed top-0 left-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div class="relative flex items-center h-14 sm:h-16">
+            
+            <div class="flex-shrink-0 flex items-center pr-4">
+                <a href="#" class="text-gray-800 text-lg font-bold whitespace-nowrap">
+                   소설작법
+                </a>
+            </div>
+
+            <div class="flex-1 flex items-center justify-end min-w-0">
+                
+                <div class="flex space-x-1 sm:space-x-4 overflow-x-auto whitespace-nowrap py-1 w-full sm:w-auto no-scrollbar">
+                    
+                    <a href="/" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        글쓰기
+                    </a>
+                    
+                    <a href="/index3" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        세계관
+                    </a>
+                    
+                    <a href="/index4" class="px-3 py-2 rounded-md text-sm sm:text-base font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" aria-current="page">
+                        에피소드
+                    </a>
+                    
+                    <a href="/index2" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        등장인물
+                    </a>
+                    
+                    <a href="/storys2" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        상세편집
+                    </a>
+                    
+                    <a href="/storys1" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
+                        검증
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</nav>
+
+<style>
+    /* Chrome, Safari, Opera */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    /* IE, Edge and Firefox */
+    .no-scrollbar {
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+    }
+</style>
+
+
+<div id="app" class="mt-16 sm:mt-20 w-full max-w-7xl bg-white shadow-2xl rounded-xl p-4 sm:p-8 border border-gray-100 mb-8 flex flex-col lg:flex-row gap-6">
+
+    <!-- 왼쪽 사이드바: 플롯 목록 (Settings) -->
+    <div class="lg:w-1/3 border-r border-gray-200 p-6 flex flex-col">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">
+            플롯 설정 목록 (Settings)
+        </h2>
+        <p id="system-info" class="text-xs text-gray-500 mb-4">API 상태: 연결 중...</p>
+        <div id="plot-list-container" class="flex-grow space-y-2 overflow-y-auto custom-scroll">
+            <p id="loading-plots" class="text-center text-blue-500">
+                <span class="spinner inline-block align-middle mr-2"></span>
+                설정 데이터를 불러오는 중...
+            </p>
+            <!-- 설정 목록이 여기에 렌더링됩니다. (allSettings 사용) -->
+        </div>
+        <!-- onclick 제거 후 ID 추가 -->
+        <button id="add-plot-button" class="mt-4 w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg">
+            + 새 설정 추가 (기능 미구현)
+        </button>
+        <!-- onclick 제거 후 ID 추가 -->
+        <button id="refresh-data-button" class="mt-2 w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg text-sm">
+            데이터 새로고침
+        </button>
+    </div>
+
+    <!-- 오른쪽 메인 콘텐츠 -->
+    <div class="lg:w-2/3 p-6 flex flex-col">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <span id="selected-plot-title" class="text-indigo-600">선택된 설정 없음</span>
+        </h2>
+
+        <!-- 회차 목록 및 상세 내용 영역: grid-rows-[max-content_1fr]로 변경하여 리스트 영역 최소화 -->
+        <div class="flex-grow grid grid-rows-[max-content_1fr] gap-6">
+
+            <!-- 상단: 회차 목록 (Stories) -->
+            <div class="border rounded-xl p-4 shadow-sm bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
+                    회차 목록 (Stories)
+                </h3>
+                <!-- h-48은 목록이 너무 길 때 스크롤이 생기는 최대 높이로 작동합니다. -->
+                <div id="episode-list-container" class="h-48 max-h-48 overflow-y-auto custom-scroll space-y-1">
+                    <p id="episode-placeholder" class="text-gray-400 text-center mt-8">설정을 선택하시면 회차 목록이 나타납니다.</p>
+                    <!-- 회차 목록이 여기에 렌더링됩니다. (currentSettingStories 사용) -->
+                </div>
+            </div>
+
+            <!-- 하단: 회차 상세 내용 및 AI 분석 -->
+            <div class="border rounded-xl p-4 shadow-md flex flex-col">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">
+                    <span id="selected-episode-title" class="text-blue-600">회차 상세 내용</span>
+                </h3>
+
+                <div id="episode-detail-content" class="flex-grow overflow-y-auto custom-scroll mb-4 text-gray-700 text-sm">
+                    <p class="text-gray-400 text-center mt-8">회차를 선택하시면 상세 내용이 나타납니다.</p>
+                    <!-- 상세 내용이 여기에 렌더링됩니다. -->
+                </div>
+
+                <div id="ai-section" class="pt-4 border-t">
+                    <!-- onclick 제거 -->
+                    <button id="ai-analysis-button"
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-150 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                            disabled>
+                        <span id="ai-button-text">소설 내용 검증 및 다음 전개 예상</span>
+                        <span id="ai-spinner" class="spinner ml-3 hidden"></span>
+                    </button>
+
+                    <div id="ai-output" class="mt-4 p-4 rounded-lg ai-output-container text-sm hidden">
+                        <!-- AI 분석 결과가 여기에 표시됩니다. -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // --- 글로벌 변수 및 설정 ---
+
+    // 서버의 API 기본 URL (index.js가 실행되는 곳)
+    const API_BASE_URL = '/api';
+
+    const modelName = 'gemini-2.5-pro';
+    // 상태 변수
+    let allSettings = []; // 플롯 -> Settings
+    let currentSettingStories = []; // 에피소드 -> Stories
+    let selectedSettingId = null;
+    let selectedStoryId = null;
+
+    // UI 요소 (이름 유지)
+    const plotListContainer = document.getElementById('plot-list-container');
+    const episodeListContainer = document.getElementById('episode-list-container');
+    const episodeDetailContent = document.getElementById('episode-detail-content');
+    const selectedPlotTitle = document.getElementById('selected-plot-title');
+    const selectedEpisodeTitle = document.getElementById('selected-episode-title');
+
+    // 버튼 요소 (이벤트 리스너 바인딩을 위해 ID로 직접 가져옵니다)
+    const addPlotButton = document.getElementById('add-plot-button');
+    const refreshDataButton = document.getElementById('refresh-data-button');
+    const aiAnalysisButton = document.getElementById('ai-analysis-button');
+
+    const aiButtonText = document.getElementById('ai-button-text');
+    const aiSpinner = document.getElementById('ai-spinner');
+    const aiOutput = document.getElementById('ai-output');
+    const loadingPlots = document.getElementById('loading-plots');
+    const systemInfo = document.getElementById('system-info');
+    const episodePlaceholder = document.getElementById('episode-placeholder');
+
+
+    // AI API 설정 (Gemini API는 서버 통신과 별개로 클라이언트에서 직접 호출됨)
+    const GEMINI_MODEL = "gemini-2.5-pro";
+    
+    // --- 유틸리티 함수 ---
+
+    // Exponential Backoff을 사용한 API 호출 재시도 로직
+    async function retryWithExponentialBackoff(fetcher, maxRetries = 5) {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                const response = await fetcher();
+                if (!response.ok) {
+                    // 서버에서 보낸 JSON 오류 메시지를 시도합니다.
+                    let errorDetail = '';
+                    try {
+                        errorDetail = await response.json();
+                        errorDetail = JSON.stringify(errorDetail);
+                    } catch {
+                        errorDetail = await response.text();
+                        errorDetail = errorDetail.substring(0, 50) + '...';
+                    }
+                    console.error("API Response Error:", errorDetail);
+                    throw new Error(`API call failed with status ${response.status}: ${errorDetail}`);
+                }
+                return response;
+            } catch (error) {
+                const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                if (i < maxRetries - 1) {
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                } else {
+                    throw error;
+                }
+            }
+        }
+    }
+
+    // --- MySQL API 데이터 통신 (Settings/Stories 기준) ---
+
+    async function fetchSettings() {
+        if(loadingPlots) loadingPlots.classList.remove('hidden');
+        systemInfo.textContent = 'API 상태: 설정 목록 요청 중...';
+        try {
+            // API 경로: /api/settings-list
+            const response = await fetch(`${API_BASE_URL}/settings-list`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            }
+            allSettings = await response.json(); // allSettings에 설정 데이터 저장
+            renderPlotList();
+
+            systemInfo.textContent = `API 상태: 연결 성공 (${allSettings.length}개 설정 로드)`;
+
+            if (selectedSettingId && allSettings.find(p => p.id.toString() === selectedSettingId)) {
+                handlePlotSelection(selectedSettingId, false);
+            } else {
+                selectedSettingId = null;
+                selectedStoryId = null;
+                renderEpisodeList();
+                renderEpisodeDetail();
+            }
+
+        } catch (error) {
+            console.error("Failed to fetch settings from API:", error);
+            if (loadingPlots) {
+                loadingPlots.innerHTML = `<p class="text-red-500">API 연결 실패. index.js가 실행 중인지 확인하세요: ${error.message}</p>`;
+            }
+            systemInfo.textContent = 'API 상태: 연결 실패';
+        } finally {
+            if (loadingPlots) {
+                loadingPlots.classList.add('hidden');
+                if (allSettings.length === 0) {
+                    loadingPlots.classList.remove('hidden');
+                    loadingPlots.innerHTML = `<p class="text-gray-500">데이터베이스에 저장된 설정이 없습니다. index.js를 통해 데이터를 추가해 주세요.</p>`;
+                }
+            }
+        }
+    }
+
+    async function fetchStoriesForSetting(settingId) {
+        episodeListContainer.innerHTML = `<p class="text-center text-blue-500 mt-8"><span class="spinner inline-block align-middle mr-2"></span> 회차를 불러오는 중...</p>`;
+        systemInfo.textContent = `API 상태: 회차 목록 요청 중 (Setting ID: ${settingId})...`;
+
+        try {
+            // API 경로: /api/load-episodes
+            const response = await fetch(`${API_BASE_URL}/load-episodes?setting_id=${settingId}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            }
+            currentSettingStories = await response.json(); // currentSettingStories에 회차 데이터 저장
+            renderEpisodeList(); // 회차 데이터 렌더링
+            systemInfo.textContent = `API 상태: 연결 성공 (${currentSettingStories.length}개 회차 로드)`;
+
+            if (selectedStoryId && !currentSettingStories.find(e => e.id.toString() === selectedStoryId)) {
+                selectedStoryId = null;
+                renderEpisodeDetail();
+            } else if (selectedStoryId) {
+                renderEpisodeDetail(false);
+            }
+
+        } catch (error) {
+            console.error("Failed to fetch stories from API:", error);
+            if (episodeListContainer) {
+                episodeListContainer.innerHTML = `<p class="text-red-500 text-center mt-8">회차 로드 실패: ${error.message}</p>`;
+            }
+            systemInfo.textContent = 'API 상태: 회차 로드 실패';
+        }
+    }
+
+    // --- UI 렌더링 및 이벤트 핸들러 ---
+
+    // 플롯 설정 목록 렌더링 (plot-list-container)
+    function renderPlotList() {
+        plotListContainer.innerHTML = '';
+
+        if (allSettings.length === 0) return;
+
+        allSettings.forEach(setting => {
+            const settingIdStr = setting.id.toString();
+            const isActive = settingIdStr === selectedSettingId;
+            const plotElement = document.createElement('div');
+            plotElement.className = `p-3 rounded-lg cursor-pointer transition duration-150 ${isActive ? 'bg-indigo-100 border-indigo-500 border-2' : 'bg-white hover:bg-gray-100 border border-gray-200'}`;
+            plotElement.innerHTML = `
+                    <h4 class="font-semibold ${isActive ? 'text-indigo-700' : 'text-gray-700'}">${setting.title}</h4>
+                    <p class="text-xs text-gray-500 truncate">
+                        세계관: ${setting.worldSetting || 'N/A'} | 캐릭터: ${setting.characterDetails ? setting.characterDetails.substring(0, 20) + '...' : 'N/A'}
+                    </p>
+                `;
+            plotElement.onclick = () => handlePlotSelection(settingIdStr);
+            plotListContainer.appendChild(plotElement); // ⭐ plotListContainer에 추가
+        });
+    }
+
+    async function handlePlotSelection(settingId, shouldFetch = true) {
+        selectedSettingId = settingId.toString();
+        selectedStoryId = null;
+
+        const selectedSetting = allSettings.find(p => p.id.toString() === selectedSettingId);
+
+        if (selectedSetting) {
+            selectedPlotTitle.textContent = selectedSetting.title;
+            selectedPlotTitle.title = selectedSetting.plotDetails;
+        }
+
+        renderPlotList();
+        renderEpisodeDetail();
+        if(aiAnalysisButton) aiAnalysisButton.disabled = true;
+        if(aiOutput) aiOutput.classList.add('hidden');
+
+        if (shouldFetch) {
+            await fetchStoriesForSetting(selectedSettingId);
+        }
+    }
+
+    // 회차 목록 렌더링 (episode-list-container)
+    function renderEpisodeList() {
+        episodeListContainer.innerHTML = ''; // 컨테이너 비우기
+        if(aiAnalysisButton) aiAnalysisButton.disabled = true;
+
+        if (!selectedSettingId) {
+            if (episodePlaceholder) {
+                episodePlaceholder.classList.remove('hidden');
+            }
+            return;
+        }
+
+        if (episodePlaceholder) {
+            episodePlaceholder.classList.add('hidden');
+        }
+
+        // ⭐ currentSettingStories를 사용하여 회차 데이터 확인
+        if (currentSettingStories.length === 0) {
+            episodeListContainer.innerHTML = `<p class="text-gray-400 text-center mt-8">이 설정에 대한 회차가 없습니다.</p>`;
+            return;
+        }
+
+        // ⭐ currentSettingStories의 각 스토리 요소를 렌더링
+        currentSettingStories.forEach(story => {
+            const storyIdStr = story.id.toString();
+            const isActive = storyIdStr === selectedStoryId;
+            const episodeElement = document.createElement('div');
+            episodeElement.className = `p-2 rounded-md cursor-pointer transition duration-100 ${isActive ? 'bg-blue-100 font-medium' : 'hover:bg-gray-50'}`;
+            episodeElement.innerHTML = `
+                    <span class="text-sm ${isActive ? 'text-blue-700' : 'text-gray-600'}">
+                       [${story.episode_number}화] ${story.prompt || '제목 없음'}
+                    </span>
+                `;
+            episodeElement.onclick = () => handleEpisodeSelection(storyIdStr);
+            episodeListContainer.appendChild(episodeElement); // ⭐ episodeListContainer에 추가
+        });
+    }
+
+    function handleEpisodeSelection(storyId, shouldScroll = true) {
+        selectedStoryId = storyId.toString();
+        renderEpisodeList();
+        renderEpisodeDetail(shouldScroll);
+        if(aiAnalysisButton) aiAnalysisButton.disabled = false;
+    }
+
+    function renderEpisodeDetail(shouldScroll = true) {
+        const selectedStory = currentSettingStories.find(e => e.id.toString() === selectedStoryId);
+        const selectedSetting = allSettings.find(p => p.id.toString() === selectedSettingId);
+        if(aiOutput) aiOutput.classList.add('hidden');
+
+        if (!selectedStory || !selectedSetting) {
+            selectedEpisodeTitle.textContent = '회차 상세 내용';
+            episodeDetailContent.innerHTML = `<p class="text-gray-400 text-center mt-8">회차를 선택하시면 상세 내용이 나타납니다.</p>`;
+            if(aiAnalysisButton) aiAnalysisButton.disabled = true;
+            return;
+        }
+
+        selectedEpisodeTitle.textContent = `[${selectedStory.episode_number}화] ${selectedStory.prompt || '제목 없음'}`;
+
+        // 회차 내용이 비어있을 경우 표시할 메시지
+        const episodeContent = selectedStory.content || '이 회차의 내용이 데이터베이스에 저장되어 있지 않거나 비어 있습니다.';
+
+
+        episodeDetailContent.innerHTML = `
+                <div class="space-y-4">
+                    <!-- 설정 상세: 토글 가능하도록 변경 -->
+                    <div id="setting-detail-card" class="bg-gray-50 rounded-lg border border-gray-200 shadow-inner">
+                        <div id="settings-header" class="p-3 cursor-pointer flex justify-between items-center hover:bg-gray-100 transition duration-150">
+                            <h4 class="font-bold text-gray-700">📌 설정 상세 보기 (클릭하여 토글)</h4>
+                            <span id="toggle-icon" class="text-gray-500 transform transition-transform duration-300">▼</span>
+                        </div>
+                        <div id="settings-body" class="p-3 pt-0 hidden">
+                            <p class="text-xs text-gray-600">
+                                <strong>세계관:</strong> ${selectedSetting.worldSetting}<br>
+                                <strong>캐릭터 상세:</strong> ${selectedSetting.characterDetails}<br>
+                                <strong>플롯 상세:</strong> ${selectedSetting.plotDetails}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 회차 내용 (핵심 내용을 별도 박스로 강조) -->
+                    <div class="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <h4 class="font-bold text-gray-800 mb-2 border-b pb-1">회차 내용 (Episode ${selectedStory.episode_number})</h4>
+                        <p class="whitespace-pre-wrap text-sm text-gray-700">${episodeContent}</p>
+                    </div>
+                </div>
+            `;
+
+        // 토글 기능 추가
+        const settingsHeader = document.getElementById('settings-header');
+        const settingsBody = document.getElementById('settings-body');
+        const toggleIcon = document.getElementById('toggle-icon');
+
+        settingsHeader.onclick = () => {
+            const isHidden = settingsBody.classList.toggle('hidden');
+            if (isHidden) {
+                toggleIcon.textContent = '▼'; // 닫힘
+            } else {
+                toggleIcon.textContent = '▲'; // 열림
+            }
+        };
+
+        if (shouldScroll) {
+            episodeDetailContent.scrollTop = 0;
+        }
+    }
+
+    // --- Gemini API 호출 로직 (AI 분석) ---
+
+    async function performAIAnalysis() {
+        if (!selectedSettingId || !selectedStoryId) return;
+
+        const selectedSetting = allSettings.find(p => p.id.toString() === selectedSettingId);
+        const selectedStory = currentSettingStories.find(e => e.id.toString() === selectedStoryId);
+
+        if (!selectedSetting || !selectedStory) return;
+
+        if(aiOutput) aiOutput.classList.add('hidden');
+        if(aiButtonText) aiButtonText.textContent = '분석 중...';
+        if(aiSpinner) aiSpinner.classList.remove('hidden');
+        if(aiAnalysisButton) aiAnalysisButton.disabled = true;
+
+        const systemPrompt = `당신은 세계적인 소설 플롯 컨설턴트입니다. 사용자가 제공한 플롯 설정과 최신 회차 내용을 바탕으로 다음 세 가지 항목을 분석하여 상세하고 전문적인 한국어 리포트를 제공하세요:
+1.  **내용 검증 (Consistency Check):** 플롯의 **세계관 설정(worldSetting)**, **캐릭터 상세(characterDetails)**, **플롯 상세(plotDetails)**와 현재 회차 내용이 일치하는지, 혹은 모순되는 부분은 없는지 명확하게 분석합니다.
+2.  **다음 전개 예상 (Future Trajectory):** 현재 회차의 결말이나 사건을 기반으로 가장 논리적이거나 흥미로운 다음 회차의 전개 방향을 2~3가지 제안합니다.
+3.  **잠재적 문제점 및 개선점 (Risks & Improvements):** 플롯의 흥미도, 개연성, 독자의 반응 등을 고려하여 현재 내용이 안고 있는 잠재적 위험 요소나, 독자를 더 끌어당길 수 있는 개선점을 제시합니다.
+
+결과는 마크다운 형식으로 작성하며, 제목 외에 다른 부제목이나 섹션 구분자를 사용하지 마세요.`;
+
+        // 새 설정 필드 사용
+        const userQuery = `**[플롯 설정]**
+- 제목: ${selectedSetting.title}
+- 세계관 설정: ${selectedSetting.worldSetting}
+- 캐릭터 상세: ${selectedSetting.characterDetails}
+- 플롯 상세: ${selectedSetting.plotDetails}
+
+**[최신 회차 내용]**
+- 회차 번호: ${selectedStory.episode_number}
+- 내용: ${selectedStory.content}
+
+이 정보를 바탕으로 위 세 가지 항목에 대한 분석 리포트를 작성해 주세요.`;
+
+       
+			// 🔴 중요 변경: API 요청 주소를 프록시 서버 엔드포인트로 변경
+			const proxyUrl = '/api/generate-text';
+			
+            const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            tools: [{ "google_search": {} }],
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+             };
+			
+			const requestBody = {
+			  model: modelName,
+			  payload: payload
+			};			
+            
+        const fetcher = () => fetch(proxyUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        try {
+            const response = await retryWithExponentialBackoff(fetcher);
+            const result = await response.json();
+
+            const candidate = result.candidates?.[0];
+
+            if (candidate && candidate.content?.parts?.[0]?.text) {
+                const text = candidate.content.parts[0].text;
+                let sources = [];
+                const groundingMetadata = candidate.groundingMetadata;
+
+                if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                    sources = groundingMetadata.groundingAttributions
+                        .map(attribution => ({
+                            uri: attribution.web?.uri,
+                            title: attribution.web?.title,
+                        }))
+                        .filter(source => source.uri && source.title);
+                }
+
+                let outputHtml = `<h4 class="font-bold text-lg text-gray-800 mb-3">AI 분석 리포트</h4>`;
+                outputHtml += `<div class="prose max-w-none">${text.replace(/\n/g, '<br>')}</div>`;
+
+                if (sources.length > 0) {
+                    outputHtml += '<div class="mt-4 pt-3 border-t border-gray-200">';
+                    outputHtml += '<p class="font-semibold text-xs text-gray-600 mb-1">참고 자료:</p>';
+                    sources.forEach((source) => {
+                        outputHtml += `<p class="text-xs text-gray-500 truncate"><a href="${source.uri}" target="_blank" class="hover:text-blue-500">${source.title || source.uri}</a></p>`;
+                    });
+                    outputHtml += '</div>';
+                }
+
+                if(aiOutput) {
+                    aiOutput.innerHTML = outputHtml;
+                    aiOutput.classList.remove('hidden');
+                }
+
+            } else {
+                if(aiOutput) {
+                    aiOutput.innerHTML = '<p class="text-red-500">죄송합니다. AI 분석 결과를 가져오는 데 실패했습니다.</p>';
+                    aiOutput.classList.remove('hidden');
+                }
+            }
+
+        } catch (error) {
+            console.error("AI Analysis Failed:", error);
+            if(aiOutput) {
+                aiOutput.innerHTML = `<p class="text-red-500">AI 분석 중 치명적인 오류가 발생했습니다: ${error.message}</p>`;
+                aiOutput.classList.remove('hidden');
+            }
+        } finally {
+            if(aiButtonText) aiButtonText.textContent = '소설 내용 검증 및 다음 전개 예상';
+            if(aiSpinner) aiSpinner.classList.add('hidden');
+            if(aiAnalysisButton) aiAnalysisButton.disabled = false;
+
+            if (aiOutput) {
+                aiOutput.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    }
+
+    function handleAddPlotClick() {
+        alert("새 설정 추가 기능은 현재 UI에 구현되어 있지 않습니다. 콘솔을 통해 직접 데이터를 추가해 주세요.");
+    }
+
+    function initApp(isRefresh = false) {
+        if (isRefresh) {
+            systemInfo.textContent = 'API 상태: 수동 새로고침 중...';
+        }
+        fetchSettings();
+    }
+
+    // --- 이벤트 리스너 설정 ---
+    function setupEventListeners() {
+        // 새 설정 추가 버튼
+        if (addPlotButton) {
+            addPlotButton.addEventListener('click', handleAddPlotClick);
+        }
+        // 데이터 새로고침 버튼
+        if (refreshDataButton) {
+            refreshDataButton.addEventListener('click', () => initApp(true));
+        }
+        // AI 분석 버튼 (오류 발생 지점)
+        if (aiAnalysisButton) {
+            aiAnalysisButton.addEventListener('click', performAIAnalysis);
+        }
+    }
+
+    // --- 시작: 페이지 로드 시 이벤트 리스너 설정 및 앱 초기화 ---
+    window.onload = function() {
+        setupEventListeners();
+        initApp();
+    };
+
+</script>
+</body>
+</html>

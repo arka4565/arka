@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/storys1",
+      "destination": "/story_plotter.html"
+    },
+    {
+      "source": "/storys2",
+      "destination": "/story_stories.html"
+    },
+    {
+      "source": "/index2",
+      "destination": "/index2.html"
+    },
+    {
+      "source": "/index3",
+      "destination": "/index3.html"
+    },
+    {
+      "source": "/index4",
+      "destination": "/index4.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
