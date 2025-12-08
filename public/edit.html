@@ -26,9 +26,10 @@
             margin: 0;
             padding: 0;
             color: var(--text-color);
-            height: 100vh;
+            height: 100vh; /* 전체 높이 고정 */
             display: flex;
             flex-direction: column;
+            overflow: hidden; /* 스크롤 방지 */
         }
 
         /* --- 네비게이션 --- */
@@ -40,6 +41,7 @@
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
+            z-index: 1001; /* 사이드바보다 위 */
         }
         .nav-left { display: flex; align-items: center; gap: 15px; }
         .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
@@ -56,11 +58,12 @@
         .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
         .nav-item.active { color: white; background: var(--edit-color); font-weight: bold; }
 
-        /* --- 메인 레이아웃 (좌:목록, 우:작업) --- */
+        /* --- 메인 레이아웃 --- */
         .workspace-container {
             display: flex;
             flex: 1;
             overflow: hidden;
+            position: relative; /* 모바일 사이드바 위치 기준 */
         }
 
         /* 좌측 사이드바 (회차 목록) */
@@ -70,6 +73,8 @@
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
+            transition: transform 0.3s ease; /* 슬라이드 효과 */
+            z-index: 1000;
         }
         .sidebar-header {
             padding: 15px;
@@ -77,7 +82,12 @@
             font-weight: bold;
             color: var(--edit-color);
             background: #fdfbff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+        .btn-close-sidebar { display: none; background:none; border:none; font-size:1.2rem; cursor:pointer; color:#666; }
+
         .story-list {
             flex: 1;
             overflow-y: auto;
@@ -95,6 +105,15 @@
         .story-item.active { background: #f3e5f5; border-left: 4px solid var(--edit-color); font-weight: bold; }
         .story-meta { font-size: 0.8rem; color: #888; margin-top: 4px; }
 
+        /* 모바일 배경 어둡게 (Backdrop) */
+        .sidebar-backdrop {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+
         /* 우측 메인 영역 */
         .main-area {
             flex: 1;
@@ -102,23 +121,26 @@
             flex-direction: column;
             background: #f8f9fa;
             position: relative;
+            width: 100%; /* 모바일 대응 */
         }
 
-        /* 탭 메뉴 (수정 vs 관리) */
+        /* 탭 메뉴 */
         .top-tabs {
             display: flex;
             background: white;
             border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
         }
         .top-tab-btn {
             flex: 1;
-            padding: 15px;
+            padding: 12px;
             border: none;
             background: none;
-            font-size: 1rem;
+            font-size: 0.95rem;
             cursor: pointer;
             color: #777;
             border-bottom: 3px solid transparent;
+            white-space: nowrap;
         }
         .top-tab-btn.active {
             color: var(--edit-color);
@@ -126,105 +148,137 @@
             font-weight: bold;
         }
         
-        .tab-content { display: none; flex: 1; flex-direction: column; height: 100%; }
+        .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
         .tab-content.active { display: flex; }
 
-        /* --- [탭 1] 에디터 및 AI --- */
+        /* 탭 1: 에디터 */
         .editor-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px;
+            padding: 15px;
             gap: 15px;
             overflow-y: auto;
         }
         
-        .edit-header { display: flex; justify-content: space-between; align-items: center; }
-        .story-title { font-size: 1.2rem; font-weight: bold; color: #333; }
+        .edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap; /* 모바일 줄바꿈 */
+            gap: 10px;
+        }
         
-        /* 텍스트 에디터 */
+        .header-left { display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden; }
+        
+        /* 🌟 모바일용 메뉴 버튼 */
+        .btn-mobile-menu {
+            display: none; /* PC에선 숨김 */
+            background: white; border: 1px solid #ddd; padding: 8px 12px;
+            border-radius: 6px; cursor: pointer; color: #555;
+        }
+
+        .story-title {
+            font-size: 1.1rem; font-weight: bold; color: #333;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        
         .text-editor {
             flex: 1;
             width: 100%;
-            min-height: 300px;
-            padding: 20px;
+            padding: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
-            font-size: 1.05rem;
+            font-size: 1rem;
             line-height: 1.8;
             resize: none;
             background: white;
             font-family: 'Pretendard', sans-serif;
+            min-height: 200px;
         }
         .text-editor:focus { outline: 2px solid var(--edit-color); border-color: transparent; }
 
-        /* AI 컨트롤 패널 */
+        /* AI 패널 */
         .ai-revision-panel {
             background: #fff;
             padding: 15px;
             border-radius: 8px;
             border: 1px solid #e1bee7;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            flex-shrink: 0; /* 크기 유지 */
         }
-        .panel-title { color: var(--edit-color); font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+        .panel-title { color: var(--edit-color); font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; }
         
-        .ai-input-group { display: flex; gap: 10px; }
-        .ai-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .ai-input-group { display: flex; gap: 8px; flex-direction: column; }
+        .ai-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
         .btn-ai-action {
-            background: var(--edit-color); color: white; border: none; padding: 0 20px;
-            border-radius: 6px; cursor: pointer; white-space: nowrap; transition: background 0.2s;
+            background: var(--edit-color); color: white; border: none; padding: 10px;
+            border-radius: 6px; cursor: pointer; font-weight: bold;
         }
         .btn-ai-action:hover { background: #7d3c98; }
 
         .btn-save {
-            background: #2c3e50; color: white; border: none; padding: 8px 20px;
-            border-radius: 6px; cursor: pointer;
+            background: #2c3e50; color: white; border: none; padding: 8px 16px;
+            border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap;
         }
 
-        /* --- [탭 2] 내보내기/관리 --- */
-        .manage-container { padding: 30px; max-width: 800px; margin: 0 auto; width: 100%; overflow-y: auto; }
+        /* 탭 2: 관리 */
+        .manage-container { padding: 20px; width: 100%; overflow-y: auto; }
         .manage-card {
-            background: white; padding: 25px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 20px;
+            background: white; padding: 20px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 15px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.03);
         }
-        .manage-card h3 { margin-top: 0; color: #444; }
+        .manage-card h3 { margin-top: 0; color: #444; font-size: 1.1rem; }
         
         .export-btn {
             display: inline-flex; align-items: center; gap: 10px;
-            padding: 12px 20px; border: 1px solid #ddd; border-radius: 8px;
-            background: white; cursor: pointer; margin-right: 10px; margin-bottom: 10px;
-            transition: all 0.2s;
+            padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+            background: white; cursor: pointer; width: 100%; margin-bottom: 10px;
+            justify-content: center;
         }
-        .export-btn:hover { background: #f0f7ff; border-color: var(--primary-color); color: var(--primary-color); }
-        
         .btn-delete-project {
             background: white; color: var(--danger-color); border: 1px solid var(--danger-color);
-            padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;
+            padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold;
         }
-        .btn-delete-project:hover { background: var(--danger-color); color: white; }
 
-        /* --- 모달 (비교 및 확인) --- */
+        /* 모달 */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000;
         }
-        .modal { background: white; width: 95%; max-width: 800px; padding: 25px; border-radius: 10px; max-height: 90vh; overflow-y: auto; }
+        .modal { background: white; width: 90%; max-width: 800px; padding: 20px; border-radius: 10px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
         
-        .diff-container { display: flex; gap: 15px; margin: 15px 0; max-height: 400px; }
+        .diff-container { display: flex; gap: 10px; margin: 15px 0; flex: 1; overflow: hidden; min-height: 200px; }
         .diff-box {
-            flex: 1; padding: 15px; border-radius: 6px; overflow-y: auto;
+            flex: 1; padding: 10px; border-radius: 6px; overflow-y: auto;
             white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; border: 1px solid #ddd;
         }
         .old-ver { background: #ffeef0; border-color: #ffccd0; }
         .new-ver { background: #e8f5e9; border-color: #c8e6c9; }
-        
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
 
-        /* 반응형 */
+        /* 🌟 모바일 반응형 스타일 */
         @media (max-width: 768px) {
-            .workspace-container { flex-direction: column; }
-            .sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid #ddd; }
+            /* 사이드바를 드로어(Drawer) 형태로 변경 */
+            .sidebar {
+                position: absolute;
+                top: 0; left: 0; height: 100%;
+                transform: translateX(-100%); /* 기본 숨김 */
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            }
+            .sidebar.active { transform: translateX(0); } /* 보임 */
+            
+            .btn-close-sidebar { display: block; } /* 닫기 버튼 표시 */
+            .btn-mobile-menu { display: block; } /* 메뉴 버튼 표시 */
+            
+            /* 백드롭 활성화 시 클릭 방지 */
+            .sidebar-backdrop.active { display: block; }
+
             .diff-container { flex-direction: column; }
+            .diff-box { max-height: 200px; }
+            
+            .editor-container { padding: 10px; }
+            .ai-input-group { flex-direction: column; }
         }
     </style>
 </head>
@@ -245,8 +299,13 @@
 </nav>
 
 <div class="workspace-container">
-    <aside class="sidebar">
-        <div class="sidebar-header"><i class="fas fa-list"></i> 수정할 회차 선택</div>
+    <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span><i class="fas fa-list"></i> 회차 목록</span>
+            <button class="btn-close-sidebar" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+        </div>
         <ul id="storyList" class="story-list">
             <li style="padding:15px; text-align:center;">로딩 중...</li>
         </ul>
@@ -254,28 +313,30 @@
 
     <main class="main-area">
         <div class="top-tabs">
-            <button class="top-tab-btn active" onclick="switchTab('edit')"><i class="fas fa-pen-nib"></i> AI 윤문/수정</button>
-            <button class="top-tab-btn" onclick="switchTab('manage')"><i class="fas fa-tasks"></i> 내보내기/관리</button>
+            <button class="top-tab-btn active" onclick="switchTab('edit')"><i class="fas fa-pen-nib"></i> AI 윤문</button>
+            <button class="top-tab-btn" onclick="switchTab('manage')"><i class="fas fa-tasks"></i> 관리</button>
         </div>
 
         <div id="tab-edit" class="tab-content active">
             <div class="editor-container">
                 <div class="edit-header">
-                    <span id="currentTitle" class="story-title">회차를 선택해주세요</span>
-                    <button class="btn-save" onclick="saveStory()"><i class="fas fa-save"></i> 저장하기</button>
+                    <div class="header-left">
+                        <button class="btn-mobile-menu" onclick="toggleSidebar()"><i class="fas fa-bars"></i> 목록</button>
+                        <span id="currentTitle" class="story-title">회차를 선택해주세요</span>
+                    </div>
+                    <button class="btn-save" onclick="saveStory()"><i class="fas fa-save"></i> 저장</button>
                 </div>
 
-                <textarea id="mainEditor" class="text-editor" placeholder="좌측 목록에서 회차를 선택하면 내용이 표시됩니다."></textarea>
+                <textarea id="mainEditor" class="text-editor" placeholder="목록 버튼을 눌러 회차를 선택하세요."></textarea>
 
                 <div class="ai-revision-panel">
                     <div class="panel-title">
                         <i class="fas fa-robot"></i> AI 수정 지시
-                        <span style="font-size:0.8rem; font-weight:normal; color:#666; margin-left:10px;">전체 내용을 AI가 다시 작성합니다.</span>
                     </div>
                     <div class="ai-input-group">
-                        <input type="text" id="aiPrompt" class="ai-input" placeholder="예: 전체적으로 문체를 더 무겁게 바꿔줘, 주인공의 대사를 더 거칠게 수정해줘">
+                        <input type="text" id="aiPrompt" class="ai-input" placeholder="예: 문체를 더 무겁게, 오타 수정">
                         <button class="btn-ai-action" onclick="requestAiRevision()">
-                            <i class="fas fa-magic"></i> 수정 요청
+                            <i class="fas fa-magic"></i> 수정
                         </button>
                     </div>
                 </div>
@@ -286,21 +347,18 @@
             <div class="manage-container">
                 <div class="manage-card">
                     <h3><i class="fas fa-file-export"></i> 텍스트 내보내기</h3>
-                    <p style="color:#666; font-size:0.9rem;">전체 회차를 하나의 파일로 다운로드합니다.</p>
-                    <button class="export-btn" onclick="downloadTextFile()"><i class="fas fa-file-alt"></i> TXT 통합본 다운로드</button>
+                    <button class="export-btn" onclick="downloadTextFile()"><i class="fas fa-file-alt"></i> TXT 다운로드</button>
                     <button class="export-btn" onclick="copyToClipboard()"><i class="fas fa-copy"></i> 클립보드 복사</button>
                 </div>
 
                 <div class="manage-card">
                     <h3><i class="fas fa-database"></i> 데이터 백업</h3>
-                    <p style="color:#666; font-size:0.9rem;">프로젝트 전체 데이터(설정, 세계관 등 포함)를 백업합니다.</p>
-                    <button class="export-btn" onclick="downloadBackup()"><i class="fas fa-download"></i> JSON 백업 다운로드</button>
+                    <button class="export-btn" onclick="downloadBackup()"><i class="fas fa-download"></i> JSON 백업</button>
                 </div>
 
                 <div class="manage-card" style="border-color:#ffcccc; background:#fff5f5;">
                     <h3 style="color:var(--danger-color);"><i class="fas fa-trash"></i> 프로젝트 삭제</h3>
-                    <p style="color:#c0392b; font-size:0.9rem;">이 작업은 되돌릴 수 없습니다.</p>
-                    <button class="btn-delete-project" onclick="deleteProject()">프로젝트 영구 삭제</button>
+                    <button class="btn-delete-project" onclick="deleteProject()">영구 삭제</button>
                 </div>
             </div>
         </div>
@@ -309,25 +367,13 @@
 
 <div id="diffModal" class="modal-overlay">
     <div class="modal">
-        <h3><i class="fas fa-check-circle"></i> AI 수정 결과 확인</h3>
-        <p>수정된 내용을 원본과 비교하고 적용 여부를 결정하세요.</p>
-        
+        <h3><i class="fas fa-check-circle"></i> AI 수정 확인</h3>
         <div class="diff-container">
-            <div class="diff-box old-ver">
-                <div style="font-weight:bold; color:#c0392b; margin-bottom:5px;">[변경 전]</div>
-                <div id="oldTextContent"></div>
-            </div>
-            <div style="text-align:center; display:flex; align-items:center; justify-content:center;">
-                <i class="fas fa-arrow-right" style="color:#999;"></i>
-            </div>
-            <div class="diff-box new-ver">
-                <div style="font-weight:bold; color:#27ae60; margin-bottom:5px;">[변경 후]</div>
-                <div id="newTextContent"></div>
-            </div>
+            <div class="diff-box old-ver" id="oldTextContent"></div>
+            <div class="diff-box new-ver" id="newTextContent"></div>
         </div>
-
         <div class="modal-footer">
-            <button class="export-btn" onclick="closeDiffModal()">취소</button>
+            <button class="btn-mobile-menu" onclick="closeDiffModal()" style="display:inline-block; border:1px solid #ddd;">취소</button>
             <button class="btn-ai-action" onclick="applyAiResult()">적용하기</button>
         </div>
     </div>
@@ -336,7 +382,7 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const settingId = urlParams.get('setting_id');
-    
+   
     let currentStoryId = null;
     let globalStories = [];
     let contextData = ""; // AI용 배경지식
@@ -531,7 +577,14 @@
             if (target) item.href = `${target}?setting_id=${settingId}`;
         });
     }
-
+ // 🌟 사이드바 토글 기능
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.querySelector('.sidebar-backdrop');
+        
+        sidebar.classList.toggle('active');
+        backdrop.classList.toggle('active');
+    }
     // 탭 전환
     function switchTab(tabName) {
         document.querySelectorAll('.top-tab-btn').forEach(btn => btn.classList.remove('active'));
