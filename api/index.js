@@ -411,25 +411,6 @@ app.delete('/api/characters/:id', (req, res) => {
 
 // --- 스토리 관련 기존 엔드포인트 ---
 
-/**
- * 특정 플롯에 연결된 회차 목록 조회
- * GET /api/load-episodes?setting_id={setting_id}
- */
-router.get('/load-episodes', (req, res) => {
-    const setting_id = req.query.setting_id;
-    if (!setting_id) return res.status(400).json({ error: 'setting_id is required' });
-
-    // episode_number와 created_at 순으로 정렬
-    const sql = 'SELECT id, setting_id, prompt,content, episode_number, created_at FROM stories WHERE setting_id = ? ORDER BY episode_number ASC, created_at ASC';
-    db.query(sql, [setting_id], (err, results) => {
-        if (err) {
-            console.error('Database load error in /api/load-episodes:', err);
-            return res.status(500).json({ error: 'Database load failed.' });
-        }
-        res.status(200).json(results);
-    });
-});
-
 
 /**
  * 플롯 및 관련 회차 삭제 (트랜잭션 사용)
@@ -506,232 +487,144 @@ app.delete('/api/delete-settings', (req, res) => {
 });
 
 
-/**
- * 생성된 스토리 저장 API (stories 테이블에 저장)
- * POST /api/save-story
- */
-app.post('/api/save-story', (req, res) => {
-    const { setting_id, prompt, content, episode_number } = req.body;
-
-    if (!setting_id || !prompt || !content || episode_number === undefined || episode_number === null) {
-        return res.status(400).json({ error: 'Missing required fields: setting_id, prompt, content, or episode_number' });
-    }
-
-    const sql = `INSERT INTO stories (setting_id, prompt, content, episode_number,created_at) VALUES (?, ?, ?, ?,NOW())`;
-
-    db.query(sql, [setting_id, prompt, content, episode_number], (err, result) => {
-        if (err) {
-            console.error("❌ 스토리 저장 실패:", err.message);
-            return res.status(500).json({ error: err.message });
-        }
-        console.log(`✅ 스토리 저장 완료. ID: ${result.insertId}`);
-        res.status(200).json({ message: 'Story saved successfully', id: result.insertId });
-    });
-});
+// ==========================================
+// 🌟 [통합] 스토리(회차) 관리 API (Table: stories)
+// ==========================================
 
 /**
- * 회차 내용(content)을 업데이트하는 API 라우트 (MySQL 구현)
- * 요청 본문: { setting_id: '...', story_id: '...', content: '새로운 내용' }
+ * 1. 회차 목록 조회
+ * GET /api/stories?setting_id={id}
+ * - 1화부터 순서대로 정렬 (ASC)
  */
-app.post('/api/update-story-content', (req, res) => {
-    const { setting_id, story_id, content } = req.body;
+router.get('/stories', (req, res) => {
+    const settingId = req.query.setting_id;
+    if (!settingId) return res.status(400).json({ error: 'setting_id is required' });
 
-    // 필수 필드 검증
-    if (!setting_id || !story_id || content === undefined) {
-        return res.status(400).json({ message: "setting_id, story_id, and content are required." });
-    }
-
-    // SQL 쿼리 작성: stories 테이블의 content 필드를 업데이트
+    // created_at을 프론트엔드에서 쓰기 편하게 createdAt으로 별칭 처리
     const sql = `
-        UPDATE stories 
-        SET content = ?, 
-            updatedAt = NOW() 
+        SELECT id, setting_id, episode_number, title, content, prompt, created_at AS createdAt 
+        FROM stories 
         WHERE setting_id = ? 
-        AND id = ?
+        ORDER BY episode_number ASC
     `;
 
-    // 쿼리 실행
-    db.query(sql, [content, setting_id, story_id], (err, result) => {
+    db.query(sql, [settingId], (err, results) => {
         if (err) {
-            console.error('Error updating story content:', err);
-            return res.status(500).json({ message: 'Failed to update story content.', error: err.message });
+            console.error('DB Error /api/stories (GET):', err);
+            return res.status(500).json({ error: '데이터 로드 실패' });
         }
-
-        // 업데이트된 행이 0개인 경우 (해당 ID가 없거나 내용이 변경되지 않았을 때)
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: 'No story found with the provided IDs, or the content was already identical.',
-                setting_id,
-                story_id
-            });
-        }
-
-        // 성공 응답
-        console.log(`Successfully updated story ${story_id} in setting ${setting_id}. Rows affected: ${result.affectedRows}`);
-        res.status(200).json({
-            message: 'Story content successfully updated.',
-            rowsAffected: result.affectedRows
-        });
+        res.status(200).json(results);
     });
 });
 
-
-// --- 스토리/플롯 저장 라우트 ---
 /**
- * POST /api/plots
- * 생성된 플롯 데이터를 받아 DB의 stories 테이블에 저장합니다.
- * stories 테이블에 setting_id, title, content 컬럼이 있다고 가정합니다.
+ * 2. 새 회차 생성
+ * POST /api/stories
+ * - content가 비어있어도 생성 가능하도록 처리
  */
-app.post('/api/plots', (req, res) => {
-    // story_plotter.html에서 보낸 데이터 구조를 가정
-    const { worldSetting, characterDetails, plotDetails, generatedPlot } = req.body;
+app.post('/api/stories', (req, res) => {
+    const { setting_id, episode_number, title, content, prompt } = req.body;
 
-    if (!worldSetting || !characterDetails || !plotDetails || !generatedPlot) {
-        return res.status(400).json({ message: 'Missing required plot data.' });
+    // 필수값 체크 (내용은 없어도 됨)
+    if (!setting_id || !episode_number || !title) {
+        return res.status(400).json({ message: '필수 항목 누락: setting_id, episode_number, title' });
     }
 
-    // 데이터베이스에 저장할 내용을 JSON 문자열로 결합 (단일 content 필드 사용을 위해)
-    const contentToSave = JSON.stringify({
-        worldSetting,
-        characterDetails,
-        plotDetails,
-        generatedPlot
-    });
-
-    // 제목은 세계관 설정에서 첫 몇 글자를 따서 생성
-    const title = 'Plot: ' + worldSetting.substring(0, 40).trim() + (worldSetting.length > 40 ? '...' : '');
-    // setting_id는 예시로 1을 사용합니다. 실제 앱에서는 사용자 설정에 따라 다를 수 있습니다.
-    const setting_id = 1;
-
-    // MySQL 쿼리 작성
     const sql = `
-        INSERT INTO stories (setting_id, title, content, createdAt, updatedAt)
-        VALUES (?, ?, ?, NOW(), NOW())
+        INSERT INTO stories (setting_id, episode_number, title, content, prompt, created_at) 
+        VALUES (?, ?, ?, ?, ?, NOW())
     `;
+    
+    // undefined 방지
+    const safeContent = content === undefined ? '' : content;
+    const safePrompt = prompt || 'User Created';
 
-    // 쿼리 실행
-    db.query(sql, [setting_id, title, contentToSave], (err, result) => {
+    db.query(sql, [setting_id, episode_number, title, safeContent, safePrompt], (err, result) => {
         if (err) {
-            console.error('Error inserting new plot:', err);
-            return res.status(500).json({ message: 'Failed to save new plot.', error: err.message });
+            console.error('DB Error /api/stories (POST):', err);
+            return res.status(500).json({ message: '저장 실패', error: err.message });
         }
-
-        // 성공 응답
-        console.log(`Successfully saved new plot. Insert ID: ${result.insertId}`);
+        
+        console.log(`✅ 스토리 생성 완료. ID: ${result.insertId}, ${episode_number}화`);
         res.status(201).json({
-            message: 'New plot successfully saved.',
-            plotId: result.insertId,
-            title
+            message: '성공적으로 생성되었습니다.',
+            id: result.insertId,
+            episode_number: episode_number
         });
     });
 });
 
-// --- 스토리/플롯 수정 라우트 (추가됨: 기존 플롯에 내용을 추가/수정하는 기능) ---
 /**
- * PUT /api/plots/:plotId
- * 특정 ID의 플롯을 받아 업데이트합니다. 프론트엔드에서 기존 내용을 가져와 수정한 후 다시 전송해야 합니다.
+ * 3. 회차 수정 (내용/제목 업데이트)
+ * PUT /api/stories/:id
  */
-app.put('/api/plots/:plotId', (req, res) => {
-    const { plotId } = req.params;
-    const { worldSetting, characterDetails, plotDetails, generatedPlot } = req.body;
+app.put('/api/stories/:id', (req, res) => {
+    const storyId = req.params.id;
+    const { episode_number, title, content } = req.body;
 
-    if (!plotId || !worldSetting || !characterDetails || !plotDetails || !generatedPlot) {
-        return res.status(400).json({ message: 'Missing plot ID or required plot data for update.' });
+    if (!storyId || !title) {
+        return res.status(400).json({ message: 'ID와 제목은 필수입니다.' });
     }
 
-    // 데이터베이스에 저장할 내용을 JSON 문자열로 결합
-    const contentToSave = JSON.stringify({
-        worldSetting,
-        characterDetails,
-        plotDetails,
-        generatedPlot
-    });
-
-    // 제목도 업데이트될 수 있도록 재설정
-    const title = 'Plot: ' + worldSetting.substring(0, 40).trim() + (worldSetting.length > 40 ? '...' : '');
-
-    // SQL 쿼리 작성: stories 테이블의 content와 title 필드를 업데이트
+    // updated_at 컬럼이 있다면 업데이트, 없으면 내용만 업데이트
+    // 여기서는 안전하게 내용 위주로 작성 (필요시 updatedAt = NOW() 추가)
     const sql = `
         UPDATE stories 
-        SET content = ?, 
-            title = ?,
-            updatedAt = NOW() 
+        SET episode_number = ?, title = ?, content = ?
         WHERE id = ?
     `;
 
-    // 쿼리 실행
-    db.query(sql, [contentToSave, title, plotId], (err, result) => {
+    // content가 undefined면 기존 내용을 지우지 않도록 처리해야 하나, 
+    // 에디터 특성상 빈 문자열도 "삭제"로 볼 수 있으므로 그대로 저장합니다.
+    const safeContent = content === undefined ? '' : content;
+
+    db.query(sql, [episode_number, title, safeContent, storyId], (err, result) => {
         if (err) {
-            console.error('Error updating plot:', err);
-            return res.status(500).json({ message: 'Failed to update plot.', error: err.message });
+            console.error(`DB Error /api/stories/${storyId} (PUT):`, err);
+            return res.status(500).json({ message: '수정 실패', error: err.message });
         }
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: 'Plot not found with the provided ID.',
-                plotId
-            });
+            return res.status(404).json({ message: '해당 스토리를 찾을 수 없습니다.' });
         }
 
-        // 성공 응답
-        console.log(`Successfully updated plot ${plotId}. Rows affected: ${result.affectedRows}`);
-        res.status(200).json({
-            message: 'Plot successfully updated.',
-            plotId,
-            rowsAffected: result.affectedRows
-        });
+        console.log(`✅ 스토리 수정 완료. ID: ${storyId}`);
+        res.status(200).json({ message: '수정 완료', id: storyId });
     });
 });
 
-// --- 기존 스토리 내용 업데이트 라우트 ---
-// 이 라우트는 일반적인 스토리 콘텐츠 업데이트용으로 유지합니다.
-app.put('/api/stories/:setting_id/:story_id/content', (req, res) => {
-    const { setting_id, story_id } = req.params;
-    const { content } = req.body;
+/**
+ * 4. 회차 삭제
+ * DELETE /api/stories/:id
+ */
+app.delete('/api/stories/:id', (req, res) => {
+    const storyId = req.params.id;
+    if (!storyId) return res.status(400).json({ error: 'Story ID required' });
 
-    // 필수 필드 검증
-    if (!setting_id || !story_id || content === undefined || content === null) {
-        return res.status(400).json({ message: "setting_id, story_id, and content are required." });
-    }
-
-    // SQL 쿼리 작성: stories 테이블의 content 필드를 업데이트
-    const sql = `
-        UPDATE stories 
-        SET content = ?, 
-            updatedAt = NOW() 
-        WHERE setting_id = ? 
-        AND id = ?
-    `;
-
-    // 쿼리 실행
-    db.query(sql, [content, setting_id, story_id], (err, result) => {
+    const sql = 'DELETE FROM stories WHERE id = ?';
+    db.query(sql, [storyId], (err, result) => {
         if (err) {
-            console.error('Error updating story content:', err);
-            return res.status(500).json({ message: 'Failed to update story content.', error: err.message });
+            console.error("DB Error /api/stories (DELETE):", err);
+            return res.status(500).json({ error: err.message });
         }
-
-        // 업데이트된 행이 0개인 경우 (해당 ID가 없거나 내용이 변경되지 않았을 때)
         if (result.affectedRows === 0) {
-            return res.status(404).json({
-                message: 'No story found with the provided IDs, or the content was already identical.',
-                setting_id,
-                story_id
-            });
+            return res.status(404).json({ error: '삭제할 스토리가 없습니다.' });
         }
-
-        // 성공 응답
-        console.log(`Successfully updated story ${story_id} in setting ${setting_id}. Rows affected: ${result.affectedRows}`);
-        res.status(200).json({
-            message: 'Story content successfully updated.',
-            rowsAffected: result.affectedRows
-        });
+        console.log(`✅ 스토리 삭제 완료. ID: ${storyId}`);
+        res.status(200).json({ message: '삭제되었습니다.' });
     });
 });
 
-// 🚨 누락되었던 GET /api/episodes 라우트 추가
+
+
+
+// ==========================================
+// 🌟 [통합] 에피소드(플롯) 관리 API (Table: episodes)
+// ==========================================
+
 /**
  * [GET] /api/episodes?setting_id=X
- * 특정 설정의 모든 에피소드 목록을 가져옵니다. (히스토리 목록 표시용)
+ * 특정 설정의 모든 에피소드 목록을 가져옵니다.
  */
 app.get(`/api/episodes`, (req, res) => {
     const settingId = req.query.setting_id;
@@ -739,8 +632,8 @@ app.get(`/api/episodes`, (req, res) => {
         return res.status(400).json({ message: 'Setting ID is required.' });
     }
 
-    // 모든 필드 (content 포함)를 가져와 프론트엔드에서 짤라서 보여줍니다.
-    const sql = 'SELECT id, setting_id, episode_number, title, prompt, content, createdAt FROM episodes WHERE setting_id = ? ORDER BY episode_number DESC';
+    // createdAt을 프론트엔드 호환성을 위해 유지하거나 별칭 사용
+    const sql = 'SELECT id, setting_id, episode_number, title, prompt, content, createdAt FROM episodes WHERE setting_id = ? ORDER BY episode_number ASC';
 
     db.query(sql, [settingId], (err, results) => {
         if (err) {
@@ -756,13 +649,11 @@ app.get(`/api/episodes`, (req, res) => {
  * AI 프롬프트 구성을 위해, 특정 에피소드(Y) 직전의 최신 5개 에피소드만 가져옵니다.
  */
 app.get(`/api/previous-stories`, (req, res) => {
-    // 이전 파일에 있었던 코드는 유지합니다.
     const { setting_id, episode_number } = req.query;
     if (!setting_id || !episode_number) {
         return res.status(400).json({ message: 'Setting ID and episode number are required.' });
     }
 
-    // 현재 에피소드 번호보다 낮은 번호 중, 최신 5개만 가져옵니다.
     const sql = `
         SELECT episode_number, title, prompt, content
         FROM episodes
@@ -776,7 +667,6 @@ app.get(`/api/previous-stories`, (req, res) => {
             console.error(`Error fetching previous stories:`, err);
             return res.status(500).json({ message: 'Failed to fetch previous stories.', error: err.message });
         }
-        // 최신순으로 가져왔으나, AI 프롬프트 구성을 위해 다시 오름차순으로 정렬하여 보냅니다. (선택 사항)
         res.status(200).json(results.reverse());
     });
 });
@@ -786,11 +676,11 @@ app.get(`/api/previous-stories`, (req, res) => {
  * 새로 생성된 에피소드를 데이터베이스에 저장합니다.
  */
 app.post(`/api/episodes`, (req, res) => {
-    // 이전 파일에 있었던 코드는 유지합니다.
     const { setting_id, episode_number, title, content, prompt } = req.body;
 
-    if (!setting_id || !episode_number || !title || !content) {
-        return res.status(400).json({ message: 'Required fields are missing: setting_id, episode_number, title, content.' });
+    // 🚨 주의: content가 필수값이므로 프론트엔드에서 최소한 공백(" ")이라도 보내야 합니다.
+    if (!setting_id || !episode_number || !title || content === undefined) {
+        return res.status(400).json({ message: 'Required fields are missing.' });
     }
 
     const sql = `
@@ -798,6 +688,7 @@ app.post(`/api/episodes`, (req, res) => {
         (setting_id, episode_number, title, content, prompt, createdAt) 
         VALUES (?, ?, ?, ?, ?, NOW())
     `;
+    // content가 빈 문자열일 경우를 대비해 처리 (validation 통과 전제)
     const values = [setting_id, episode_number, title, content, prompt || 'AI Generated'];
 
     db.query(sql, values, (err, result) => {
@@ -814,17 +705,17 @@ app.post(`/api/episodes`, (req, res) => {
         });
     });
 });
+
 /**
  * [PUT] /api/episodes/:id
- * 기존 에피소드를 ID를 기준으로 데이터베이스에서 수정(업데이트)합니다.
+ * 기존 에피소드를 ID를 기준으로 수정합니다.
  */
 app.put(`/api/episodes/:id`, (req, res) => {
-    const episodeId = req.params.id; // URL 경로에서 에피소드 ID 추출
-    const { episode_number, title, content } = req.body; // 수정할 필드 추출
+    const episodeId = req.params.id;
+    const { episode_number, title, content } = req.body;
 
-    // 필수 업데이트 필드 확인 (setting_id는 URL에 포함되지 않으므로 제외)
-    if (!episode_number || !title || !content) {
-        return res.status(400).json({ message: 'Required update fields are missing: episode_number, title, content.' });
+    if (!episode_number || !title || content === undefined) {
+        return res.status(400).json({ message: 'Required update fields are missing.' });
     }
 
     const sql = `
@@ -846,11 +737,36 @@ app.put(`/api/episodes/:id`, (req, res) => {
 
         console.log(`Successfully updated episode ID ${episodeId}`);
         res.status(200).json({
-            message: `Episode ID ${episodeId} successfully updated (PUT).`,
+            message: `Episode ID ${episodeId} successfully updated.`,
             id: episodeId
         });
     });
 });
+
+/**
+ * [DELETE] /api/episodes/:id
+ * 에피소드 삭제 (plot.html에서 삭제 기능 지원용)
+ */
+app.delete('/api/episodes/:id', (req, res) => {
+    const episodeId = req.params.id;
+    if (!episodeId) return res.status(400).json({ error: 'Episode ID is required' });
+
+    const sql = 'DELETE FROM episodes WHERE id = ?';
+    db.query(sql, [episodeId], (err, result) => {
+        if (err) {
+            console.error("Error deleting episode:", err);
+            return res.status(500).json({ error: err.message });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Episode not found' });
+        }
+        console.log(`Successfully deleted episode ID: ${episodeId}`);
+        res.status(200).json({ message: 'Episode deleted successfully' });
+    });
+});
+
+
+
 // 🌟🌟🌟 [NEW] Gemini API 프록시 엔드포인트 🌟🌟🌟
 app.post('/api/generate-text', async (req, res) => {
 
@@ -866,7 +782,12 @@ app.post('/api/generate-text', async (req, res) => {
         process.env.GEMINI_API_KEY7,
         process.env.GEMINI_API_KEY8,
         process.env.GEMINI_API_KEY9,
-        process.env.GEMINI_API_KEY10
+        process.env.GEMINI_API_KEY10,
+        process.env.GEMINI_API_KEY11,
+        process.env.GEMINI_API_KEY12,
+        process.env.GEMINI_API_KEY13,
+        process.env.GEMINI_API_KEY14,
+        process.env.GEMINI_API_KEY15
     ].filter(key => key); // undefined, null, 빈 문자열은 제거합니다.
 
     if (availableKeys.length === 0) {

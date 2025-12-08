@@ -1,971 +1,363 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>글쓰기 AI 데모</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Inter 폰트 사용 */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: #f4f7f6;
-    }
-    /* 텍스트 영역의 그림자 및 기본 스타일 */
-    textarea {
-      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    }
-    /* 메뉴 항목 스타일 - 텍스트 색상을 어두운 색으로 변경 */
-    .nav-link {
-      @apply px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition duration-150 ease-in-out;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI Novel Studio - 내 프로젝트</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --primary-color: #4a90e2;
+            --text-color: #333;
+            --sub-text: #666;
+            --danger-color: #ff4d4f;
+        }
+
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* 헤더 스타일 */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .logo-area { display: flex; align-items: center; gap: 10px; }
+        .logo-icon { font-size: 1.8rem; color: var(--primary-color); }
+        h1 { margin: 0; font-size: 1.5rem; color: #2c3e50; }
+
+        .btn-create {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+            font-weight: bold;
+        }
+        .btn-create:hover { background-color: #357abd; }
+
+        /* 프로젝트 그리드 */
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        /* 프로젝트 카드 스타일 */
+        .project-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 200px;
+        }
+
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            border-color: var(--primary-color);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            word-break: keep-all;
+            line-height: 1.4;
+            color: #2c3e50;
+        }
+
+        .card-meta {
+            font-size: 0.85rem;
+            color: var(--sub-text);
+            margin-top: auto;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 15px;
+        }
+        .meta-item { margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+
+        /* 삭제 버튼 */
+        .btn-delete {
+            background: transparent;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+            transition: color 0.3s;
+            z-index: 10;
+        }
+        .btn-delete:hover { color: var(--danger-color); transform: scale(1.1); }
+
+        /* 모달 스타일 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal h2 { margin-top: 0; margin-bottom: 20px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .input-group input:focus { outline: 2px solid var(--primary-color); border-color: transparent; }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .btn-cancel {
+            background: #eee;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #555;
+        }
+        .btn-cancel:hover { background: #e0e0e0; }
+
+        /* 반응형 처리 */
+        @media (max-width: 600px) {
+            header { flex-direction: column; gap: 15px; align-items: stretch; }
+            .logo-area { justify-content: center; }
+            .btn-create { justify-content: center; width: 100%; }
+            .project-grid { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
-!-- 상단 메뉴 추가를 위해 body 스타일 조정 -->
-<body class="p-0 min-h-screen flex flex-col items-center">
+<body>
 
-<nav class="fixed top-0 left-0 z-50 w-full bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
-        <div class="relative flex items-center h-14 sm:h-16">
-            
-            <div class="flex-shrink-0 flex items-center pr-4">
-                <a href="#" class="text-gray-800 text-lg font-bold whitespace-nowrap">
-                   소설작법
-                </a>
-            </div>
+<div class="container">
+    <header>
+        <div class="logo-area">
+            <i class="fas fa-book-open logo-icon"></i>
+            <h1>AI Novel Studio</h1>
+        </div>
+        <button class="btn-create" onclick="openModal()">
+            <i class="fas fa-plus"></i> 새 프로젝트 만들기
+        </button>
+    </header>
 
-            <div class="flex-1 flex items-center justify-end min-w-0">
-                
-                <div class="flex space-x-1 sm:space-x-4 overflow-x-auto whitespace-nowrap py-1 w-full sm:w-auto no-scrollbar">
-                    
-                    <a href="/" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                        글쓰기
-                    </a>
-                    
-                    <a href="/index3" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                        세계관
-                    </a>
-                    
-                    <a href="/index4" class="px-3 py-2 rounded-md text-sm sm:text-base font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" aria-current="page">
-                        에피소드
-                    </a>
-                    
-                    <a href="/index2" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                        등장인물
-                    </a>
-                    
-                    <a href="/storys2" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                        상세편집
-                    </a>
-                    
-                    <a href="/storys1" class="px-3 py-2 rounded-md text-sm sm:text-base font-medium text-gray-700 hover:bg-gray-100 transition-colors">
-                        검증
-                    </a>
-                </div>
-            </div>
-
+    <div id="projectList" class="project-grid">
+        <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: #888;">
+            <i class="fas fa-spinner fa-spin"></i> 로딩 중...
         </div>
     </div>
-</nav>
+</div>
 
-<style>
-    /* Chrome, Safari, Opera */
-    .no-scrollbar::-webkit-scrollbar {
-        display: none;
-    }
-    /* IE, Edge and Firefox */
-    .no-scrollbar {
-        -ms-overflow-style: none;  /* IE and Edge */
-        scrollbar-width: none;  /* Firefox */
-    } 
-</style>
-
-<div class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 sm:p-8 border border-gray-100">
-  <h1 class="text-3xl font-bold text-gray-800 mb-2">글쓰기 AI 데모 (MySQL DB 연동)</h1>
-  <p class="text-gray-600 mb-6">모든 플롯 설정과 회차 데이터는 **MySQL 데이터베이스**에 저장됩니다.</p>
-
-  <!-- Plot Management (플롯 관리 영역) -->
-  <div class="p-4 mb-6 bg-yellow-50 rounded-lg border border-yellow-200">
-    <div id="dbStatus" class="font-medium text-sm text-yellow-800 mb-4">
-      DB 상태: 서버 연결 중...
+<div id="createModal" class="modal-overlay">
+    <div class="modal">
+        <h2>새 소설 시작하기</h2>
+        <div class="input-group">
+            <input type="text" id="newTitle" placeholder="소설 제목을 입력하세요 (예: 레벨업하는 천재 작가)">
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal()">취소</button>
+            <button class="btn-create" onclick="createProject()">생성하기</button>
+        </div>
     </div>
-
-    <!-- 1. Plot Name (플롯 이름 - DB: settings.title) -->
-    <div class="mb-4">
-      <label for="plotNameInput" class="block text-sm font-medium text-gray-700 mb-2">
-        현재 플롯 이름 (DB 컬럼: `title`): <span id="currentPlotIdDisplay" class="text-xs font-normal text-gray-500">(새 플롯)</span>
-      </label>
-      <input type="text" id="plotNameInput" placeholder="예: '다크 판타지 - 회귀한 성기사'"
-             class="w-full p-3 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 transition duration-150 ease-in-out shadow-inner">
-    </div>
-
-    <!-- 2. Save Button (저장 버튼) -->
-    <div class="flex flex-wrap gap-3 mb-4">
-      <!-- Save Button now takes full width -->
-      <button id="saveButton" onclick="saveCustomSettings()"
-              class="w-full px-4 py-2 bg-purple-600 text-white font-semibold text-sm rounded-lg shadow-md hover:bg-purple-700 focus:outline-none focus:ring-4 focus:ring-purple-300 transition duration-300 ease-in-out">
-        현재 설정 저장 / 업데이트
-      </button>
-    </div>
-
-    <!-- 3. Plot Selection and Load/Delete (플롯 선택 및 로드/삭제) -->
-    <div class="mt-4 pt-4 border-t border-yellow-200">
-      <label for="plotSelector" class="block text-sm font-medium text-gray-700 mb-2">저장된 플롯 불러오기:</label>
-      <div class="flex flex-wrap gap-3">
-        <select id="plotSelector"
-                class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out min-w-40">
-          <option value="">-- 새 플롯 시작 --</option>
-        </select>
-        <button id="loadPlotButton" onclick="loadSelectedPlot()" disabled
-                class="px-4 py-2 bg-blue-600 text-white font-semibold text-sm rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 ease-in-out disabled:opacity-50">
-          선택 플롯 로드
-        </button>
-        <button id="deletePlotButton" onclick="deleteSelectedPlot()" disabled
-                class="px-4 py-2 bg-red-500 text-white font-semibold text-sm rounded-lg shadow-md hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-300 transition duration-300 ease-in-out disabled:opacity-50">
-          선택 플롯 삭제
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 소설 코어 설정 그룹 (1. 세계관, 2. 등장인물) -->
-  <h2 class="text-lg font-semibold text-gray-700 mb-3 mt-6 border-b pb-2">소설 코어 설정</h2>
-  <div class="grid md:grid-cols-2 gap-6 mb-4">
-    <div>
-      <label for="worldSetting" class="block text-sm font-medium text-gray-700 mb-2">1. 세계관 설정 (문체 및 배경):</label>
-      <textarea id="worldSetting" rows="5" placeholder="예: 어둡고 냉소적인 디스토피아, 고대 동양풍의 무협 세계, 밝고 희망찬 판타지 등 배경과 문체에 대한 상세 설명."
-                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition duration-150 ease-in-out resize-none shadow-inner"></textarea>
-    </div>
-    <div>
-      <label for="characterDetails" class="block text-sm font-medium text-gray-700 mb-2">2. 등장인물 상세 정보:</label>
-      <textarea id="characterDetails" rows="5" placeholder="예: 주인공 '카이'는 20대, 이성적이고 차분하며 과거의 상처가 있음. 보조 인물 '엘라'는 쾌활하고 낙천적임."
-                class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition duration-150 ease-in-out resize-none shadow-inner"></textarea>
-    </div>
-  </div>
-
-  <!-- 3. 플롯 및 전체 줄거리 -->
-  <div class="mb-4">
-    <label for="plotDetails" class="block text-sm font-medium text-gray-700 mb-2">3. 플롯 및 전체 줄거리:</label>
-    <textarea id="plotDetails" rows="4" placeholder="예: 주요 갈등, 5부작 구성, 각 부의 핵심 목표 등 전체 스토리가 흘러갈 방향을 상세히 설명해 주세요."
-              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500 transition duration-150 ease-in-out resize-none shadow-inner"></textarea>
-  </div>
-
-  <!-- 4. 이전화 내용 요약 -->
-  <h2 class="text-lg font-semibold text-gray-700 mb-3 mt-6 border-b pb-2">현재 작성 Context 및 요청</h2>
-
-  <div class="mb-4">
-    <label for="previousContent" class="block text-sm font-medium text-gray-700 mb-2">4. 이전화 내용 요약 (200자 내외):</label>
-    <textarea id="previousContent" rows="3" placeholder="예: 주인공 카이가 엘라를 설득하여 동맹을 맺고, 마왕성으로 가는 포탈 앞에서 마주친 암살자들을 물리쳤다."
-              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-none shadow-inner"></textarea>
-  </div>
-
-  <!-- 5. 이번에 생성하고 싶은 내용 (글쓰기 요청) -->
-  <div class="mb-4">
-    <label for="prompt" class="block text-sm font-medium text-gray-700 mb-2">5. 이번에 생성하고 싶은 내용:</label>
-    <textarea id="prompt" rows="4" placeholder="예: 카이와 엘라가 포탈을 넘어 마왕성으로 진입하는 장면을 묘사해 주세요."
-              class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 transition duration-150 ease-in-out resize-none shadow-inner"></textarea>
-  </div>
-
-  <!-- 회차 번호 (DB: settings.episode_number) -->
-  <div class="mb-4">
-    <label for="episodeNumber" class="block text-sm font-medium text-gray-700 mb-2">
-      다음 회차 번호 (자동 증가):
-    </label>
-    <input type="number" id="episodeNumber" value="1" min="1"
-           class="w-full p-3 border border-gray-300 rounded-lg bg-gray-100 text-gray-700 shadow-inner cursor-not-allowed">
-  </div>
-
-  <!-- 버튼 및 로딩 인디케이터 -->
-  <div class="flex items-center space-x-4 mb-6">
-    <button id="generateButton" onclick="generateText()"
-            class="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-300 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-      글 생성하기
-    </button>
-    <div id="loadingIndicator" class="hidden flex items-center space-x-2 text-blue-600">
-      <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-      </svg>
-      <span>생성 중...</span>
-    </div>
-  </div>
-
-  <!-- 결과 출력 영역 -->
-  <div class="mt-8 pt-6 border-t border-gray-200">
-    <h2 class="text-xl font-semibold text-gray-800 mb-4">생성된 글:</h2>
-    <div id="resultContainer" class="min-h-[150px] p-4 bg-gray-50 border border-gray-200 rounded-lg whitespace-pre-wrap text-gray-800 shadow-sm">
-      <!-- 여기에 결과 텍스트가 표시됩니다 -->
-    </div>
-    <div class="mt-4">
-      <!-- 🌟 회차 저장 기능 버튼 🌟 -->
-      <button id="saveEpisodeButton" onclick="saveStoryEpisode()" disabled
-              class="px-4 py-2 bg-green-600 text-white font-semibold text-sm rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-300 transition duration-300 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed">
-        생성된 글 (회차) 저장
-      </button>
-      <span id="episodeSaveStatus" class="ml-4 text-sm text-gray-600"></span>
-    </div>
-    <div id="errorMessage" class="hidden mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-      <!-- 여기에 오류 메시지가 표시됩니다 -->
-    </div>
-  </div>
-
-  <!-- 현재 저장된 회차 목록 -->
-  <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-    <h3 class="text-lg font-semibold text-blue-800 mb-2">저장된 소설 회차 목록</h3>
-    <div id="episodeList" class="text-sm text-blue-700 max-h-48 overflow-y-auto">
-      데이터 로드 중...
-    </div>
-  </div>
 </div>
 
 <script>
+    const API_BASE = '/api';
 
-  // --- 글로벌 상수 및 변수 설정 ---
-  const modelName = 'gemini-2.5-flash';
-  // UI elements references (주요 UI 요소 참조)
-  const worldSettingInput = document.getElementById('worldSetting');
-  const characterDetailsInput = document.getElementById('characterDetails');
-  const plotDetailsInput = document.getElementById('plotDetails');
-  const previousContentInput = document.getElementById('previousContent');
-  const promptInput = document.getElementById('prompt');
-  const plotNameInput = document.getElementById('plotNameInput'); // Title input
-  const plotSelector = document.getElementById('plotSelector');
-  const currentPlotIdDisplay = document.getElementById('currentPlotIdDisplay');
-  const episodeNumberInput = document.getElementById('episodeNumber');
+    document.addEventListener('DOMContentLoaded', loadProjects);
 
-  // State and buttons (상태 및 버튼)
-  const dbStatus = document.getElementById('dbStatus');
-  const generateButton = document.getElementById('generateButton');
-  const loadingIndicator = document.getElementById('loadingIndicator');
-  const resultContainer = document.getElementById('resultContainer');
-  const errorMessage = document.getElementById('errorMessage');
-  const saveButton = document.getElementById('saveButton');
-  const loadPlotButton = document.getElementById('loadPlotButton');
-  const deletePlotButton = document.getElementById('deletePlotButton');
+    // 프로젝트 목록 로드
+    async function loadProjects() {
+        const listContainer = document.getElementById('projectList');
+        
+        try {
+            const response = await fetch(`${API_BASE}/settings-list`);
+            if (!response.ok) throw new Error('데이터 로드 실패');
+            
+            const projects = await response.json();
+            listContainer.innerHTML = ''; 
 
-  // EPISODE/STORY 관련 UI 요소 이름 변경
-  const saveEpisodeButton = document.getElementById('saveEpisodeButton');
-  const episodeSaveStatus = document.getElementById('episodeSaveStatus');
-  const episodeList = document.getElementById('episodeList');
+            if (projects.length === 0) {
+                listContainer.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 60px; color: #aaa; background: white; border-radius: 10px; border: 1px dashed #ccc;">
+                        <i class="fas fa-feather-alt" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i><br>
+                        <p style="font-size:1.1rem; margin-bottom:5px;">아직 진행 중인 프로젝트가 없습니다.</p>
+                        <p style="font-size:0.9rem;">상단의 '새 프로젝트 만들기' 버튼을 눌러 창작을 시작해보세요!</p>
+                    </div>`;
+                return;
+            }
 
-  let currentPlotId = null; // 현재 편집 중인 플롯의 ID (새 플롯이면 null)
+            projects.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'project-card';
+                
+                // 🌟 [수정] 카드 클릭 시 settings.html로 이동 (SPA workspace.html 대신)
+                card.onclick = (e) => {
+                    // 삭제 버튼이나 그 안의 아이콘을 눌렀을 땐 이동 금지
+                    if(e.target.closest('.btn-delete')) return;
+                    
+                    window.location.href = `settings.html?setting_id=${p.id}`;
+                };
 
-  /**
-   * Display error message (오류 메시지 표시)
-   * @param {string} message - Error message to display (표시할 오류 메시지)
-   * @param {boolean} isFatal - true면 DB 상태도 업데이트
-   */
-  function displayError(message, isFatal = false) {
-    errorMessage.textContent = `오류: ${message}`;
-    errorMessage.classList.remove('hidden');
-    if (isFatal) {
-      dbStatus.textContent = `❌ DB 상태: 오류 발생! ${message.substring(0, 50)}...`;
-    }
-  }
+                const date = new Date(p.updated_at).toLocaleDateString();
 
-  /**
-   * Clear all form fields and reset to 'New Plot' state (모든 폼 필드 초기화)
-   */
-  function clearForm() {
-    plotNameInput.value = '';
-    worldSettingInput.value = '';
-    characterDetailsInput.value = '';
-    plotDetailsInput.value = '';
-    previousContentInput.value = '';
-    promptInput.value = '';
-    episodeNumberInput.value = '1';
-    currentPlotIdDisplay.textContent = '(새 플롯)';
-    currentPlotId = null;
-    resultContainer.textContent = '';
-    episodeSaveStatus.textContent = '';
-
-    // 회차 목록 초기화
-    episodeList.innerHTML = '<p class="italic text-gray-500">저장된 소설 회차가 없습니다. 플롯을 로드하거나 저장하세요.</p>';
-
-    // 드롭다운 초기화
-    plotSelector.value = "";
-    loadPlotButton.disabled = true;
-    deletePlotButton.disabled = true;
-  }
-
-  // =======================================================
-  // API Call Utilities (API 호출 유틸리티)
-  // =======================================================
-
-  /**
-   * Fetch API Wrapper
-   * @param {string} url
-   * @param {object} options
-   */
-  async function apiFetch(url, options = {}) {
-    errorMessage.classList.add('hidden');
-    try {
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: `HTTP status ${response.status}` }));
-        throw new Error(`[${response.status}] ${errorData.error || response.statusText}`);
-      }
-      return response.json();
-    } catch (error) {
-      console.error("API Call Error:", error);
-      displayError(`서버 오류: ${error.message}`, true);
-      throw error; // Re-throw to be handled by the caller
-    }
-  }
-
-  // =======================================================
-  // Plot Management Logic (플롯 관리 로직)
-  // =======================================================
-
-  /**
-   * Update the plot selector dropdown from the server (서버에서 플롯 목록을 가져와 드롭다운 업데이트)
-   */
-  async function populatePlotSelector() {
-    dbStatus.textContent = "DB 상태: 플롯 목록 로드 중...";
-    try {
-      const plots = await apiFetch('/api/settings-list');
-
-      plotSelector.innerHTML = '<option value="">-- 새 플롯 시작 --</option>';
-
-      plots.forEach(plot => {
-        const option = document.createElement('option');
-        option.value = plot.id;
-        option.textContent = `[${plot.episode_number}화] ${plot.title}`; // 회차 번호 포함하여 표시
-        plotSelector.appendChild(option);
-      });
-
-      // 현재 로드된 플롯을 선택
-      if (currentPlotId) {
-        plotSelector.value = currentPlotId;
-        loadPlotButton.disabled = false;
-        deletePlotButton.disabled = false;
-      } else if (plots.length > 0) {
-        // 첫 로드 시, 첫 번째 플롯을 자동으로 선택하도록 설정
-        plotSelector.value = plots[0].id;
-      }
-      dbStatus.textContent = `DB 상태: 플롯 목록 로드 완료. (${plots.length}개)`;
-
-    } catch (error) {
-      dbStatus.textContent = "❌ DB 상태: 플롯 목록 로드 실패. 서버 및 DB 연결을 확인하세요.";
-    }
-  }
-  /**
-      * Load and display world settings into the dedicated textarea
-      * @param {number} settingId - The ID of the current plot setting
-      */
-  async function loadAndDisplayWorldSettings(settingId) {
-    if (!settingId) {
-      worldSettingInput.value = '';
-      return;
-    }
-    try {
-      const settings = await apiFetch(`/api/worldsettings?setting_id=${settingId}`);
-
-      if (settings.length === 0) {
-        // 만약 상세 설정이 없다면, settings 테이블의 기존 필드 내용을 불러옵니다.
-        // 이미 loadSelectedPlot에서 plotData.worldSetting이 로드되었으므로 여기서 추가 작업은 생략합니다.
-        // 이 경우, 사용자가 수동으로 입력하거나 이후에 상세 테이블에 저장해야 합니다.
-        if (!worldSettingInput.value.trim()) {
-          worldSettingInput.value = '등록된 세계관 상세 설정이 없습니다. (DB: world_settings)';
-        }
-        return;
-      }
-
-      // 상세 테이블의 내용을 합쳐서 표시
-      const formattedText = settings.map(s =>
-              `=== ${s.title} ===\n${s.description || '내용 없음'}`
-      ).join('\n\n---\n\n');
-
-      worldSettingInput.value = formattedText;
-    } catch (error) {
-      worldSettingInput.value = `⚠️ 세계관 설정 로드 실패: ${error.message}`;
-      console.error("세계관 설정 로드 실패:", error);
-    }
-  }
-
-  /**
-      * Load and display characters into the dedicated textarea
-      * @param {number} settingId - The ID of the current plot setting
-      */
-  async function loadAndDisplayCharacters(settingId) {
-    if (!settingId) {
-      characterDetailsInput.value = '';
-      return;
-    }
-    try {
-      const characters = await apiFetch(`/api/characters?setting_id=${settingId}`);
-
-      if (characters.length === 0) {
-        // 만약 상세 설정이 없다면, settings 테이블의 기존 필드 내용을 불러옵니다.
-        // 이미 loadSelectedPlot에서 plotData.characterDetails가 로드되었으므로 여기서 추가 작업은 생략합니다.
-        if (!characterDetailsInput.value.trim()) {
-          characterDetailsInput.value = '등록된 등장인물 상세 정보가 없습니다. (DB: characters)';
-        }
-        return;
-      }
-
-      // 상세 테이블의 내용을 합쳐서 표시
-      const formattedText = characters.map(c =>
-              `=== ${c.name} (역할: ${c.role || '미지정'}) ===\n${c.description || '상세 정보 없음'}`
-      ).join('\n\n---\n\n');
-
-      characterDetailsInput.value = formattedText;
-    } catch (error) {
-      characterDetailsInput.value = `⚠️ 등장인물 설정 로드 실패: ${error.message}`;
-      console.error("등장인물 설정 로드 실패:", error);
-    }
-  }
-  /**
-   * Load the selected plot into the form (선택된 플롯을 폼에 로드)
-   */
-  window.loadSelectedPlot = async function() {
-    const plotIdToLoad = plotSelector.value;
-    if (!plotIdToLoad) {
-      clearForm(); // ID가 없으면 새 플롯 상태로 초기화
-      dbStatus.textContent = 'DB 상태: 새 플롯 작성을 시작합니다.';
-      return;
-    }
-
-    dbStatus.textContent = "플롯 로드 중...";
-
-    try {
-      const plotData = await apiFetch(`/api/load-settings?id=${plotIdToLoad}`);
-
-      currentPlotId = plotData.id;
-      plotNameInput.value = plotData.title || '';
-      worldSettingInput.value = plotData.worldSetting || '';
-      characterDetailsInput.value = plotData.characterDetails || '';
-      plotDetailsInput.value = plotData.plotDetails || '';
-      previousContentInput.value = plotData.previousContent || '';
-      // DB에서 episode_number를 가져와 설정
-      episodeNumberInput.value = plotData.episode_number || '1';
-
-      currentPlotIdDisplay.textContent = `(ID: ${currentPlotId})`;
-      dbStatus.textContent = `DB 상태: 플롯 '${plotData.title}' 로드 완료. (${new Date().toLocaleTimeString()})`;
-
-      loadPlotButton.disabled = false;
-      deletePlotButton.disabled = false;
-
-      // 🌟 상세 테이블에서 세계관 및 등장인물 데이터 로드 및 덮어쓰기 🌟
-      // 이 로직이 메인 테이블의 필드 내용을 덮어쓰고, 여러 개의 상세 설정을 합쳐서 표시합니다.
-      await loadAndDisplayWorldSettings(currentPlotId);
-      await loadAndDisplayCharacters(currentPlotId);
-      // 로드 후 연결된 회차 목록 업데이트
-      await updateEpisodeList(currentPlotId);
-
-    } catch (error) {
-      displayError(`플롯 로드 실패: ${error.message}`);
-      clearForm();
-    }
-  }
-
-  /**
-   * Save or update plot settings (플롯 설정 저장/업데이트)
-   */
-  window.saveCustomSettings = async function() {
-    const plotTitle = plotNameInput.value.trim();
-    const nextEpisodeNum = parseInt(episodeNumberInput.value, 10);
-
-    if (!plotTitle) {
-      displayError("플롯 이름을 입력해주세요.");
-      return;
-    }
-
-    const payload = {
-      id: currentPlotId, // ID가 null이면 INSERT, 있으면 UPDATE
-      title: plotTitle,
-      worldSetting: worldSettingInput.value.trim(),
-      characterDetails: characterDetailsInput.value.trim(),
-      plotDetails: plotDetailsInput.value.trim(),
-      previousContent: previousContentInput.value.trim(),
-      episode_number: nextEpisodeNum
-    };
-
-    dbStatus.textContent = "저장 중...";
-
-    try {
-      const result = await apiFetch('/api/save-settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      currentPlotId = result.id; // 삽입 시 새로 받은 ID 업데이트
-      currentPlotIdDisplay.textContent = `(ID: ${currentPlotId})`;
-      dbStatus.textContent = `DB 상태: 플롯 '${plotTitle}' 저장/업데이트 완료. ID: ${currentPlotId} (${new Date().toLocaleTimeString()})`;
-
-      await populatePlotSelector(); // 드롭다운 새로 고침
-      plotSelector.value = currentPlotId; // 현재 플롯 선택 유지
-      loadPlotButton.disabled = false;
-      deletePlotButton.disabled = false;
-
-    } catch (error) {
-      // displayError는 apiFetch에서 처리됨
-    }
-  }
-
-  /**
-   * Delete the selected plot (선택된 플롯 삭제)
-   */
-  window.deleteSelectedPlot = async function() {
-    const plotIdToDelete = plotSelector.value;
-    const plotTitle = plotSelector.options[plotSelector.selectedIndex].text;
-
-    if (!plotIdToDelete) return;
-
-    // Note: Using window.confirm() for simple demo feedback.
-    if (!confirm(`정말로 플롯 '${plotTitle}'와 관련된 모든 설정 및 저장된 회차를 삭제하시겠습니까?`)) {
-      return;
-    }
-
-    dbStatus.textContent = "플롯 및 회차 삭제 중...";
-
-    try {
-      await apiFetch(`/api/delete-settings?id=${plotIdToDelete}`, {
-        method: 'DELETE'
-      });
-
-      dbStatus.textContent = `DB 상태: 플롯 '${plotTitle}' 및 관련 회차 삭제 완료.`;
-
-      // 삭제된 플롯이 현재 로드된 플롯이면 폼 초기화
-      if (currentPlotId === plotIdToDelete) {
-        clearForm();
-      }
-
-      await populatePlotSelector(); // 드롭다운 새로 고침
-      // 삭제 후 목록이 비어있지 않다면, 첫 번째 플롯을 로드
-      if (plotSelector.options.length > 1) {
-        plotSelector.value = plotSelector.options[1].value;
-        loadSelectedPlot();
-      } else {
-        clearForm();
-        dbStatus.textContent = 'DB 상태: 저장된 플롯이 없습니다. 새로운 플롯을 작성하고 저장하세요.';
-      }
-
-    } catch (error) {
-      // displayError는 apiFetch에서 처리됨
-    }
-  }
-
-  // =======================================================
-  // Story Episode Logic (소설 회차 저장 및 로드 로직)
-  // =======================================================
-
-  /**
-   * Save generated story as an Episode (생성된 글을 회차로 저장)
-   */
-  window.saveStoryEpisode = async function() {
-    const content = resultContainer.textContent.trim();
-    const promptText = promptInput.value.trim();
-    const episodeNum = parseInt(episodeNumberInput.value, 10) - 1; // 방금 생성된 글은 '다음 회차' 번호의 -1
-
-    if (!currentPlotId) {
-      displayError("회차를 저장하기 전에 먼저 플롯을 저장하거나 로드해주세요.");
-      return;
-    }
-    if (!content || content.includes("생성하고 있습니다")) return;
-
-    saveEpisodeButton.disabled = true;
-    episodeSaveStatus.textContent = "회차 저장 중...";
-    episodeSaveStatus.className = "text-sm mt-0 font-medium text-gray-600";
-
-    const payload = {
-      setting_id: currentPlotId, // stories.setting_id
-      prompt: promptText, // stories.prompt
-      content: content, // stories.content (LONGTEXT)
-      episode_number: episodeNum // stories.episode_number
-    };
-
-    dbStatus.textContent = "회차 데이터 저장 중...";
-
-    try {
-      const result = await apiFetch('/api/save-story', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      episodeSaveStatus.textContent = `✅ 제 ${episodeNum}화 저장 완료! (DB ID: ${result.id})`;
-      episodeSaveStatus.className = "text-sm mt-0 font-bold text-green-600";
-      dbStatus.textContent = `DB 상태: 회차 저장 완료. ID: ${result.id} (${new Date().toLocaleTimeString()})`;
-
-      // 회차 저장 후 목록 업데이트 및 드롭다운 갱신
-      await updateEpisodeList(currentPlotId);
-      await populatePlotSelector();
-
-    } catch (e) {
-      episodeSaveStatus.textContent = "❌ 저장 실패: " + e.message;
-      episodeSaveStatus.className = "text-sm mt-0 font-bold text-red-600";
-      // displayError는 apiFetch에서 처리됨
-    } finally {
-      saveEpisodeButton.disabled = false;
-    }
-  }
-
-  /**
-   * Update the list of saved episodes in the UI (UI에 저장된 회차 목록 업데이트)
-   * @param {number} settingId - The ID of the current plot setting
-   */
-  async function updateEpisodeList(settingId) {
-    if (!settingId) {
-      episodeList.innerHTML = '<p class="italic text-gray-500">플롯을 로드하면 저장된 회차가 표시됩니다.</p>';
-      return;
-    }
-
-    episodeList.innerHTML = '<div class="text-center py-4 text-gray-500">회차 목록 로드 중...</div>';
-
-    try {
-      const episodes = await apiFetch(`/api/load-episodes?setting_id=${settingId}`);
-
-      if (episodes.length === 0) {
-        episodeList.innerHTML = '<p class="italic text-gray-500">저장된 소설 회차가 없습니다.</p>';
-        return;
-      }
-
-      episodeList.innerHTML = episodes.map((episode) => {
-        const time = new Date(episode.created_at).toLocaleTimeString();
-        // prompt의 앞부분을 잘라서 표시
-        const promptSnippet = episode.prompt.trim().substring(0, 30) + (episode.prompt.trim().length > 30 ? '...' : '');
-
-        return `
-                    <div class="mb-2 p-2 border-b border-blue-100 last:border-b-0 flex justify-between items-center">
-                        <span class="font-bold text-blue-900 truncate flex-grow">
-                            제 ${episode.episode_number}화: ${promptSnippet}
-                        </span>
-                        <span class="text-xs text-gray-500 ml-4 flex-shrink-0">(${time})</span>
+                card.innerHTML = `
+                    <div class="card-top">
+                        <div class="card-title">${p.title || '제목 없음'}</div>
+                        <button class="btn-delete" onclick="deleteProject(event, ${p.id}, '${p.title}')" title="프로젝트 삭제">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <div class="card-meta">
+                        <div class="meta-item"><i class="fas fa-layer-group"></i> 최근 회차: ${p.episode_number || 1}화</div>
+                        <div class="meta-item"><i class="far fa-clock"></i> 수정일: ${date}</div>
                     </div>
                 `;
-      }).join('');
-    } catch (error) {
-      episodeList.innerHTML = `<p class="text-red-500">회차 목록 로드 실패: ${error.message}</p>`;
-    }
-  }
+                listContainer.appendChild(card);
+            });
 
-  // =======================================================
-  // AI Simulation Functions (AI 시뮬레이션 함수)
-  // =======================================================
-
-  /**
-   * Simulate AI generating text based on prompt and settings (프롬프트와 설정을 기반으로 글 생성 시뮬레이션)
-   */
-  window.generateText = async function() {
-    const userPrompt = promptInput.value.trim();
-    const worldSetting = worldSettingInput.value.trim();
-    const characterDetails = characterDetailsInput.value.trim();
-    const plotDetails = plotDetailsInput.value.trim();
-    const previousContent = previousContentInput.value.trim();
-
-    if (!userPrompt) {
-      displayError("글쓰기 요청(프롬프트)을 입력해 주세요.");
-      return;
+        } catch (error) {
+            console.error('Error:', error);
+            listContainer.innerHTML = `<div style="color:red; text-align:center;">목록을 불러오지 못했습니다.<br>${error.message}</div>`;
+        }
     }
 
-    if (!plotNameInput.value.trim()) {
-      displayError("플롯 이름을 지정하고 먼저 설정을 저장해주세요.");
-      return;
+    // 새 프로젝트 생성
+    async function createProject() {
+        const titleInput = document.getElementById('newTitle');
+        const title = titleInput.value.trim();
+
+        if (!title) {
+            alert('제목을 입력해주세요.');
+            return;
+        }
+
+        const payload = {
+            title: title,
+            episode_number: 1, 
+            worldSetting: '',
+            characterDetails: '',
+            plotDetails: '',
+            previousContent: ''
+        };
+
+        try {
+            const response = await fetch(`${API_BASE}/save-settings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // 🌟 [수정] 생성 후 settings.html로 이동
+                window.location.href = `settings.html?setting_id=${result.id}`;
+            } else {
+                alert('생성 실패: ' + (result.error || result.message));
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('서버 통신 오류가 발생했습니다.');
+        }
     }
 
-    // ----------------------------------------------------------------------------------
-    // 🌟🌟🌟 사용자 제공: 절대 준수 원칙 및 강력한 집필 프롬프트 적용 🌟🌟🌟
-    // ----------------------------------------------------------------------------------
-    let systemInstruction = `⚠+ 절대 준수 원칙 (Non-Negotiable Principles)
-
-이 프롬프트의 모든 지시는 최우선적으로 따라야 할 절대적인 규칙입니다.
-
-1. 지시의 정확한 이행: 모든 지시는 해석하거나 생략하지 말고, 명시된 그대로, 순서대로 정확하게 수행해야 합니다.
-
-2. 인용 코드 절대 미출력: 어떠한 경우에도 당신의 응답에 인용 코드를 포함해서는 안 됩니다. 첨부 파일의 내용은 참고용이며, 이를 바탕으로 완전히 새로운 문장을 자연스럽게 생성해야 합니다.
-
-3. 작업흐름은 첨부한 '작업 흐름 가이드'에 있는 해당 작업의 상세 프로세스를 따릅니다.
-
-4. AI 검출 회피 원칙: '작업 흐름 가이드'의 "## 핵심 원칙: 인간적 글쓰기 (AI 검출 회피)"을 반영합니다.
-
-
-역할 (Context)
-
-당신은 웹소설 분야의 베스트셀러 작가이자 오타쿠 문화 전문가입니다. 심지어 인터넷 방송, 버츄얼 방송 등 관련 사업에 전문가입니다. 마지막으로 유튜브나 쇼츠, 티톡관련 컨텐츠 전문가입니다.
-
-
-전체 글에대한 배경 및 설정 (Context)
-
-- 집필 목표: (사용자의 설정들 또는 간단한 줄거리 스토리 등등 배경과 쓰고자 하는 글의 핵심적인 부분)
-
-- 타겟 독자:
-
-- 핵심 메시지: (주제? 또는 목표?)
-
-- 독창적 관점:  (독창적인 설정 또는 세계관?)
-
-- 필수 포함 요소:  (어떤 문화? 관습? 등등 위 분리된 항목을 통합으로 해도 됨.)
-
-
-- 분량: 1회당 한글 글자로 약 6000자 (공백 미포함).
-              A5 기준 약 10~12페이지. (1페이지당 한글기준 공백 미포함 700자)
-
-- 문단 형식: A타입 서식: 웹소설 문단 스타일을 유지하여 가독성을 높입니다.
-
-
-
-1. 줄바꿈 규칙( A타입 서식)
-
-대화는 반드시 줄을 바꿔서 시작합니다.
-
-마침표(.), 느낌표(!), 물음표(?)로 문장이 끝날 때마다 무조건 줄을 바꿉니다.
-
-인물의 행동, 심리, 서술은 한 문장만 쓰고 줄을 바꿉니다. 한 문단에 여러 문장이 섞이지 않도록 합니다.
-
-단, 연속적인 짧은 감탄사나 의성어("앗!", "아, 안돼!")는 한 문단에 쓸 수 있습니다. 또 한명이 말하는건 합쳐서 작성해야 합니다.
-
-2. 빈 줄 추가 규칙:
-
-장면, 시간, 공간, 시점(인물)이 바뀔 때만 빈 줄을 추가하여 문단을 구분합니다.
-
-3. 마크업 제거 :
-
- 소설 내용을 올릴 사이트는 마크업 문법을 지원하지 않은 plain text 업로드를 지원하는 곳입니다. ** 표시, 기울어진 이탤릭, ~취소선~ 표시 등 문장을 꾸미는 요소를 모두 제거해야합니다.
-
-글쓰기 지시사항 (Style & Action)
-
-장르별 어체 및 문체 특성
-
-- 어체: 3인칭 관찰자 시점으로 서술하되 주인공만 전지적 관찰자 시점으로 서술.
-- 문체: 대화체와 서술체의 균형 잡힌 조화, 인물의 심리 묘사와 상황 전개의 생동감.
-- 구성: 인물-사건-배경의 유기적 결합, 갈등과 해결의 극적 구성.
-- 특수 형식: 시청자(독자) 관련 서술은 채팅창 형식으로 최대한 채팅의 재미로 서술.
-
-
-작업 흐름 (Action)
-
-입력 조건별 처리
-
-1. "시작" 입력 시
-
-- 사용자가 입력한 1회분량 플롯의 내용을 바탕으로 위 규칙대로 원고를 작성.
-
-
-출력 형식 (Result)
-
-- 언어: 한국어
-
-- 형식: 요청된 페이지 수에 정확히 맞춘 완성된 원고를 꼭!! 마크다운 택스트 문서로 제공.
-
-- 타이틀: 원고의 제목 작성
-
-- 분량: 1회당 한글 글자로 약 6000자 (공백 미포함).
-              A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
-
-
-
-품질 기준
-
-- 버추얼 유튜버와 웹소설을 즐기는 독자가 쉽게 이해하고 몰입할 수 있는 수준.
-
-- 웹소설의 고유한 특성과 매력 구현.
-
-- AI 검출기를 통과할 수 있는 자연스럽고 인간적인 글쓰기.
-
-- 모든 AI 검출 회피 원칙의 철저한 적용.
-
-
-작업 흐름 가이드
-
-이 가이드는 사용자가 입력한 플롯을 기본으로 1회분 글쓰기에 대한 상세 절차를 담고 있습니다.
-
-
-첫 출력  : 이제 본문 작성을 시작 하겠습니다.
-
-
-확정된 개요를 바탕으로 요청 분량에 정확히 맞춘 완성 원고를 작성.
-
-
-작성 결과:
-- 총 분량: [실제 작성된 한글 글자 수].
-- 예상 페이지: 약 [페이지 수]페이지.
-
-품질 체크:
-- ✅ 분량 적정성 (±5% 이내).
-- ✅ 목차상 위치에 맞는 내용 적절성.
-- ✅ 전체 톤앤매너 일관성.
-- ✅ 독자 타겟에 맞는 난이도와 접근성.
-- ✅ 인간적 글쓰기 (AI 검출 회피).
-- ✅ 원고의 타이틀 작성.
-
-⚠+ 중요 주의사항
-
-1. 분량 준수는 ±5% 이내로 엄격히 관리.
-2. 장르별 어체와 문체 특성 반드시 반영.
-3. 인간적 글쓰기로 AI 검출 회피.
-
-
-
-
-핵심 원칙: 인간적 글쓰기 (AI 검출 회피)
-
-AI가 생성한 느낌을 최소화하고, 자연스럽고 인간적인 글을 작성하기 위한 핵심 원칙입니다.
-
-1. 문장 구조의 자연스러움
-- 완벽하지 않은 문장 구조 허용 (때로는 문법적으로 완벽하지 않더라도 괜찮음).
-- 짧은 문장과 긴 문장을 자연스럽게 섞어 문장에 리듬감을 부여.
-- 말 줄임표(...)를 감정의 여운이나 생각의 흐름을 표현하기 위해 자연스럽게 활용.
-- 감탄사나 간투사 ("음", "아", "글쎄", "정말") 등을 적절히 포함하여 생각하는 듯한 느낌을 부여.
-- 문장 연결이 다소 어색하더라도 자연스러운 생각의 흐름을 우선.
-- 한명이 말하는건 합쳐서 작성해야 합니다.
-
-2. 어휘 선택의 인간적 특성
-- 동일한 의미를 표현할 때, 동의어를 넘어 완전히 다른 방식의 표현으로 반복하여 지루함을 피함.
-- 학술적이거나 격식적인 표현보다 일상어를 우선 사용하고, 필요시 구어체적 표현을 자연스럽게 섞음.
-- "나는 생각한다", "개인적으로는", "솔직히 말하면" 등 주관적 표현으로 개인적 색채를 드러냄.
-- 때로는 의도적으로 부정확하거나 애매한 표현을 사용하여 인간적인 망설임이나 고민을 표현.
-
-3. 논리적 완벽함 회피
-- 지나치게 체계적인 구성보다 자연스러운 생각의 흐름을 따름.
-- 논리적 완벽함보다 감정적 몰입과 변화를 우선시하며, 때로는 감정이 논리를 압도하는 순간을 묘사.
-- 개인적인 경험이나 주관적인 판단을 논리적 근거 없이도 자연스럽게 드러냄.
-- 갑작스러운 주제 전환이나 연상 작용을 통해 생각의 흐름을 생생하게 표현.
-
-4. 개인적 경험과 감정
-- 구체적이고 생생한 개인적 일화, 감정, 생각을 포함하여 글에 진정성을 부여.
-- 감정의 기복과 변화(기쁨, 슬픔, 분노, 혼란 등)를 자연스럽게 표현.
-- '나만의' 독특한 관점이나 해석을 통해 다른 글과 차별화.
-- 때로는 확신에 찬 어투, 때로는 망설이는 어투를 혼용하여 입체적인 목소리 구현.
-
-5. 시간적 흐름의 자연스러움
-- 현재-과거-미래를 자연스럽게 오가며 서술하여 입체적인 시간 감각을 만듦.
-- 갑작스러운 회상이나 연상을 통해 인물의 내면을 효과적으로 드러냄.
-- 시제의 변화를 통해 글에 생동감을 부여.
-
-6. 의도적 불완전성과 인간적 특질
-- 문단 중간에 갑작스러운 생각 변화나 주제 이탈 허용.
-- "음... 이건 좀 다른 이야기인데", "잠깐, 이 말을 왜 했지?" 같은 자연스러운 혼잣말.
-- 개인적 편견이나 선입견을 솔직하게 드러내고 이를 성찰하는 과정.
-- 때로는 논리적 일관성보다 감정의 진실함을 우선시.
-- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.
-`;
-
-    // ----------------------------------------------------------------------------------
-    // 🌟🌟🌟 기존 설정 정보 및 학습 컨텍스트 주입 🌟🌟🌟
-    // ----------------------------------------------------------------------------------
-
-    // 사용자가 입력한 설정을 위에서 정의한 시스템 프롬프트의 'Context' 섹션에 동적으로 추가합니다.
-
-    systemInstruction += "\n\n--- [현재 글의 구체적 설정 정보 (사용자 입력)] ---\n";
-
-    if (worldSetting) { systemInstruction += `\n[1. 세계관 설정]\n${worldSetting}\n`; }
-    if (characterDetails) { systemInstruction += `\n[2. 등장인물 상세 정보]\n${characterDetails}\n`; }
-    if (plotDetails) { systemInstruction += `\n[3. 플롯 및 전체 줄거리]\n${plotDetails}\n`; }
-    if (previousContent) { systemInstruction += `\n[4. 이전화 내용 요약]\n${previousContent}\n`; }
-
-    // UI 상태 업데이트
-    generateButton.disabled = true;
-    loadingIndicator.classList.remove('hidden');
-    resultContainer.textContent = '글쓰기 AI가 응답을 생성하고 있습니다...';
-    errorMessage.classList.add('hidden');
-
-       // 🔴 중요 변경: API 요청 주소를 프록시 서버 엔드포인트로 변경
-    const proxyUrl = '/api/generate-text';
+    // 프로젝트 삭제
+    async function deleteProject(event, id, title) {
+        event.stopPropagation(); // 클릭 이벤트 전파 방지 (페이지 이동 막기)
+
+        if (!confirm(`정말로 [${title}] 프로젝트를 삭제하시겠습니까?\n이 작업은 복구할 수 없습니다.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/delete-settings?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                loadProjects();
+            } else {
+                const result = await response.json();
+                alert('삭제 실패: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('삭제 중 오류가 발생했습니다.');
+        }
+    }
+
+    // 모달 제어
+    function openModal() {
+        document.getElementById('createModal').style.display = 'flex';
+        document.getElementById('newTitle').focus();
+    }
+    function closeModal() {
+        document.getElementById('createModal').style.display = 'none';
+        document.getElementById('newTitle').value = '';
+    }
     
-    // Gemini API가 실제로 받을 Payload
-    const geminiPayload = {
-      contents: [{ parts: [{ text: userPrompt }] }],
-      systemInstruction: { parts: [{ text: systemInstruction }] },
-    };
-     // 프록시 서버로 보낼 Payload (model과 Gemini용 payload를 감쌈)
-    const requestBody = {
-      model: modelName,
-      payload: geminiPayload
-    };
-    
-    const maxRetries = 5;
-    let retryDelay = 1000;
+    // 키보드 엔터로 생성
+    document.getElementById('newTitle').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') createProject();
+    });
 
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        const response = await fetch(proxyUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody)
-        });
-
-
-        if (!response.ok) {
-          const errorBody = await response.json();
-          const errorMessage = errorBody.error?.message || `알 수 없는 오류 (HTTP ${response.status})`;
-          if (errorMessage.includes("too long") || errorMessage.includes("exhausted")) {
-            throw new Error(`[토큰 초과 오류] 설정, 학습 데이터, 요청의 전체 길이가 초과되었습니다. 학습 데이터를 삭제하거나 설정을 간결하게 해주세요.`);
-          }
-          throw new Error(`HTTP 오류 ${response.status}: ${errorMessage}`);
-        }
-
-        const result = await response.json();
-
-        const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-
-        if (generatedText) {
-          resultContainer.textContent = generatedText;
-          // 생성된 글이 괜찮으면 다음 회차 번호 자동 증가
-          const nextEpisode = parseInt(episodeNumberInput.value, 10) + 1;
-          episodeNumberInput.value = nextEpisode;
-
-          // 다음 회차 번호를 DB에도 업데이트 (다음 번 로드를 위해)
-          await saveCustomSettings();
-
-          // 🌟 성공적으로 결과가 생성되면 저장 버튼 활성화 🌟
-          saveEpisodeButton.disabled = false;
-        } else {
-          resultContainer.textContent = 'API 응답에서 유효한 텍스트를 찾을 수 없습니다. (안전 필터에 걸렸거나 응답 구조 오류)';
-          displayError('API 응답 구조 오류 또는 내용 누락.');
-        }
-
-        break;
-
-      } catch (error) {
-        console.error('API 호출 중 오류 발생:', error);
-
-        if (i < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
-          retryDelay *= 2;
-        } else {
-          resultContainer.textContent = '';
-          displayError(`텍스트 생성에 실패했습니다. (${error.message})`);
-        }
-      }
-    }
-
-    // UI 상태 복구
-    generateButton.disabled = false;
-    loadingIndicator.classList.add('hidden');
-
-  }
-
-
-
-  /**
-   * Application initialization (애플리케이션 초기화)
-   */
-  async function initializeApp() {
-    dbStatus.textContent = `DB 상태: 서버에 연결 중...`;
-
-    await populatePlotSelector();
-
-    // populatePlotSelector가 완료된 후 첫 번째 플롯을 자동으로 로드 시도
-    if (plotSelector.value) {
-      await loadSelectedPlot();
-    } else {
-      clearForm();
-      dbStatus.textContent = 'DB 상태: 저장된 플롯이 없습니다. 새로운 플롯을 작성하고 저장하세요.';
-    }
-  }
-
-  // Event listeners for select change (선택 변경 이벤트 리스너)
-  plotSelector.addEventListener('change', () => {
-    // 드롭다운 변경 시, 선택된 플롯을 로드
-    loadSelectedPlot();
-  });
-
-  // Run initialization on page load (페이지 로드 시 초기화 함수 실행)
-  window.onload = initializeApp;
-
+    // 배경 클릭 닫기
+    document.getElementById('createModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
 </script>
 
 </body>

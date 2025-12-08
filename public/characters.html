@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>캐릭터 - AI Novel Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --accent-color: #50c878; /* 캐릭터 강조색 (초록) */
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #ddd;
+            --nav-bg: #2c3e50;
+            --nav-text: #ecf0f1;
+            --danger-color: #ff4d4f;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+        }
+
+        /* 네비게이션 */
+        .navbar {
+            background-color: var(--nav-bg);
+            color: var(--nav-text);
+            padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            position: sticky; top: 0; z-index: 1000;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--accent-color); font-weight: bold; }
+
+        /* 컨테이너 */
+        .container { max-width: 1000px; margin: 30px auto; padding: 20px; }
+
+        .header-area {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
+        }
+        .header-area h2 { margin: 0; border-left: 5px solid var(--accent-color); padding-left: 10px; }
+
+        .btn-add {
+            background-color: var(--accent-color); color: white; border: none; padding: 10px 18px;
+            border-radius: 25px; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 6px rgba(80, 200, 120, 0.3);
+        }
+
+        /* 🌟 [NEW] AI 섹션 스타일 */
+        .ai-section {
+            background: white; border: 1px solid #c8e6c9; border-radius: 12px; padding: 20px;
+            margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .ai-header { font-size: 1.1rem; font-weight: bold; color: #2e7d32; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .ai-desc { font-size: 0.9rem; color: #666; margin-bottom: 15px; }
+        .ai-textarea {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+            min-height: 80px; resize: vertical; font-family: inherit; margin-bottom: 10px;
+        }
+        .ai-textarea:focus { outline: 2px solid var(--accent-color); border-color: transparent; }
+        .btn-ai-gen {
+            width: 100%; background-color: #2e7d32; color: white; border: none; padding: 12px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;
+            transition: background 0.2s;
+        }
+        .btn-ai-gen:hover { background-color: #1b5e20; }
+        .btn-ai-gen:disabled { background-color: #a5d6a7; cursor: not-allowed; }
+
+        /* 캐릭터 카드 그리드 */
+        .grid-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;
+        }
+        .char-card {
+            background: var(--card-bg); border-radius: 12px; padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; border: 1px solid #eee;
+            display: flex; flex-direction: column; transition: transform 0.2s;
+        }
+        .char-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .char-icon {
+            width: 50px; height: 50px; background: #eefbf3; color: var(--accent-color);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+        }
+        .role-badge { background: #f0f0f0; color: #555; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .role-badge.main { background: #e3f2fd; color: #1976d2; }
+        .char-name { font-weight: bold; font-size: 1.2rem; color: #2c3e50; }
+        .card-desc { font-size: 0.9rem; color: #555; margin-top: 5px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; }
+        .card-actions { margin-top: 15px; padding-top: 10px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
+        .action-btn { background: none; border: none; cursor: pointer; color: #999; }
+        .action-btn:hover { color: var(--primary-color); }
+        .action-btn.delete:hover { color: var(--danger-color); }
+
+        /* 공통 모달 스타일 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .modal { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-input, .form-textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #eee; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+        .btn-submit { background: var(--accent-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+
+        /* 🌟 [NEW] AI 미리보기 목록 스타일 */
+        .preview-list { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
+        .preview-item {
+            border: 1px solid #ddd; padding: 10px; border-radius: 8px; background: #fafafa;
+            display: flex; gap: 10px; align-items: flex-start;
+        }
+        .preview-check { margin-top: 5px; transform: scale(1.2); cursor: pointer; }
+        .preview-content { flex: 1; }
+        .preview-role { font-size: 0.8rem; color: #2e7d32; font-weight: bold; margin-bottom: 2px; }
+        .preview-name { font-weight: bold; margin-bottom: 4px; }
+        .preview-desc { font-size: 0.85rem; color: #666; }
+
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+    </div>
+    <div class="nav-links">
+        <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
+        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="#" class="nav-item active"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="ai-section">
+        <div class="ai-header">
+            <i class="fas fa-robot"></i> AI 기반 등장인물 구성
+        </div>
+        <div class="ai-desc">
+            현재 플롯과 세계관에 맞춰 필요한 등장인물을 AI가 추천해드립니다.<br>
+            <small class="text-gray-500">(주인공 외에 악당, 조력자, 엑스트라 등을 요청해보세요.)</small>
+        </div>
+        <textarea id="aiPrompt" class="ai-textarea" placeholder="예: 주인공을 괴롭히는 학교 일진 3명과 그들의 리더를 만들어줘. 또는 주인공의 숨겨진 조력자를 추천해줘."></textarea>
+        <button id="btnAiGen" class="btn-ai-gen" onclick="generateAiCharacters()">
+            <i class="fas fa-magic"></i> AI로 등장인물 생성하기
+        </button>
+    </div>
+
+    <div class="header-area">
+        <h2>등장인물 관리</h2>
+        <button class="btn-add" onclick="openModal('add')"><i class="fas fa-user-plus"></i> 직접 추가</button>
+    </div>
+
+    <div id="charGrid" class="grid-container">
+        <div style="grid-column: 1/-1; text-align:center; padding: 40px; color: #999;">
+            <i class="fas fa-spinner fa-spin"></i> 로딩 중...
+        </div>
+    </div>
+</div>
+
+<div id="charModal" class="modal-overlay">
+    <div class="modal">
+        <h3 id="modalTitle">인물 추가</h3>
+        <input type="hidden" id="editId">
+        <div class="form-group"><label>이름</label><input type="text" id="inputName" class="form-input"></div>
+        <div class="form-group"><label>역할</label><input type="text" id="inputRole" class="form-input"></div>
+        <div class="form-group"><label>설명</label><textarea id="inputDesc" class="form-textarea" rows="4"></textarea></div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('charModal')">취소</button>
+            <button class="btn-submit" onclick="saveCharacter()">저장</button>
+        </div>
+    </div>
+</div>
+
+<div id="aiPreviewModal" class="modal-overlay">
+    <div class="modal">
+        <h3><i class="fas fa-check-double"></i> 생성된 인물 확인</h3>
+        <p style="font-size:0.9rem; color:#666;">추가할 인물을 선택해주세요.</p>
+        
+        <div id="aiResultList" class="preview-list">
+            </div>
+
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('aiPreviewModal')">취소</button>
+            <button class="btn-submit" onclick="saveBulkCharacters()">선택 항목 저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+    let charList = [];
+    let aiGeneratedData = []; // AI가 만든 임시 데이터
+
+    function init() {
+        if (!settingId) {
+            alert("프로젝트 ID가 없습니다.");
+            window.location.href = 'index.html';
+            return;
+        }
+        setupNav();
+        loadCharacters();
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    // --- 기본 CRUD ---
+    async function loadCharacters() {
+        const grid = document.getElementById('charGrid');
+        try {
+            const res = await fetch(`/api/characters?setting_id=${settingId}`);
+            charList = await res.json();
+            
+            grid.innerHTML = '';
+            if (charList.length === 0) {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:60px; color:#aaa;">등록된 인물이 없습니다.</div>`;
+                return;
+            }
+
+            charList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'char-card';
+                card.onclick = (e) => { if(!e.target.closest('.action-btn')) openModal('edit', item.id); };
+                
+                const isMain = item.role && (item.role.includes('주인공') || item.role.includes('메인'));
+                const badgeClass = isMain ? 'role-badge main' : 'role-badge';
+
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="char-icon"><i class="fas fa-user"></i></div>
+                        ${item.role ? `<span class="${badgeClass}">${item.role}</span>` : ''}
+                    </div>
+                    <div class="char-name">${item.name}</div>
+                    <div class="card-desc">${item.description || ''}</div>
+                    <div class="card-actions">
+                        <button class="action-btn delete" onclick="deleteCharacter(event, ${item.id})"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    // --- 🌟 AI 생성 로직 ---
+   // --- 🌟 AI 생성 로직 (3~5명 추천) ---
+    async function generateAiCharacters() {
+        const prompt = document.getElementById('aiPrompt').value.trim();
+        if (!prompt) return alert("요청 내용을 입력해주세요.");
+
+        const btn = document.getElementById('btnAiGen');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 생성 중... (시간이 걸릴 수 있습니다)';
+
+        try {
+            // 1. 컨텍스트 로드 (설정, 세계관, 기존 캐릭터)
+            const [sRes, wRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json())
+            ]);
+            
+            // 기존 캐릭터 이름들만 추출 (중복 방지용)
+            const existNames = charList.map(c => c.name).join(', ');
+
+            // 2. 프롬프트 구성 (3~5명 요청 추가)
+            const fullPrompt = `
+                [역할] 웹소설 캐릭터 디자이너
+                [작품 제목] ${sRes.title}
+                [줄거리] ${sRes.plotDetails || '미정'}
+                [세계관] ${wRes.map(w => w.title).join(', ')}
+                [이미 존재하는 캐릭터] ${existNames}
+
+                [요청 사항]
+                ${prompt}
+
+                [출력 조건]
+                1. 위 요청에 맞는 새로운 등장인물을 **최소 3명에서 최대 5명까지** 생성하세요.
+                2. 이미 존재하는 캐릭터 이름은 사용하지 마세요.
+                3. 각 캐릭터는 이름, 역할, 설명(성격/특징)을 가져야 합니다.
+                4. 반드시 아래와 같은 **JSON 배열 형식(Array)**으로만 출력하세요. 마크다운(\`\`\`)이나 사족(설명) 금지.
+                5. **중요: description 안에는 줄바꿈(\\n)과 글머리 기호(-, *)를 사용하여 가독성 있게 작성하세요.**
+
+                [JSON 예시]
+                [
+                    { 
+                        "name": "이름1", 
+						"role": "역할1",
+                        "description": "나이: 28세\\n\\n직책: 한빛의 비서실장\\n\\n외모: 165cm, 단발머리, 프로페셔널한 이미지\\n\\n성격: 완벽주의자\\n업무 능력 탁월\\n냉철하지만 따뜻한 면도 있음\\n\\n배경: 건축학과 한빛의 대학 선배\\n비각성자지만 실무 능력으로 인정받음\\n한빛의 최측근이자 조력자\\n\\n역할: 한빛의 일정 관리\\n프로젝트 실무 총괄\\n대외 협상 대행\\n\\n관계:한빛을 존경하지만 필요시 직언\\n정씨 가족들과도 친밀\\n" 
+                    },
+                    { 
+                        "name": "이름2", 
+						"role": "역할2",
+                        "description": "나이: 22세\\n\\n직책: 한빛의 비서실장\\n\\n외모: 165cm, 단발머리, 프로페셔널한 이미지\\n\\n성격: 완벽주의자\\n업무 능력 탁월\\n냉철하지만 따뜻한 면도 있음\\n\\n배경: 건축학과 한빛의 대학 선배\\n비각성자지만 실무 능력으로 인정받음\\n한빛의 최측근이자 조력자\\n\\n역할: 한빛의 일정 관리\\n프로젝트 실무 총괄\\n대외 협상 대행\\n\\n관계:한빛을 존경하지만 필요시 직언\\n정씨 가족들과도 친밀\\n" 
+                    }
+                ]
+            `;
+
+            // 3. API 호출
+            const aiRes = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-2.5-flash",
+                    payload: { contents: [{ parts: [{ text: fullPrompt }] }] }
+                })
+            });
+            const aiData = await aiRes.json();
+            
+            // 4. 응답 파싱
+            let text = aiData.candidates[0].content.parts[0].text;
+            // JSON 포맷팅 정리 (Markdown 코드블록 및 공백 제거)
+            text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            aiGeneratedData = JSON.parse(text);
+
+            if (!Array.isArray(aiGeneratedData) || aiGeneratedData.length === 0) {
+                throw new Error("AI가 유효한 캐릭터 데이터를 생성하지 못했습니다.");
+            }
+
+            // 5. 미리보기 모달 열기
+            openAiPreviewModal();
+
+        } catch (e) {
+            console.error(e);
+            alert("생성 실패: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> AI로 등장인물 생성하기';
+        }
+    }
+
+    function openAiPreviewModal() {
+        const listContainer = document.getElementById('aiResultList');
+        listContainer.innerHTML = '';
+
+        aiGeneratedData.forEach((char, idx) => {
+            const div = document.createElement('div');
+            div.className = 'preview-item';
+            div.innerHTML = `
+                <input type="checkbox" class="preview-check" id="char_chk_${idx}" checked>
+                <div class="preview-content">
+                    <div class="preview-role">${char.role}</div>
+                    <div class="preview-name">${char.name}</div>
+                    <div class="preview-desc">${char.description}</div>
+                </div>
+            `;
+            listContainer.appendChild(div);
+        });
+
+        document.getElementById('aiPreviewModal').style.display = 'flex';
+    }
+
+    async function saveBulkCharacters() {
+        // 선택된 항목만 필터링
+        const selectedChars = [];
+        aiGeneratedData.forEach((char, idx) => {
+            const chk = document.getElementById(`char_chk_${idx}`);
+            if (chk && chk.checked) {
+                selectedChars.push({
+                    setting_id: settingId, // 필수 ID 추가
+                    name: char.name,
+                    role: char.role,
+                    description: char.description
+                });
+            }
+        });
+
+        if (selectedChars.length === 0) {
+            alert("선택된 캐릭터가 없습니다.");
+            return;
+        }
+
+        try {
+            // 제공해주신 Bulk API 호출
+            const res = await fetch('/api/characters/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ characters: selectedChars })
+            });
+
+            if (res.ok) {
+                alert(`${selectedChars.length}명의 인물이 추가되었습니다.`);
+                closeModal('aiPreviewModal');
+                loadCharacters(); // 목록 갱신
+                document.getElementById('aiPrompt').value = ''; // 입력창 초기화
+            } else {
+                const err = await res.json();
+                alert("저장 실패: " + err.message);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("오류 발생");
+        }
+    }
+
+    // --- 수동 모달 관련 ---
+    function openModal(mode, id = null) {
+        const modal = document.getElementById('charModal');
+        document.getElementById('editId').value = id || '';
+        document.getElementById('inputName').value = '';
+        document.getElementById('inputRole').value = '';
+        document.getElementById('inputDesc').value = '';
+
+        if (mode === 'edit') {
+            const item = charList.find(c => c.id === id);
+            if (item) {
+                document.getElementById('inputName').value = item.name;
+                document.getElementById('inputRole').value = item.role;
+                document.getElementById('inputDesc').value = item.description;
+            }
+        }
+        modal.style.display = 'flex';
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    async function saveCharacter() {
+        const id = document.getElementById('editId').value;
+        const name = document.getElementById('inputName').value;
+        if(!name) return alert("이름 필수");
+
+        const payload = {
+            setting_id: settingId,
+            name: name,
+            role: document.getElementById('inputRole').value,
+            description: document.getElementById('inputDesc').value
+        };
+
+        const url = id ? `/api/characters/${id}` : '/api/characters';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                closeModal('charModal');
+                loadCharacters();
+            }
+        } catch(e) { alert("오류"); }
+    }
+
+    async function deleteCharacter(e, id) {
+        e.stopPropagation();
+        if(!confirm("삭제하시겠습니까?")) return;
+        await fetch(`/api/characters/${id}`, { method: 'DELETE' });
+        loadCharacters();
+    }
+
+    init();
+</script>
+
+</body>
+</html>

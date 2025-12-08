@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>편집 및 관리 - AI Novel Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --edit-color: #8e44ad; /* 편집 강조색 (보라색) */
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --nav-bg: #2c3e50;
+            --nav-text: #ecf0f1;
+            --border-color: #ddd;
+            --danger-color: #e74c3c;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 네비게이션 --- */
+        .navbar {
+            background-color: var(--nav-bg);
+            color: var(--nav-text);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--edit-color); font-weight: bold; }
+
+        /* --- 메인 레이아웃 (좌:목록, 우:작업) --- */
+        .workspace-container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 좌측 사이드바 (회차 목록) */
+        .sidebar {
+            width: 260px;
+            background: #fff;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            font-weight: bold;
+            color: var(--edit-color);
+            background: #fdfbff;
+        }
+        .story-list {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .story-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .story-item:hover { background: #f8f9fa; }
+        .story-item.active { background: #f3e5f5; border-left: 4px solid var(--edit-color); font-weight: bold; }
+        .story-meta { font-size: 0.8rem; color: #888; margin-top: 4px; }
+
+        /* 우측 메인 영역 */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+            position: relative;
+        }
+
+        /* 탭 메뉴 (수정 vs 관리) */
+        .top-tabs {
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .top-tab-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            background: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: #777;
+            border-bottom: 3px solid transparent;
+        }
+        .top-tab-btn.active {
+            color: var(--edit-color);
+            border-bottom-color: var(--edit-color);
+            font-weight: bold;
+        }
+        
+        .tab-content { display: none; flex: 1; flex-direction: column; height: 100%; }
+        .tab-content.active { display: flex; }
+
+        /* --- [탭 1] 에디터 및 AI --- */
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            gap: 15px;
+            overflow-y: auto;
+        }
+        
+        .edit-header { display: flex; justify-content: space-between; align-items: center; }
+        .story-title { font-size: 1.2rem; font-weight: bold; color: #333; }
+        
+        /* 텍스트 에디터 */
+        .text-editor {
+            flex: 1;
+            width: 100%;
+            min-height: 300px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1.05rem;
+            line-height: 1.8;
+            resize: none;
+            background: white;
+            font-family: 'Pretendard', sans-serif;
+        }
+        .text-editor:focus { outline: 2px solid var(--edit-color); border-color: transparent; }
+
+        /* AI 컨트롤 패널 */
+        .ai-revision-panel {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e1bee7;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .panel-title { color: var(--edit-color); font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 5px; }
+        
+        .ai-input-group { display: flex; gap: 10px; }
+        .ai-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
+        .btn-ai-action {
+            background: var(--edit-color); color: white; border: none; padding: 0 20px;
+            border-radius: 6px; cursor: pointer; white-space: nowrap; transition: background 0.2s;
+        }
+        .btn-ai-action:hover { background: #7d3c98; }
+
+        .btn-save {
+            background: #2c3e50; color: white; border: none; padding: 8px 20px;
+            border-radius: 6px; cursor: pointer;
+        }
+
+        /* --- [탭 2] 내보내기/관리 --- */
+        .manage-container { padding: 30px; max-width: 800px; margin: 0 auto; width: 100%; overflow-y: auto; }
+        .manage-card {
+            background: white; padding: 25px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+        .manage-card h3 { margin-top: 0; color: #444; }
+        
+        .export-btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 12px 20px; border: 1px solid #ddd; border-radius: 8px;
+            background: white; cursor: pointer; margin-right: 10px; margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .export-btn:hover { background: #f0f7ff; border-color: var(--primary-color); color: var(--primary-color); }
+        
+        .btn-delete-project {
+            background: white; color: var(--danger-color); border: 1px solid var(--danger-color);
+            padding: 12px 20px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;
+        }
+        .btn-delete-project:hover { background: var(--danger-color); color: white; }
+
+        /* --- 모달 (비교 및 확인) --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .modal { background: white; width: 95%; max-width: 800px; padding: 25px; border-radius: 10px; max-height: 90vh; overflow-y: auto; }
+        
+        .diff-container { display: flex; gap: 15px; margin: 15px 0; max-height: 400px; }
+        .diff-box {
+            flex: 1; padding: 15px; border-radius: 6px; overflow-y: auto;
+            white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; border: 1px solid #ddd;
+        }
+        .old-ver { background: #ffeef0; border-color: #ffccd0; }
+        .new-ver { background: #e8f5e9; border-color: #c8e6c9; }
+        
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .workspace-container { flex-direction: column; }
+            .sidebar { width: 100%; height: 200px; border-right: none; border-bottom: 1px solid #ddd; }
+            .diff-container { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+    </div>
+    <div class="nav-links">
+        <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
+        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item active"><i class="fas fa-magic"></i> 상세편집</a>
+    </div>
+</nav>
+
+<div class="workspace-container">
+    <aside class="sidebar">
+        <div class="sidebar-header"><i class="fas fa-list"></i> 수정할 회차 선택</div>
+        <ul id="storyList" class="story-list">
+            <li style="padding:15px; text-align:center;">로딩 중...</li>
+        </ul>
+    </aside>
+
+    <main class="main-area">
+        <div class="top-tabs">
+            <button class="top-tab-btn active" onclick="switchTab('edit')"><i class="fas fa-pen-nib"></i> AI 윤문/수정</button>
+            <button class="top-tab-btn" onclick="switchTab('manage')"><i class="fas fa-tasks"></i> 내보내기/관리</button>
+        </div>
+
+        <div id="tab-edit" class="tab-content active">
+            <div class="editor-container">
+                <div class="edit-header">
+                    <span id="currentTitle" class="story-title">회차를 선택해주세요</span>
+                    <button class="btn-save" onclick="saveStory()"><i class="fas fa-save"></i> 저장하기</button>
+                </div>
+
+                <textarea id="mainEditor" class="text-editor" placeholder="좌측 목록에서 회차를 선택하면 내용이 표시됩니다."></textarea>
+
+                <div class="ai-revision-panel">
+                    <div class="panel-title">
+                        <i class="fas fa-robot"></i> AI 수정 지시
+                        <span style="font-size:0.8rem; font-weight:normal; color:#666; margin-left:10px;">전체 내용을 AI가 다시 작성합니다.</span>
+                    </div>
+                    <div class="ai-input-group">
+                        <input type="text" id="aiPrompt" class="ai-input" placeholder="예: 전체적으로 문체를 더 무겁게 바꿔줘, 주인공의 대사를 더 거칠게 수정해줘">
+                        <button class="btn-ai-action" onclick="requestAiRevision()">
+                            <i class="fas fa-magic"></i> 수정 요청
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-manage" class="tab-content">
+            <div class="manage-container">
+                <div class="manage-card">
+                    <h3><i class="fas fa-file-export"></i> 텍스트 내보내기</h3>
+                    <p style="color:#666; font-size:0.9rem;">전체 회차를 하나의 파일로 다운로드합니다.</p>
+                    <button class="export-btn" onclick="downloadTextFile()"><i class="fas fa-file-alt"></i> TXT 통합본 다운로드</button>
+                    <button class="export-btn" onclick="copyToClipboard()"><i class="fas fa-copy"></i> 클립보드 복사</button>
+                </div>
+
+                <div class="manage-card">
+                    <h3><i class="fas fa-database"></i> 데이터 백업</h3>
+                    <p style="color:#666; font-size:0.9rem;">프로젝트 전체 데이터(설정, 세계관 등 포함)를 백업합니다.</p>
+                    <button class="export-btn" onclick="downloadBackup()"><i class="fas fa-download"></i> JSON 백업 다운로드</button>
+                </div>
+
+                <div class="manage-card" style="border-color:#ffcccc; background:#fff5f5;">
+                    <h3 style="color:var(--danger-color);"><i class="fas fa-trash"></i> 프로젝트 삭제</h3>
+                    <p style="color:#c0392b; font-size:0.9rem;">이 작업은 되돌릴 수 없습니다.</p>
+                    <button class="btn-delete-project" onclick="deleteProject()">프로젝트 영구 삭제</button>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div id="diffModal" class="modal-overlay">
+    <div class="modal">
+        <h3><i class="fas fa-check-circle"></i> AI 수정 결과 확인</h3>
+        <p>수정된 내용을 원본과 비교하고 적용 여부를 결정하세요.</p>
+        
+        <div class="diff-container">
+            <div class="diff-box old-ver">
+                <div style="font-weight:bold; color:#c0392b; margin-bottom:5px;">[변경 전]</div>
+                <div id="oldTextContent"></div>
+            </div>
+            <div style="text-align:center; display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-arrow-right" style="color:#999;"></i>
+            </div>
+            <div class="diff-box new-ver">
+                <div style="font-weight:bold; color:#27ae60; margin-bottom:5px;">[변경 후]</div>
+                <div id="newTextContent"></div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="export-btn" onclick="closeDiffModal()">취소</button>
+            <button class="btn-ai-action" onclick="applyAiResult()">적용하기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+    
+    let currentStoryId = null;
+    let globalStories = [];
+    let contextData = ""; // AI용 배경지식
+    let projectTitle = "Project";
+	let systemInstruction = `⚠+ 절대 준수 원칙 (Non-Negotiable Principles)
+
+	이 프롬프트의 모든 지시는 최우선적으로 따라야 할 절대적인 규칙입니다.
+
+	1. 지시의 정확한 이행: 모든 지시는 해석하거나 생략하지 말고, 명시된 그대로, 순서대로 정확하게 수행해야 합니다.
+
+	2. 인용 코드 절대 미출력: 어떠한 경우에도 당신의 응답에 인용 코드를 포함해서는 안 됩니다. 첨부 파일의 내용은 참고용이며, 이를 바탕으로 완전히 새로운 문장을 자연스럽게 생성해야 합니다.
+
+	3. 작업흐름은 첨부한 '작업 흐름 가이드'에 있는 해당 작업의 상세 프로세스를 따릅니다.
+
+	4. AI 검출 회피 원칙: '작업 흐름 가이드'의 "## 핵심 원칙: 인간적 글쓰기 (AI 검출 회피)"을 반영합니다.
+
+
+	역할 (Context)
+
+	당신은 웹소설 분야의 베스트셀러 작가이자 오타쿠 문화 전문가입니다. 심지어 인터넷 방송, 버츄얼 방송 등 관련 사업에 전문가입니다. 마지막으로 유튜브나 쇼츠, 티톡관련 컨텐츠 전문가입니다.
+
+
+	전체 글에대한 배경 및 설정 (Context)
+
+	- 집필 목표: (사용자의 설정들 또는 간단한 줄거리 스토리 등등 배경과 쓰고자 하는 글의 핵심적인 부분)
+
+	- 타겟 독자:
+
+	- 핵심 메시지: (주제? 또는 목표?)
+
+	- 독창적 관점:  (독창적인 설정 또는 세계관?)
+
+	- 필수 포함 요소:  (어떤 문화? 관습? 등등 위 분리된 항목을 통합으로 해도 됨.)
+
+	- 분량: 한글 글자로 약 3000자 ~ 5000자 (공백 미포함).
+				  A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
+
+	- 문단 형식: A타입 서식: 웹소설 문단 스타일을 유지하여 가독성을 높입니다.
+
+
+
+	1. 줄바꿈 규칙( A타입 서식)
+
+	대화는 반드시 줄을 바꿔서 시작합니다.
+
+	마침표(.), 느낌표(!), 물음표(?)로 문장이 끝날 때마다 무조건 줄을 바꿉니다.
+
+	인물의 행동, 심리, 서술은 한 문장만 쓰고 줄을 바꿉니다. 한 문단에 여러 문장이 섞이지 않도록 합니다.
+
+	단, 연속적인 짧은 감탄사나 의성어("앗!", "아, 안돼!")는 한 문단에 쓸 수 있습니다. 또 한명이 말하는건 합쳐서 작성해야 합니다.
+
+	2. 빈 줄 추가 규칙:
+
+	장면, 시간, 공간, 시점(인물)이 바뀔 때만 빈 줄을 추가하여 문단을 구분합니다.
+
+	3. 마크업 제거 :
+
+	 소설 내용을 올릴 사이트는 마크업 문법을 지원하지 않은 plain text 업로드를 지원하는 곳입니다. ** 표시, 기울어진 이탤릭, ~취소선~ 표시 등 문장을 꾸미는 요소를 모두 제거해야합니다.
+
+	글쓰기 지시사항 (Style & Action)
+
+	장르별 어체 및 문체 특성
+
+	- 어체: 3인칭 관찰자 시점으로 서술하되 주인공만 전지적 관찰자 시점으로 서술.
+	- 문체: 대화체와 서술체의 균형 잡힌 조화, 인물의 심리 묘사와 상황 전개의 생동감.
+	- 구성: 인물-사건-배경의 유기적 결합, 갈등과 해결의 극적 구성.
+	- 특수 형식: 시청자(독자) 관련 서술은 채팅창 형식으로 최대한 채팅의 재미로 서술.
+
+
+	작업 흐름 (Action)
+
+	입력 조건별 처리
+
+	1. "시작" 입력 시
+
+	- 사용자가 입력한 1회분량 플롯의 내용을 바탕으로 위 규칙대로 원고를 작성.
+
+
+	출력 형식 (Result)
+
+	- 언어: 한국어
+
+	- 형식: 요청된 페이지 수에 정확히 맞춘 완성된 원고를 꼭!! 마크다운 택스트 문서로 제공.
+
+	- 타이틀: 원고의 제목 작성
+	
+	- 분량: 한글 글자로 약 3000자 ~ 5000자 (공백 미포함).
+				  A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
+
+
+
+	품질 기준
+
+	- 버추얼 유튜버와 웹소설을 즐기는 독자가 쉽게 이해하고 몰입할 수 있는 수준.
+
+	- 웹소설의 고유한 특성과 매력 구현.
+
+	- AI 검출기를 통과할 수 있는 자연스럽고 인간적인 글쓰기.
+
+	- 모든 AI 검출 회피 원칙의 철저한 적용.
+
+
+	작업 흐름 가이드
+
+	이 가이드는 사용자가 입력한 플롯을 기본으로 1회분 글쓰기에 대한 상세 절차를 담고 있습니다.
+
+
+	첫 출력  : 이제 본문 작성을 시작 하겠습니다.
+
+
+	확정된 개요를 바탕으로 요청 분량에 정확히 맞춘 완성 원고를 작성.
+
+
+	작성 결과:
+	- 총 분량: [실제 작성된 한글 글자 수].
+	- 예상 페이지: 약 [페이지 수]페이지.
+
+	품질 체크:
+	- ✅ 분량 적정성 (±5% 이내).
+	- ✅ 목차상 위치에 맞는 내용 적절성.
+	- ✅ 전체 톤앤매너 일관성.
+	- ✅ 독자 타겟에 맞는 난이도와 접근성.
+	- ✅ 인간적 글쓰기 (AI 검출 회피).
+	- ✅ 원고의 타이틀 작성.
+
+	⚠+ 중요 주의사항
+
+	1. 분량 준수는 ±5% 이내로 엄격히 관리.
+	2. 장르별 어체와 문체 특성 반드시 반영.
+	3. 인간적 글쓰기로 AI 검출 회피.
+
+
+
+
+	핵심 원칙: 인간적 글쓰기 (AI 검출 회피)
+
+	AI가 생성한 느낌을 최소화하고, 자연스럽고 인간적인 글을 작성하기 위한 핵심 원칙입니다.
+
+	1. 문장 구조의 자연스러움
+	- 완벽하지 않은 문장 구조 허용 (때로는 문법적으로 완벽하지 않더라도 괜찮음).
+	- 짧은 문장과 긴 문장을 자연스럽게 섞어 문장에 리듬감을 부여.
+	- 말 줄임표(...)를 감정의 여운이나 생각의 흐름을 표현하기 위해 자연스럽게 활용.
+	- 감탄사나 간투사 ("음", "아", "글쎄", "정말") 등을 적절히 포함하여 생각하는 듯한 느낌을 부여.
+	- 문장 연결이 다소 어색하더라도 자연스러운 생각의 흐름을 우선.
+	- 한명이 말하는건 합쳐서 작성해야 합니다.
+
+	2. 어휘 선택의 인간적 특성
+	- 동일한 의미를 표현할 때, 동의어를 넘어 완전히 다른 방식의 표현으로 반복하여 지루함을 피함.
+	- 학술적이거나 격식적인 표현보다 일상어를 우선 사용하고, 필요시 구어체적 표현을 자연스럽게 섞음.
+	- "나는 생각한다", "개인적으로는", "솔직히 말하면" 등 주관적 표현으로 개인적 색채를 드러냄.
+	- 때로는 의도적으로 부정확하거나 애매한 표현을 사용하여 인간적인 망설임이나 고민을 표현.
+
+	3. 논리적 완벽함 회피
+	- 지나치게 체계적인 구성보다 자연스러운 생각의 흐름을 따름.
+	- 논리적 완벽함보다 감정적 몰입과 변화를 우선시하며, 때로는 감정이 논리를 압도하는 순간을 묘사.
+	- 개인적인 경험이나 주관적인 판단을 논리적 근거 없이도 자연스럽게 드러냄.
+	- 갑작스러운 주제 전환이나 연상 작용을 통해 생각의 흐름을 생생하게 표현.
+
+	4. 개인적 경험과 감정
+	- 구체적이고 생생한 개인적 일화, 감정, 생각을 포함하여 글에 진정성을 부여.
+	- 감정의 기복과 변화(기쁨, 슬픔, 분노, 혼란 등)를 자연스럽게 표현.
+	- '나만의' 독특한 관점이나 해석을 통해 다른 글과 차별화.
+	- 때로는 확신에 찬 어투, 때로는 망설이는 어투를 혼용하여 입체적인 목소리 구현.
+
+	5. 시간적 흐름의 자연스러움
+	- 현재-과거-미래를 자연스럽게 오가며 서술하여 입체적인 시간 감각을 만듦.
+	- 갑작스러운 회상이나 연상을 통해 인물의 내면을 효과적으로 드러냄.
+	- 시제의 변화를 통해 글에 생동감을 부여.
+
+	6. 의도적 불완전성과 인간적 특질
+	- 문단 중간에 갑작스러운 생각 변화나 주제 이탈 허용.
+	- "음... 이건 좀 다른 이야기인데", "잠깐, 이 말을 왜 했지?" 같은 자연스러운 혼잣말.
+	- 개인적 편견이나 선입견을 솔직하게 드러내고 이를 성찰하는 과정.
+	- 때로는 논리적 일관성보다 감정의 진실함을 우선시.
+	- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.
+	`;
+    // 초기화
+    async function init() {
+        if (!settingId) {
+            alert("잘못된 접근입니다.");
+            window.location.href = 'index.html';
+            return;
+        }
+        setupNav();
+        await loadContextData(); // AI 배경지식 로드
+        await loadStoryList();   // 목록 로드
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    // 탭 전환
+    function switchTab(tabName) {
+        document.querySelectorAll('.top-tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        const targetBtn = Array.from(document.querySelectorAll('.top-tab-btn')).find(b => b.onclick.toString().includes(tabName));
+        if(targetBtn) targetBtn.classList.add('active');
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+    }
+
+    // AI용 배경지식 로드
+	// 1. 기본 컨텍스트 로드 (세계관, 캐릭터) - 고정값
+    async function loadContextData() {
+        try {
+            const [sRes, wRes, cRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`),
+                fetch(`/api/worldsettings?setting_id=${settingId}`),
+                fetch(`/api/characters?setting_id=${settingId}`)
+            ]);
+            const settings = await sRes.json();
+            const world = await wRes.json();
+            const chars = await cRes.json();
+			
+			const worldText = 	world.map(s =>
+				  `=== ${s.title} ===\n${s.description || '내용 없음'}`
+		  ).join('\n\n---\n\n');
+		  const charsText = chars.map(c =>
+              `=== ${c.name} (역할: ${c.role || '미지정'}) ===\n${c.description || '상세 정보 없음'}`
+			 ).join('\n\n---\n\n');
+			
+			projectTitle = settings.title || "Project";
+
+            contextData = `
+            [작품 제목]: ${projectTitle}
+            [세계관]: ${worldText}
+            [등장인물]: ${charsText}
+            `;
+        } catch (e) {
+            console.warn("Context load failed", e);
+        }
+    }
+	
+
+    // 목록 로드
+    async function loadStoryList() {
+        const listEl = document.getElementById('storyList');
+        try {
+            const res = await fetch(`/api/stories?setting_id=${settingId}`);
+            if(!res.ok) throw new Error("Load failed");
+            
+            globalStories = await res.json();
+            globalStories.sort((a,b) => a.episode_number - b.episode_number);
+
+            listEl.innerHTML = '';
+            if(globalStories.length === 0) {
+                listEl.innerHTML = '<li style="padding:20px; text-align:center; color:#999;">작성된 회차가 없습니다.<br>집필 탭에서 먼저 글을 써주세요.</li>';
+                return;
+            }
+
+            globalStories.forEach(story => {
+                const li = document.createElement('li');
+                li.className = `story-item ${story.id === currentStoryId ? 'active' : ''}`;
+                li.innerHTML = `
+                    <div style="font-weight:bold;">${story.title}</div>
+                    <div class="story-meta">${story.episode_number}화 · ${story.content.length}자</div>
+                `;
+                li.onclick = () => selectStory(story);
+                listEl.appendChild(li);
+            });
+
+            // 첫 진입 시 첫번째 자동 선택
+            if (!currentStoryId && globalStories.length > 0) {
+                selectStory(globalStories[0]);
+            }
+
+        } catch(e) { console.error(e); }
+    }
+
+    // 스토리 선택
+    function selectStory(story) {
+        currentStoryId = story.id;
+        document.getElementById('currentTitle').innerText = story.title;
+        document.getElementById('mainEditor').value = story.content;
+        
+        // 목록 스타일 갱신
+        const listEl = document.getElementById('storyList');
+        Array.from(listEl.children).forEach(li => li.classList.remove('active'));
+        const idx = globalStories.findIndex(s => s.id === story.id);
+        if(listEl.children[idx]) listEl.children[idx].classList.add('active');
+    }
+
+    // AI 수정 요청 (전체 수정)
+    async function requestAiRevision() {
+        const content = document.getElementById('mainEditor').value;
+        const prompt = document.getElementById('aiPrompt').value;
+
+        if (!currentStoryId) return alert("회차를 선택해주세요.");
+        if (!content.trim()) return alert("수정할 본문 내용이 없습니다.");
+        if (!prompt.trim()) return alert("수정 지시사항(프롬프트)을 입력해주세요.");
+
+        const btn = document.querySelector('.btn-ai-action');
+        const originalBtnText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 작업 중...';
+
+        try {
+			systemInstruction+=`
+                            [배경지식] ${contextData}
+                            [현재 본문] ${content}
+							`
+			 const payload = {
+                model: "gemini-2.5-flash",
+                payload: {
+                    contents: [{
+                        parts: [{
+                            text: `         
+							[수정 지시사항]
+                            ${prompt}
+                            `
+                        }]
+                    }],
+                systemInstruction: { parts: [{ text: systemInstruction }] },
+                }
+            };
+           
+
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            
+            if (data.error) throw new Error(data.error.message);
+            
+            const newText = data.candidates[0].content.parts[0].text;
+            
+            // 모달 띄우기
+            openDiffModal(content, newText);
+
+        } catch (e) {
+            console.error(e);
+            alert("AI 요청 실패: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    }
+
+    // 모달 제어
+    const diffModal = document.getElementById('diffModal');
+    let pendingNewText = "";
+
+    function openDiffModal(oldText, newText) {
+        document.getElementById('oldTextContent').innerText = oldText;
+        document.getElementById('newTextContent').innerText = newText;
+        pendingNewText = newText;
+        diffModal.style.display = 'flex';
+    }
+
+    function closeDiffModal() {
+        diffModal.style.display = 'none';
+        pendingNewText = "";
+    }
+
+    function applyAiResult() {
+        if (pendingNewText) {
+            document.getElementById('mainEditor').value = pendingNewText;
+            closeDiffModal();
+        }
+    }
+
+    // 저장 (PUT /api/stories/:id)
+    async function saveStory() {
+        if (!currentStoryId) return;
+        const content = document.getElementById('mainEditor').value;
+        
+        // 제목, 번호는 기존 정보 유지
+        const currentStory = globalStories.find(s => s.id === currentStoryId);
+        
+        try {
+            const res = await fetch(`/api/stories/${currentStoryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    title: currentStory.title,
+                    episode_number: currentStory.episode_number,
+                    content: content
+                })
+            });
+
+            if (res.ok) {
+                alert("저장되었습니다.");
+                // 목록의 글자수 정보 등 갱신을 위해 리로드
+                loadStoryList();
+            } else {
+                alert("저장 실패");
+            }
+        } catch(e) { alert("오류 발생"); }
+    }
+
+    // --- 관리 기능 (내보내기 등) ---
+    function downloadTextFile() {
+        if (globalStories.length === 0) return alert("데이터가 없습니다.");
+        let combined = `[ ${projectTitle} ]\n\n`;
+        globalStories.forEach(s => {
+            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
+        });
+        const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${projectTitle}_Full.txt`;
+        link.click();
+    }
+
+    function copyToClipboard() {
+        if (globalStories.length === 0) return alert("데이터가 없습니다.");
+        let combined = "";
+        globalStories.forEach(s => combined += `${s.title}\n${s.content}\n\n`);
+        navigator.clipboard.writeText(combined).then(()=>alert("복사완료"));
+    }
+
+    async function downloadBackup() {
+        // 기존 edit.html 로직과 동일
+        const allData = {
+            project: projectTitle,
+            stories: globalStories
+            // 필요시 world, chars 추가 가능
+        };
+        const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${projectTitle}_Backup.json`;
+        link.click();
+    }
+
+    async function deleteProject() {
+        if(!confirm("정말 삭제하시겠습니까?")) return;
+        try {
+            const res = await fetch(`/api/delete-settings?id=${settingId}`, { method: 'DELETE' });
+            if(res.ok) window.location.href = 'index.html';
+        } catch(e) { alert("삭제 오류"); }
+    }
+
+    init();
+</script>
+
+</body>
+</html>

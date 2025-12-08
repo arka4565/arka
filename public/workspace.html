@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Workspace - AI Novel Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --border-color: #ddd;
+            --tab-active-bg: #e8f0fe;
+            --tab-active-text: #1967d2;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            /* 모바일에서 스크롤 부드럽게 */
+            -webkit-overflow-scrolling: touch; 
+        }
+
+        /* --- 상단 헤더 & 네비게이션 (Sticky) --- */
+        .workspace-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: var(--card-bg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .btn-back {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: #555;
+            padding: 5px;
+        }
+
+        .project-title {
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
+            max-width: 60%;
+        }
+
+        /* 탭 메뉴: 모바일에서 가로 스크롤 가능하게 설정 */
+        .tabs {
+            display: flex;
+            overflow-x: auto; /* 핵심: 넘치면 스크롤 */
+            white-space: nowrap;
+            padding: 0 10px;
+            /* 스크롤바 숨기기 (크롬 등) */
+            scrollbar-width: none; 
+            -ms-overflow-style: none;
+        }
+        .tabs::-webkit-scrollbar { display: none; }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            padding: 12px 15px;
+            font-size: 0.95rem;
+            color: #666;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+            flex-shrink: 0; /* 버튼이 찌그러지지 않게 */
+        }
+
+        .tab-btn.active {
+            color: var(--tab-active-text);
+            border-bottom-color: var(--tab-active-text);
+            font-weight: bold;
+        }
+        .tab-btn i { margin-right: 5px; }
+
+        /* --- 메인 컨텐츠 영역 --- */
+        .main-content {
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            /* 하단 여백 확보 (모바일 키보드 고려) */
+            padding-bottom: 80px; 
+        }
+
+        /* 탭 컨텐츠 숨김/표시 */
+        .tab-content { display: none; animation: fadeIn 0.3s; }
+        .tab-content.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 공통 카드/리스트 스타일 --- */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* 반응형 그리드 */
+            gap: 15px;
+        }
+
+        .item-card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .btn-add {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* --- 입력 폼 스타일 --- */
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 1rem; /* 16px 이상이어야 iOS에서 자동확대 안됨 */
+            font-family: inherit;
+        }
+        
+        .form-textarea { min-height: 120px; resize: vertical; line-height: 1.6; }
+
+        /* --- 스토리 에디터 스타일 --- */
+        .story-editor-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .ai-prompt-box {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #d0e3ff;
+        }
+
+        /* --- 🌟 모바일 전용 스타일 (미디어 쿼리) --- */
+        @media (max-width: 768px) {
+            .main-content { padding: 15px; }
+            
+            /* 모바일에서 카드는 1열로 꽉 차게 */
+            .card-grid { grid-template-columns: 1fr; }
+            
+            /* 버튼들 더 크게 (터치 영역 확보) */
+            .btn-add, .tab-btn { padding: 12px 15px; }
+            
+            .project-title { font-size: 1rem; max-width: 50%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="workspace-header">
+    <div class="top-bar">
+        <button class="btn-back" onclick="location.href='index.html'">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <div class="project-title" id="displayTitle">로딩 중...</div>
+        <div>
+            <button class="btn-back" title="저장" onclick="saveCurrentWork()">
+                <i class="fas fa-save"></i>
+            </button>
+        </div>
+    </div>
+    
+    <nav class="tabs">
+        <button class="tab-btn active" onclick="switchTab('settings')"><i class="fas fa-cog"></i> 설정</button>
+        <button class="tab-btn" onclick="switchTab('world')"><i class="fas fa-globe"></i> 세계관</button>
+        <button class="tab-btn" onclick="switchTab('chars')"><i class="fas fa-users"></i> 캐릭터</button>
+        <button class="tab-btn" onclick="switchTab('plot')"><i class="fas fa-project-diagram"></i> 플롯</button>
+        <button class="tab-btn" onclick="switchTab('write')"><i class="fas fa-pen-fancy"></i> 집필</button>
+    </nav>
+</div>
+
+<div class="main-content">
+
+    <section id="tab-settings" class="tab-content active">
+        <div class="form-group">
+            <label>소설 제목</label>
+            <input type="text" id="inputTitle" class="form-input" placeholder="제목을 입력하세요">
+        </div>
+        <div class="form-group">
+            <label>장르 / 태그</label>
+            <input type="text" class="form-input" placeholder="예: 판타지, 회귀물, 먼치킨">
+        </div>
+        <div class="form-group">
+            <label>전체 줄거리 (로그라인)</label>
+            <textarea class="form-textarea" placeholder="이 소설의 핵심 줄거리를 요약해주세요."></textarea>
+        </div>
+    </section>
+
+    <section id="tab-world" class="tab-content">
+        <div class="section-header">
+            <h3>세계관 설정</h3>
+            <button class="btn-add"><i class="fas fa-plus"></i> 추가</button>
+        </div>
+        <div id="worldList" class="card-grid">
+            <div class="item-card">
+                <b>마법 시스템</b>
+                <p style="font-size:0.9rem; color:#666; margin:5px 0;">마나를 사용하여 서클을 형성하는 고전적 방식...</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="tab-chars" class="tab-content">
+        <div class="section-header">
+            <h3>등장인물</h3>
+            <button class="btn-add"><i class="fas fa-user-plus"></i> 추가</button>
+        </div>
+        <div id="charList" class="card-grid">
+            <div class="item-card">
+                <b>강철민 (주인공)</b>
+                <p style="font-size:0.9rem; color:#666;">F급 헌터였으나 회귀 후 각성함.</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="tab-plot" class="tab-content">
+        <div class="ai-prompt-box">
+            <label><i class="fas fa-robot"></i> AI 플롯 생성기</label>
+            <textarea class="form-textarea" style="height:80px; margin-top:10px;" placeholder="어떤 에피소드를 구상하고 싶으신가요?"></textarea>
+            <button class="btn-add" style="margin-top:10px; width:100%;">아이디어 제안받기</button>
+        </div>
+        <div style="margin-top:20px;">
+            <h4>구상 메모</h4>
+            <textarea class="form-textarea" style="height:300px;"></textarea>
+        </div>
+    </section>
+
+    <section id="tab-write" class="tab-content">
+        <div class="story-editor-container">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <select class="form-input" style="flex:1;">
+                    <option>제 1화: 시작된 회귀</option>
+                    <option>제 2화: 첫 번째 던전</option>
+                </select>
+                <button class="btn-add" style="padding: 10px 15px;"><i class="fas fa-plus"></i></button>
+            </div>
+
+            <textarea id="mainEditor" class="form-textarea" style="height: 50vh;" placeholder="여기에 본문을 작성하세요..."></textarea>
+            
+            <div class="ai-prompt-box">
+                <label>AI 이어쓰기 도우미</label>
+                <div style="display:flex; gap:10px; margin-top:5px;">
+                    <input type="text" class="form-input" placeholder="다음 장면 지시문 (예: 주인공이 몬스터를 처치하는 장면 묘사해줘)">
+                    <button class="btn-add" style="white-space:nowrap;">생성</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+    // URL에서 setting_id 파싱
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+
+    // 탭 전환 기능
+    function switchTab(tabName) {
+        // 1. 모든 탭 버튼 비활성화
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        // 2. 모든 탭 내용 숨기기
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        // 3. 선택된 탭 활성화 (이벤트가 발생한 버튼을 찾기 위해 onclick 내에서 호출됨을 가정하거나, 쿼리셀렉터 사용)
+        // 여기서는 간단히 인덱스나 텍스트 매칭 대신, 호출 시 class 제어를 위임합니다.
+        
+        // 클릭된 버튼 찾기 (이벤트 객체를 안 넘겼으므로 쿼리 셀렉터로 매핑)
+        const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.onclick.toString().includes(tabName));
+        if(targetBtn) targetBtn.classList.add('active');
+
+        // 내용 표시
+        const targetContent = document.getElementById(`tab-${tabName}`);
+        if(targetContent) targetContent.classList.add('active');
+    }
+
+    // 초기 데이터 로드 (시뮬레이션)
+    async function initWorkspace() {
+        if (!settingId) {
+            alert('잘못된 접근입니다.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        try {
+            // 실제 API 호출 (load-settings)
+            const response = await fetch(`/api/load-settings?id=${settingId}`);
+            if(!response.ok) throw new Error("Load failed");
+            
+            const data = await response.json();
+            
+            // 데이터 바인딩
+            document.getElementById('displayTitle').innerText = data.title;
+            document.getElementById('inputTitle').value = data.title;
+            
+            // 여기에 세계관, 캐릭터 로드 함수 등 호출 예정
+            
+        } catch (e) {
+            console.error(e);
+            document.getElementById('displayTitle').innerText = "불러오기 실패";
+        }
+    }
+
+    function saveCurrentWork() {
+        alert('저장 기능은 곧 구현됩니다!');
+    }
+
+    // 시작
+    initWorkspace();
+</script>
+
+</body>
+</html>
