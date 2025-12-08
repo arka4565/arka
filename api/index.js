@@ -771,7 +771,7 @@ app.delete('/api/episodes/:id', (req, res) => {
 app.post('/api/generate-text', async (req, res) => {
 
     // 1. 사용 가능한 모든 API 키를 배열로 수집합니다. (기본 키 + 1~10번 예비 키)
-    const availableKeys = [
+   const rawKeys = [
         process.env.GEMINI_API_KEY,
         process.env.GEMINI_API_KEY1,
         process.env.GEMINI_API_KEY2,
@@ -788,8 +788,10 @@ app.post('/api/generate-text', async (req, res) => {
         process.env.GEMINI_API_KEY13,
         process.env.GEMINI_API_KEY14,
         process.env.GEMINI_API_KEY15
-    ].filter(key => key); // undefined, null, 빈 문자열은 제거합니다.
+    ];
 
+    // 유효한 키만 필터링
+    const availableKeys = rawKeys.filter(key => key);
     if (availableKeys.length === 0) {
         return res.status(500).json({ error: 'GEMINI_API_KEY environment variables are not set on the server.' });
     }
