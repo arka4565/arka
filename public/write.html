@@ -395,7 +395,7 @@
 
 	- 필수 포함 요소:  (어떤 문화? 관습? 등등 위 분리된 항목을 통합으로 해도 됨.)
 
-	- 분량: 한글 글자로 약 3000자 ~ 5000자 (공백 미포함).
+	- 분량: 한글 글자로 약 7000자 (공백 미포함).
 				  A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
 
 	- 문단 형식: A타입 서식: 웹소설 문단 스타일을 유지하여 가독성을 높입니다.
@@ -447,7 +447,7 @@
 
 	- 타이틀: 원고의 제목 작성
 
-	- 분량: 한글 글자로 약 3000자 ~ 5000자 (공백 미포함).
+	- 분량: 한글 글자로 약 7000자 (공백 미포함).
 				  A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
 
 
@@ -667,6 +667,32 @@
         document.getElementById('mainEditor').value = '';
         document.getElementById('mainEditor').disabled = disable;
     }
+	// 🌟 [추가] 텍스트의 끝부분을 문단(\n) 단위로 깔끔하게 가져오는 함수
+    function getLastContextByParagraph(text, minLength = 600) {
+        if (!text || text.trim() === "") return "";
+
+        // 1. 전체 길이가 최소 길이보다 짧으면 그냥 다 반환
+        if (text.length <= minLength) return text;
+
+        // 2. 끝에서부터 (최소 길이 * 1.5) 만큼 넉넉하게 잘라냄
+        const chunk = text.slice(-(minLength * 1.5));
+
+        // 3. 그 안에서 '줄바꿈(\n)'이 처음 나오는 위치를 찾음 (문단 시작점)
+        // \n\n (빈 줄)이 있으면 거기가 가장 확실한 문단 구분
+        let breakIndex = chunk.indexOf('\n\n');
+        
+        // \n\n이 없으면 그냥 \n(엔터)을 찾음
+        if (breakIndex === -1) {
+            breakIndex = chunk.indexOf('\n');
+        }
+
+        // 4. 줄바꿈을 찾았으면 그 뒤부터 끝까지 반환, 못 찾았으면 그냥 자른거 반환
+        if (breakIndex !== -1) {
+            return chunk.slice(breakIndex).trim(); // 앞부분 찌꺼기 버리고 반환
+        } else {
+            return text.slice(-minLength); // 줄바꿈이 아예 없으면 그냥 글자수대로 자름
+        }
+    }
 
     // 새 회차 생성 (POST /api/stories)
     async function createNewEpisode() {
@@ -706,6 +732,8 @@
             alert("오류 발생");
         }
     }
+
+	
 
     // 저장 (PUT /api/stories/:id)
     async function saveCurrentEpisode() {
@@ -793,6 +821,19 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 작성 중...';
 
+		// B. 에디터가 비어있으면 -> '직전 회차'의 마지막 문단들을 가져옴
+		let prevContext ="";
+		const currentStory = globalStories.find(s => s.id === currentStoryId);
+		if (currentStory) {
+			// 현재 회차 번호 - 1 에 해당하는 회차 찾기
+			const prevStory = globalStories.find(s => s.episode_number === currentStory.episode_number - 1);
+			//console.log(prevStory.content)
+			if (prevStory && prevStory.content) {
+				 prevContext = getLastContextByParagraph(prevStory.content);
+			} else {
+			}
+		}
+
         try {
             //const currentContent = editor.value.slice(-1000); // 최근 1000자 참고
 			systemInstruction+=`[배경지식] ${contextData}`
@@ -823,7 +864,7 @@
                 const newScene = data.candidates[0].content.parts[0].text;
                 const separator = editor.value.length > 0 ? "\n\n" : "";
                
-				editor.value = newScene;
+				editor.value = prevContext + separator+newScene;
                 editor.scrollTop = editor.scrollHeight;
                 
                 // (선택사항) 성공 후 입력창 비우기
