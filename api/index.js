@@ -793,7 +793,11 @@ app.post('/api/generate-text', async (req, res) => {
     if (availableKeys.length === 0) {
         return res.status(500).json({ error: 'GEMINI_API_KEY environment variables are not set on the server.' });
     }
-
+	// 이렇게 하면 매 요청마다 키 순서가 랜덤으로 바뀝니다.
+    for (let i = availableKeys.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availableKeys[i], availableKeys[j]] = [availableKeys[j], availableKeys[i]];
+    }
     const { model, payload } = req.body;
 
     if (!model || !payload) {
