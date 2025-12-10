@@ -765,7 +765,7 @@ app.delete('/api/episodes/:id', (req, res) => {
     });
 });
 
-
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // 🌟🌟🌟 [NEW] Gemini API 프록시 엔드포인트 🌟🌟🌟
 app.post('/api/generate-text', async (req, res) => {
@@ -791,69 +791,59 @@ app.post('/api/generate-text', async (req, res) => {
     ].filter(key => key); // undefined, null, 빈 문자열은 제거합니다.
 
     if (availableKeys.length === 0) {
-        return res.status(500).json({ error: 'GEMINI_API_KEY environment variables are not set on the server.' });
+        return res.status(500).json({ error: 'Server API Keys missing.' });
     }
 
     const { model, payload } = req.body;
-
-    if (!model || !payload) {
-        return res.status(400).json({ error: 'Missing model or payload in request body.' });
-    }
-
+    
     let lastError = null;
     let lastStatus = 500;
 
-    // 2. 키 리스트를 순회하며 요청을 시도합니다.
+    // 2. 키 순회
     for (const apiKey of availableKeys) {
         const url = `${GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`;
 
         try {
+            console.log(`Trying API Key ending in ...${apiKey.slice(-4)}`); // 로그 추가
+
             const response = await fetch(url, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            // 성공 시 바로 데이터를 반환하고 함수 종료
             if (response.ok) {
                 const data = await response.json();
-                return res.status(200).json(data);
+                return res.status(200).json(data); // 성공 시 바로 리턴
             }
 
-            // 에러 발생 시 처리
+            // 실패 시 처리
             const errorBody = await response.json().catch(() => ({}));
             lastStatus = response.status;
             lastError = errorBody;
 
-            // 3. 재시도 여부 결정
-            // 429(Too Many Requests) 또는 403(Quota Exceeded) 또는 5xx(Server Error)인 경우에만 다음 키 시도
-            // 400(Bad Request)은 요청 자체가 잘못된 것이므로 키를 바꿔도 소용없음 -> 바로 실패 처리
-            if (response.status === 429 || response.status === 403 || response.status >= 500) {
-                console.warn(`Gemini API Failed with key ending in ...${apiKey.slice(-4)} (Status: ${response.status}). Trying next key...`);
-                continue; // 다음 키로 루프 계속 진행
+            // 503(과부하)이나 429(요청 제한)일 때만 재시도
+            if (response.status === 429 || response.status === 503 || response.status >= 500) {
+                console.warn(`⚠️ Gemini API Failed (Status: ${response.status}). Waiting 2s before next key...`);
+                
+                // 🌟 [핵심 수정] 2초 대기 후 다음 키 시도
+                await delay(2000); 
+                continue; 
             } else {
-                // 재시도해도 해결되지 않을 에러 (예: 잘못된 파라미터 등)
-                console.error(`Gemini API Fatal Error (${response.status}):`, errorBody);
-                return res.status(response.status).json({
-                    error: `Gemini API call failed with status ${response.status}`,
-                    details: errorBody
-                });
+                // 400 Bad Request 등은 재시도해도 소용없으므로 즉시 종료
+                return res.status(response.status).json({ error: "Gemini API Error", details: errorBody });
             }
 
         } catch (error) {
-            console.error('Proxy Fetch Error (Network):', error);
-            lastError = { message: error.message };
-            // 네트워크 에러 등의 경우 다음 키 시도
+            console.error('Network Error:', error);
+            await delay(1000); // 네트워크 에러 시 1초 대기
             continue;
         }
     }
 
-    // 4. 모든 키가 실패했을 경우 최종 에러 반환
-    console.error('All API keys exhausted.');
+    // 모든 키 실패 시
     return res.status(lastStatus).json({
-        error: 'All available Gemini API keys failed.',
+        error: 'All available Gemini API keys failed or server is busy.',
         details: lastError
     });
 });
@@ -870,33 +860,29 @@ app.post('/api/generate-text', async (req, res) => {
  * POST /api/roadmap
  */
 app.post('/api/roadmap', (req, res) => {
-    const { setting_id, part_index, event_order, title, theme, content } = req.body;
+    // episode_range 추가
+    const { setting_id, part_index, event_order, title, episode_range, theme, content } = req.body;
 
     if (!setting_id || !title) {
         return res.status(400).json({ message: '필수 항목 누락 (setting_id, title)' });
     }
 
-    // 🌟 [핵심 변경] ON DUPLICATE KEY UPDATE 구문 추가
-    // setting_id + part_index + event_order 조합이 이미 존재하면 -> title, theme, content만 업데이트
     const sql = `
-        INSERT INTO roadmap (setting_id, part_index, event_order, title, theme, content)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO roadmap (setting_id, part_index, event_order, title, episode_range, theme, content)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
         title = VALUES(title),
+        episode_range = VALUES(episode_range),
         theme = VALUES(theme),
         content = VALUES(content)
     `;
 
-    db.query(sql, [setting_id, part_index || 0, event_order || 0, title, theme, content], (err, result) => {
+    // 파라미터 순서 주의: episode_range 추가됨
+    db.query(sql, [setting_id, part_index || 0, event_order || 0, title, episode_range || '', theme, content], (err, result) => {
         if (err) {
             console.error('roadmap 저장/수정 실패:', err);
             return res.status(500).json({ error: err.message });
         }
-        
-        // insertId가 0이면 업데이트된 것, 0보다 크면 새로 생성된 것
-        const action = result.insertId ? 'created' : 'updated';
-        
-        console.log(`✅ 사건 저장 완료 (${action}). ID: ${result.insertId || 'Updated'}`);
         res.status(200).json({ message: '저장되었습니다.', id: result.insertId });
     });
 });

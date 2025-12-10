@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>소설 구조 설계 (Plan) - AI Novel Studio</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+  <style>
         :root {
             --primary-color: #4a90e2;
             --map-color: #3498db;
-            --bg-color: #f4f4f9;
+            --bg-color: #f4f6f8;
             --card-bg: #ffffff;
             --text-color: #333;
             --nav-bg: #2c3e50;
             --nav-text: #ecf0f1;
-            --border-color: #ddd;
+            --border-color: #e1e4e8;
         }
 
         * { box-sizing: border-box; }
@@ -25,23 +25,26 @@
             margin: 0;
             padding: 0;
             color: var(--text-color);
-            min-height: 100vh;
+            height: 100vh; /* 화면 꽉 채움 */
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* 세로 배치 (Nav -> Container) */
+            overflow: hidden; /* 전체 스크롤 방지 (Container 내부 스크롤) */
         }
 
         /* --- 네비게이션 --- */
         .navbar {
             background-color: var(--nav-bg);
             color: var(--nav-text);
-            padding: 10px 15px;
+            padding: 10px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
+            z-index: 1000;
         }
         .nav-left { display: flex; align-items: center; gap: 15px; }
-        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        
         .nav-links { display: flex; gap: 5px; overflow-x: auto; }
         .nav-item {
             color: #bdc3c7;
@@ -51,79 +54,96 @@
             font-size: 0.9rem;
             white-space: nowrap;
             transition: all 0.2s;
+            cursor: pointer;
         }
         .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
-        .nav-item.active { color: white; background: var(--map-color); font-weight: bold; } 
+        .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
 
-        /* --- 메인 컨텐츠 --- */
+        /* --- 메인 컨텐츠 (수정됨) --- */
         .container {
-            flex: 1;
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 20px;
-            background: var(--card-bg);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            flex-direction: column; /* 🌟 핵심 수정: 세로 방향 정렬 */
+            flex: 1;                /* 남은 높이 모두 차지 */
+            overflow-y: auto;       /* 내부 스크롤 */
+            width: 100%;
+            max-width: 1000px;      /* 최대 너비 제한 */
+            margin: 0 auto;         /* 중앙 정렬 */
+            padding: 30px;          /* 여백 추가 */
         }
 
         h2 { 
             border-left: 5px solid var(--map-color); 
             padding-left: 10px; 
             margin: 0; 
-            color: var(--map-color); 
+            color: var(--secondary-color); 
+            font-size: 1.5rem;
         }
 
         /* 입력 섹션 */
         .ai-input-section {
-            background: #f0f7ff;
-            border: 1px solid var(--map-color);
-            border-radius: 8px;
-            padding: 15px;
+            background: #fff;
+            border: 1px solid #dbe9f6;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            margin-bottom: 30px;
         }
-        .input-group { margin-bottom: 15px; }
-        .input-label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .input-group { margin-bottom: 20px; }
+        .input-label { display: block; font-weight: bold; margin-bottom: 8px; color: #555; }
+        
         .map-textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            min-height: 100px;
+            resize: vertical;
+            font-family: inherit;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        .form-input {
             width: 100%;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 6px;
-            min-height: 80px;
-            resize: vertical;
-            font-family: inherit;
+            font-size: 1rem;
         }
+
         .btn-generate {
-            background: var(--map-color);
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
             color: white;
             border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
+            padding: 14px 20px;
+            border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 1.05rem;
             width: 100%;
-            transition: background 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 4px 6px rgba(52, 152, 219, 0.2);
         }
-        .btn-generate:hover { background: #2980b9; }
+        .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 6px 12px rgba(52, 152, 219, 0.3); }
 
         /* 결과 영역 헤더 */
         .result-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 10px;
+            padding-bottom: 15px;
             border-bottom: 2px solid #eee;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
         .btn-save-roadmap {
             background: #27ae60;
             color: white;
             border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
+            padding: 10px 20px;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 0.95rem;
+            display: flex; align-items: center; gap: 6px;
         }
         .btn-save-roadmap:hover { background: #219150; }
 
@@ -132,98 +152,71 @@
             display: flex;
             flex-direction: column;
             gap: 20px;
+            padding-bottom: 50px;
         }
 
         .part-card {
-            border: 1px solid #ddd;
-            border-radius: 8px;
+            border: 1px solid #eee;
+            border-radius: 12px;
             background: #fff;
             overflow: hidden;
             transition: box-shadow 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
-        .part-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .part-card:hover { box-shadow: 0 5px 15px rgba(0,0,0,0.08); transform: translateY(-2px); }
         
         .part-header {
             background: #f8f9fa;
-            padding: 12px 15px;
+            padding: 15px 20px;
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        .part-title { font-weight: bold; color: #2c3e50; font-size: 1.05rem; }
-        .part-range { font-size: 0.85rem; color: #7f8c8d; background: #eee; padding: 2px 6px; border-radius: 4px; }
+        .part-title { font-weight: bold; color: #2c3e50; font-size: 1.1rem; }
+        .part-range { font-size: 0.85rem; color: #fff; background: var(--map-color); padding: 4px 10px; border-radius: 15px; font-weight: 600; }
         
-        .part-body {
-            padding: 15px;
-        }
+        .part-body { padding: 20px; }
         .part-content-view {
             white-space: pre-wrap;
-            line-height: 1.6;
+            line-height: 1.7;
             color: #444;
-            font-size: 0.95rem;
-            margin-bottom: 15px;
+            font-size: 1rem;
         }
 
-        /* 수정 영역 */
-        .part-edit-area {
-            background: #fdfdfd;
-            border-top: 1px dashed #ddd;
-            padding-top: 15px;
-            display: none; /* 기본 숨김 */
-        }
-        .part-edit-area.active { display: block; }
-        
-        .edit-input-group {
-            display: flex;
-            gap: 10px;
-        }
-        .edit-input {
-            flex: 1;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .btn-part-action {
-            padding: 8px 12px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        .btn-toggle-edit { background: #95a5a6; color: white; }
-        .btn-apply-edit { background: var(--map-color); color: white; }
-        
         .empty-state {
             text-align: center;
             color: #999;
-            padding: 50px;
-            background: #f9f9f9;
-            border-radius: 8px;
+            padding: 60px;
+            background: #fff;
+            border-radius: 12px;
+            border: 2px dashed #eee;
         }
 
-        @media (max-width: 600px) {
-            .container { margin: 15px; padding: 15px; }
-            .edit-input-group { flex-direction: column; }
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .part-header { flex-direction: column; align-items: flex-start; gap: 8px; }
         }
-    </style>
+   </style>
 </head>
 <body>
 
 <nav class="navbar">
     <div class="nav-left">
-        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+        <a href="javascript:void(0)" onclick="goToList()" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
     </div>
     <div class="nav-links">
-        <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
-        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
-        <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="#" class="nav-item active"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
+        <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
+        <a href="javascript:void(0)" onclick="movePage('world.html')" class="nav-item"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="javascript:void(0)" onclick="movePage('characters.html')" class="nav-item"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 상세편집</a>
+        <a href="javascript:void(0)" onclick="movePage('plan.html')" class="nav-item active"><i class="fas fa-layer-group"></i> 기획</a>
+        <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item"><i class="fas fa-map-signs"></i> 로드맵</a>
+        <a href="javascript:void(0)" onclick="movePage('treatment.html')" class="nav-item "><i class="fas fa-file-alt"></i> 트리트먼트</a>
     </div>
 </nav>
-
 <div class="container">
     <div class="result-header">
         <h2><i class="fas fa-map-marked-alt"></i> 소설 로드맵 구성</h2>
@@ -259,6 +252,19 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const settingId = urlParams.get('setting_id');
+
+   // 페이지 이동 함수
+    function movePage(page) {
+        if (settingId) {
+            location.href = `${page}?setting_id=${settingId}`;
+        } else {
+            location.href = page;
+        }
+    }
+    function goToList() {
+        location.href = 'index.html';
+    }
+
 
     // 전역 변수
     let contextData = ""; 
@@ -296,7 +302,7 @@
 
             contextData = `
             [작품 제목]: ${sRes.title || '미정'}
-            [세계관 요약]: ${wRes.map(w => w.title + ": " + w.description).join('\n') || '없음'}
+            [세계관]: ${wRes.map(w => w.title + ": " + w.description).join('\n') || '없음'}
             [주요 등장인물]: ${cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') || '없음'}
             `;
         } catch (e) { console.warn("Context load failed", e); }
@@ -349,7 +355,17 @@
     async function generateRoadmap() {
         const prompt = document.getElementById('aiPrompt').value.trim();
         const totalEpisodes = document.getElementById('totalEpisodes').value || 100;
-        
+        // 1. contextData가 없으면 다시 로드 시도 (안전장치)
+        if (!contextData || contextData.trim() === "") {
+            console.log("⚠️ contextData가 비어있어 다시 로드합니다...");
+            await loadContextData();
+            
+            // 다시 로드했는데도 없으면 경고
+            if (!contextData) {
+                alert("작품 설정(세계관, 캐릭터 등)을 불러오지 못했습니다. 설정 페이지 내용을 확인해주세요.");
+                return;
+            }
+        }
         if (!prompt) return alert("요청 사항을 입력해주세요.");
         if (!confirm("기존 로드맵이 있다면 덮어씌워집니다. 진행하시겠습니까?")) return;
 

@@ -6,7 +6,7 @@
     <title>AI Novel Assistant - Roadmap Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
     
-    <style>
+   <style>
         :root {
             --bg-color: #f8f9fa;
             --container-bg: #ffffff;
@@ -16,26 +16,62 @@
             --text-color: #333;
             --border-radius: 12px;
             --shadow: 0 4px 12px rgba(0,0,0,0.08);
+            --nav-bg: #2c3e50;
+            --nav-text: #ecf0f1;
         }
 
+        /* 1. 전체 레이아웃 (세로 배치: Nav -> Container) */
         body {
             font-family: 'Pretendard', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 40px 20px;
+            padding: 0;
+            height: 100vh;
             display: flex;
-            justify-content: center;
+            flex-direction: column; /* 세로 방향 정렬 */
+            overflow: hidden; /* 전체 스크롤 방지 */
         }
 
+        /* --- 상단 네비게이션바 --- */
+        .navbar {
+            background-color: var(--nav-bg);
+            color: var(--nav-text);
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0; /* 크기 줄어들지 않음 */
+            z-index: 1000;
+        }
+
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
+
+        /* 2. 메인 컨테이너 (수정됨) */
         .container {
+            display: flex;
+            flex-direction: column; /* 내부 요소 세로 배치 */
+            flex: 1;                /* 남은 높이 모두 차지 */
+            overflow-y: auto;       /* 내부 스크롤 */
             width: 100%;
             max-width: 1000px;
-            background-color: var(--container-bg);
-            padding: 40px;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            min-height: 80vh;
+            margin: 0 auto;         /* 중앙 정렬 */
+            padding: 30px;          /* 내부 여백 */
         }
 
         header {
@@ -105,7 +141,6 @@
             margin: 0 0 10px 0;
             color: var(--secondary-color);
             line-height: 1.4;
-            /* 2줄 이상 말줄임 */
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
 
@@ -113,7 +148,6 @@
             font-size: 0.9rem;
             color: #868e96;
             margin: 0;
-            /* 3줄 말줄임 */
             display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
             flex-grow: 1;
         }
@@ -218,7 +252,22 @@
     </style>
 </head>
 <body>
-
+<nav class="navbar">
+    <div class="nav-left">
+        <a href="javascript:void(0)" onclick="goToList()" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+    </div>
+    <div class="nav-links">
+        <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
+        <a href="javascript:void(0)" onclick="movePage('world.html')" class="nav-item"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="javascript:void(0)" onclick="movePage('characters.html')" class="nav-item"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 상세편집</a>
+        <a href="javascript:void(0)" onclick="movePage('plan.html')" class="nav-item"><i class="fas fa-layer-group"></i> 기획</a>
+        <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item active"><i class="fas fa-map-signs"></i> 로드맵</a>
+        <a href="javascript:void(0)" onclick="movePage('treatment.html')" class="nav-item "><i class="fas fa-file-alt"></i> 트리트먼트</a>
+    </div>
+</nav>
     <div class="container">
         <header>
             <h1>📅 사건 기획 (Roadmap Builder)</h1>
@@ -253,12 +302,25 @@
             <button class="btn-secondary" onclick="window.location.href='plan.html'">Plan 목록으로</button>
         </div>
     </div>
+    </div>
 
    <script>
         // --- Global Variables ---
         const urlParams = new URLSearchParams(window.location.search);
         const settingId = urlParams.get('setting_id') || urlParams.get('id'); // id와 setting_id 둘 다 체크
-        
+        // 탭 전환 기능
+    // 페이지 이동 함수
+    function movePage(page) {
+        if (settingId) {
+            location.href = `${page}?setting_id=${settingId}`;
+        } else {
+            location.href = page;
+        }
+    }
+    function goToList() {
+        location.href = 'index.html';
+    }
+
         // [수정 1] 누락된 변수 선언 추가
         let currentSettings = {}; 
         
@@ -518,12 +580,18 @@
             eventBlocks.forEach((block, index) => {
                 let content = block.trim();
 
+                // 1. 대괄호 안의 전체 타이틀 추출: [제목(1화~3화)]
                 let titleMatch = content.match(/\[(.*?)\]/);
                 let fullTitle = titleMatch ? titleMatch[1] : "제목 없음";
+                
+                // 2. 소괄호 안의 회차 정보 추출: (1화~3화)
                 let rangeMatch = fullTitle.match(/\((.*?)\)/);
                 let rangeText = rangeMatch ? rangeMatch[1] : ""; 
+                
+                // 3. 진짜 제목 추출 (회차 정보 제거)
                 let titleText = fullTitle.replace(/\(.*?\)/, '').trim(); 
 
+                // 4. 테마 및 줄거리 파싱
                 let themeMatch = content.match(/- 핵심테마:(.*?)(?=- 사건|\n|$)/s);
                 let themeText = themeMatch ? themeMatch[1].trim() : "";
 
@@ -531,11 +599,13 @@
                 let summaryText = summaryMatch ? summaryMatch[1].trim() : content.split("줄거리:")[1]?.trim() || content;
                 summaryText = summaryText.replace(/\*\*/g, ''); 
 
+                // 🌟 [핵심 변경] episode_range 필드 추가
                 const eventData = {
                     setting_id: settingId,
                     part_index: currentPartIndex,
                     event_order: index + 1,
                     title: titleText,
+                    episode_range: rangeText, // "1화~3화" 형태로 저장됨
                     theme: themeText,
                     content: summaryText
                 };

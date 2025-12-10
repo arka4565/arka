@@ -2,46 +2,47 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>소설 트리트먼트 - AI Novel Studio</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Novel Assistant - Treatment Builder</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
+            --bg-color: #f4f6f8;
+            --sidebar-bg: #ffffff;
             --primary-color: #4a90e2;
-            --map-color: #3498db; /* 로드맵 강조색 */
-            --bg-color: #f4f4f9;
-            --card-bg: #ffffff;
-            --text-color: #333;
+            --secondary-color: #2c3e50;
+            --border-color: #e1e4e8;
+            --card-shadow: 0 2px 12px rgba(0,0,0,0.08);
             --nav-bg: #2c3e50;
             --nav-text: #ecf0f1;
-            --border-color: #ddd;
         }
-
-        * { box-sizing: border-box; }
 
         body {
             font-family: 'Pretendard', sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: 0;
-            color: var(--text-color);
-            min-height: 100vh;
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* 세로 배치 (Nav -> Container) */
+            height: 100vh;
+            overflow: hidden;
         }
 
-        /* --- 네비게이션 --- */
+        /* --- 상단 네비게이션바 --- */
         .navbar {
             background-color: var(--nav-bg);
             color: var(--nav-text);
-            padding: 10px 15px;
+            padding: 10px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
+            z-index: 1000;
         }
+
         .nav-left { display: flex; align-items: center; gap: 15px; }
-        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        
         .nav-links { display: flex; gap: 5px; overflow-x: auto; }
         .nav-item {
             color: #bdc3c7;
@@ -51,174 +52,231 @@
             font-size: 0.9rem;
             white-space: nowrap;
             transition: all 0.2s;
+            cursor: pointer;
         }
         .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
-        .nav-item.active { color: white; background: var(--map-color); font-weight: bold; } 
+        .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
+        
+        /* 아이콘 간격 */
+        .nav-item i { margin-right: 6px; }
 
-        /* --- 메인 컨텐츠 --- */
+        /* --- 메인 컨테이너 (사이드바 + 메인영역) --- */
         .container {
-            flex: 1;
-            max-width: 1000px;
-            margin: 30px auto;
-            padding: 20px;
-            background: var(--card-bg);
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex: 1; /* 남은 높이 채움 */
+            overflow: hidden;
+            width: 100%;
+        }
+
+        /* --- 왼쪽 사이드바 --- */
+        .sidebar {
+            width: 350px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            z-index: 10;
         }
 
-        h2 { 
-            border-left: 5px solid var(--map-color); 
-            padding-left: 10px; 
-            margin: 0; 
-            color: var(--map-color); 
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            background: #fff;
+        }
+        .sidebar-header h2 { margin: 0; font-size: 1.2rem; color: var(--secondary-color); }
+
+        .roadmap-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f9fafb;
         }
 
-        /* AI 입력 및 버튼 영역 */
-        .ai-input-section {
-            background: #f0f7ff;
-            border: 1px solid var(--map-color);
+        .roadmap-item {
+            background: white;
+            border: 1px solid #eee;
             border-radius: 8px;
             padding: 15px;
-        }
-        .input-group { margin-bottom: 15px; }
-        .input-label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
-        .map-textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            min-height: 100px; /* 높이 증가 */
-            resize: vertical;
-            font-family: inherit;
-        }
-        .btn-generate {
-            background: var(--map-color);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 6px;
+            margin-bottom: 12px;
             cursor: pointer;
-            font-weight: bold;
-            width: 100%;
-            transition: background 0.2s;
+            transition: all 0.2s;
         }
-        .btn-generate:hover { background: #2980b9; }
 
-        /* 로드맵 결과 표시 영역 */
-        .roadmap-result {
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-        .result-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px dashed #ddd;
-            padding-bottom: 10px;
-        }
-        .result-header h3 { margin: 0; color: #555; }
-        .btn-save-roadmap {
-            background: #50c878;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            cursor: pointer;
+        .roadmap-item:hover { border-color: var(--primary-color); transform: translateY(-2px); }
+        .roadmap-item.active { border: 2px solid var(--primary-color); background-color: #f0f7ff; }
+
+        .rm-badge { background: #e9ecef; color: #495057; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; margin-bottom: 5px; display: inline-block; }
+        .rm-range {
+            display: inline-block;
+            background-color: #fff0f6;
+            color: #c0392b;
+            font-size: 0.75rem;
             font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 5px;
+            border: 1px solid #ffdde1;
         }
         
-        .result-content {
-            white-space: pre-wrap; /* 줄바꿈 유지 */
-            font-family: monospace; /* 서식 구분을 위해 폰트 변경 */
-            font-size: 0.95rem;
-            line-height: 1.6;
-            min-height: 300px; /* 높이 증가 */
-        }
-        .empty-state { text-align: center; color: #999; padding: 50px; }
+        .rm-title { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 5px; }
+        .rm-desc { font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-        @media (max-width: 600px) {
-            .container { margin: 15px; padding: 15px; }
+        /* --- 오른쪽 메인 영역 --- */
+        .main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 0;
+            overflow-y: auto;
         }
+
+        .generator-controls {
+            background: white;
+            padding: 30px;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        }
+
+        .selected-info { margin-bottom: 20px; padding: 15px; background: #f1f3f5; border-radius: 8px; border-left: 5px solid var(--secondary-color); }
+        .info-title { font-weight: bold; font-size: 1.1rem; color: var(--secondary-color); margin-bottom: 5px; }
+        .info-content { color: #555; font-size: 0.95rem; line-height: 1.5; }
+
+        .gen-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; border: none; padding: 12px 30px; border-radius: 25px;
+            font-size: 1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s;
+            box-shadow: 0 4px 10px rgba(118, 75, 162, 0.3);
+            display: flex; align-items: center; gap: 8px;
+        }
+        .gen-btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .gen-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .generated-list {
+            padding: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .episode-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid #eee;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .ep-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
+        .ep-num-input { width: 60px; padding: 5px; font-weight: bold; text-align: center; border: 1px solid #ddd; border-radius: 4px; }
+        .ep-title-input { flex: 1; margin: 0 10px; padding: 8px; font-size: 1.1rem; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; }
+        
+        .ep-body textarea {
+            width: 100%; height: 450px; padding: 15px;
+            border: 1px solid #ddd; border-radius: 8px;
+            font-size: 1rem; line-height: 1.6; resize: vertical;
+            background-color: #fafafa;
+            font-family: 'Pretendard', sans-serif;
+            box-sizing: border-box;
+        }
+
+        .ep-footer { margin-top: 15px; text-align: right; }
+        .save-ep-btn {
+            background-color: #27ae60; color: white; border: none; padding: 10px 20px;
+            border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+        }
+        .save-ep-btn:hover { background-color: #219150; }
+        .save-ep-btn.saved { background-color: #bdc3c7; cursor: default; }
+        .save-ep-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
 <nav class="navbar">
     <div class="nav-left">
-        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+        <a href="javascript:void(0)" onclick="goToList()" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
     </div>
     <div class="nav-links">
-        <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
-        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
-        <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
-        </div>
+		
+        <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
+        <a href="javascript:void(0)" onclick="movePage('world.html')" class="nav-item"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="javascript:void(0)" onclick="movePage('characters.html')" class="nav-item"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 상세편집</a>
+        <a href="javascript:void(0)" onclick="movePage('plan.html')" class="nav-item"><i class="fas fa-layer-group"></i> 기획</a>
+        <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item"><i class="fas fa-map-signs"></i> 로드맵</a>
+        <a href="javascript:void(0)" onclick="movePage('treatment.html')" class="nav-item active"><i class="fas fa-file-alt"></i> 트리트먼트</a>
+    </div>
 </nav>
 
 <div class="container">
-    <h2><i class="fas fa-map-marked-alt"></i> 소설 상세 로드맵 구성</h2>
-
-    <div class="ai-input-section">
-        <div class="input-group">
-            <label class="input-label">요청 사항 <small>(Part 및 사건 구성 지시)</small></label>
-            <textarea id="aiPrompt" class="map-textarea" placeholder="예시: 로드맵의 사건의 분량은 3화로 구성해줘. 등장인물은 해당 사건에 나오는 인물로만 구성해줘. 줄거리에서 안 나오면 등장인물 목록에서 안 나오게 해줘. 파트1에 사건 2개만 구성해줘."></textarea>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>🗺️ 사건 목록</h2>
         </div>
-        
-        <button id="btnGenerate" class="btn-generate" onclick="generateRoadmap()">
-            <i class="fas fa-bolt"></i> 로드맵 생성 시작
-        </button>
+        <div id="roadmap-list" class="roadmap-list">
+            <div style="text-align: center; padding: 20px; color: #999;">로딩 중...</div>
+        </div>
     </div>
 
-    <div class="roadmap-result">
-        <div class="result-header">
-            <h3>생성 결과</h3>
-            <button id="btnSaveMap" class="btn-save-roadmap" onclick="saveRoadmap()" style="display:none;">
-                <i class="fas fa-save"></i> 저장 (settings에 반영)
-            </button>
+    <div class="main-area">
+        <div class="generator-controls">
+            <div id="guide-msg" style="text-align: center; color: #888; padding: 40px;">
+                👈 왼쪽 목록에서 사건을 선택하면 작업이 시작됩니다.
+            </div>
+
+            <div id="selected-panel" class="hidden">
+                <div class="selected-info">
+                    <div id="sel-title" class="info-title"></div>
+                    <div id="sel-content" class="info-content"></div>
+                </div>
+                <button id="generate-btn" class="gen-btn" onclick="generateTreatments()">
+                    <span>✨ 회차별 상세 트리트먼트 생성하기 (AI)</span>
+                </button>
+            </div>
         </div>
-        <div id="roadmapContent" class="result-content empty-state">
-            세계관, 캐릭터 설정을 기반으로 상세 로드맵을 생성해보세요.
-        </div>
+
+        <div id="generated-list" class="generated-list"></div>
     </div>
 </div>
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const settingId = urlParams.get('setting_id');
+    const settingId = urlParams.get('setting_id') || urlParams.get('id');
 
-    let contextData = ""; 
-    let currentRoadmap = ""; 
-    let currentSettings = {}; // settings 테이블의 전체 데이터를 저장
+    let currentRoadmap = null; 
+    let contextData = "";      
 
-    async function init() {
+    // 페이지 이동 함수
+    function movePage(page) {
+        if (settingId) {
+            location.href = `${page}?setting_id=${settingId}`;
+        } else {
+            location.href = page;
+        }
+    }
+    function goToList() {
+        location.href = 'index.html';
+    }
+
+    window.onload = async function() {
         if (!settingId) {
-            alert("잘못된 접근입니다.");
-            window.location.href = 'index.html';
+            alert("설정 ID가 없습니다.");
             return;
         }
-        setupNav();
         await loadContextData(); 
-        await loadRoadmapData(); 
-    }
+        await loadRoadmapList(); 
+    };
 
-    function setupNav() {
-        document.querySelectorAll('.nav-item').forEach(item => {
-            const target = item.dataset.target;
-            if (target) item.href = `${target}?setting_id=${settingId}`;
-        });
-    }
-
-    // AI에게 전달할 배경 컨텍스트 로드 (세계관, 캐릭터 등)
+    // 1. AI Context 로드
     async function loadContextData() {
         try {
             const [sRes, wRes, cRes] = await Promise.all([
@@ -227,184 +285,265 @@
                 fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
             ]);
             
-            currentSettings = sRes; // settings 데이터 저장
-            
-            // AI 프롬프트에 들어갈 상세 컨텍스트 구성
             contextData = `
-            [작품 제목]: ${sRes.title || '미정'}
-            [작품 로그라인(줄거리 개요)]: ${sRes.plotDetails || '미정'}
-            [기타 설정/메모]: ${sRes.worldSetting || '없음'}
-
-            [세계관 설정 목록]: ${wRes.map(w => w.title + ": " + w.description.substring(0, 100)).join('\n') || '없음'}
-            
-            [등장인물 상세 목록]: ${cRes.map(c => `${c.name} (${c.role}, ${c.description.substring(0, 100)})`).join('\n') || '없음'}
+            [작품 정보]
+            - 제목: ${sRes.title}
+            [세계관 요소]: ${Array.isArray(wRes) ? wRes.map(w => w.title).join(', ') : ''}
+            [주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name}(${c.role})`).join(', ') : ''}
             `;
-        } catch (e) { console.warn("Context load failed", e); }
+        } catch (e) { console.warn("Context loading error", e); }
     }
 
-    // 기존 로드맵 데이터 로드
-    async function loadRoadmapData() {
-        const contentEl = document.getElementById('roadmapContent');
-        const saveBtn = document.getElementById('btnSaveMap');
-        
+    // 2. Roadmap 목록 불러오기
+    async function loadRoadmapList() {
+        const listContainer = document.getElementById('roadmap-list');
         try {
-            const res = await fetch(`/api/load-settings?id=${settingId}`);
-            const settings = await res.json();
-            
-            currentRoadmap = settings.roadmap || ""; // settings 테이블의 roadmap 컬럼 가정
-            
-            if (currentRoadmap.trim()) {
-                contentEl.innerText = currentRoadmap;
-                contentEl.classList.remove('empty-state');
-                saveBtn.style.display = 'block';
-            } else {
-                contentEl.innerText = "세계관, 캐릭터 설정을 기반으로 상세 로드맵을 생성해보세요.";
-                contentEl.classList.add('empty-state');
-                saveBtn.style.display = 'none';
+            const response = await fetch(`/api/roadmap?setting_id=${settingId}`);
+            if (!response.ok) throw new Error("로드 실패");
+            const roadmaps = await response.json();
+
+            listContainer.innerHTML = '';
+            if (roadmaps.length === 0) {
+                listContainer.innerHTML = '<div style="padding:20px; text-align:center; color:#999;">저장된 사건이 없습니다.</div>';
+                return;
             }
 
-        } catch (e) {
-            console.error("로드맵 데이터 로드 오류:", e);
+            roadmaps.forEach(rm => {
+                const div = document.createElement('div');
+                div.className = 'roadmap-item';
+                
+                const rangeText = rm.episode_range ? rm.episode_range : "회차 미정";
+
+                div.innerHTML = `
+                    <div style="margin-bottom:6px;">
+                        <span class="rm-badge">Part ${rm.part_index} (#${rm.event_order})</span>
+                        <span class="rm-range">${rangeText}</span>
+                    </div>
+                    <div class="rm-title">${rm.title}</div>
+                    <div class="rm-desc">${rm.content}</div>
+                `;
+                div.onclick = () => selectRoadmap(rm, div);
+                listContainer.appendChild(div);
+            });
+
+        } catch (error) {
+            console.error(error);
         }
     }
 
-    // 🌟 로드맵 생성 요청
-    async function generateRoadmap() {
-        const prompt = document.getElementById('aiPrompt').value.trim();
-        
-        if (!prompt) return alert("요청 사항을 입력해주세요.");
+    // 3. 로드맵 선택
+    function selectRoadmap(data, element) {
+        currentRoadmap = data;
+        document.querySelectorAll('.roadmap-item').forEach(el => el.classList.remove('active'));
+        element.classList.add('active');
 
-        const btn = document.getElementById('btnGenerate');
-        const contentEl = document.getElementById('roadmapContent');
-        const originalBtnHTML = btn.innerHTML;
+        document.getElementById('guide-msg').classList.add('hidden');
+        const panel = document.getElementById('selected-panel');
+        panel.classList.remove('hidden');
         
+        document.getElementById('sel-title').innerText = data.title;
+        document.getElementById('sel-content').innerText = `핵심테마: ${data.theme}\n${data.content}`;
+        document.getElementById('generated-list').innerHTML = '';
+    }
+
+    // 4. AI 생성 요청
+    async function generateTreatments() {
+        if (!currentRoadmap) return;
+
+        const btn = document.getElementById('generate-btn');
+        const originalBtnText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로드맵 생성 중...';
-        contentEl.innerText = "AI가 아이디어를 구상하는 중입니다...";
+        btn.innerHTML = `<div class="spinner"></div>&nbsp; 회차 분석 및 생성 중... (약 15초)`;
 
         try {
-            const fullPrompt = `
-                [역할] 전문 웹소설 구성 작가 및 플롯 디자이너
-                [작품 정보]
-                ${contextData}
+            const targetRange = currentRoadmap.episode_range || "회차 미정";
 
-                [요청 사항]
-                ${prompt}
+            const systemPrompt = `
+            ### [Role]
+            당신은 웹소설 드라마 작가입니다. 주어진 '사건(Event)'을 바탕으로 **개별 회차(Episode)의 트리트먼트**를 작성해야 합니다.
 
-                [출력 조건]
-                1. 요청 사항과 작품 정보를 바탕으로 **소설의 상세 로드맵**을 작성하세요.
-                2. 로드맵은 Part > 사건(Sub-Arc) > 회차(Episode)의 3단계 계층 구조를 따르세요.
-                3. **핵심 테마, Part 줄거리, 사건 줄거리, 회차 줄거리**는 모두 개별적으로 작성하고, **등장인물은 해당 회차/사건에 실제로 필요한 인물만** 나열하세요.
-                4. 아래 예시와 정확히 동일한 형식(번호, 기호, 줄바꿈)으로, **줄글 텍스트**로만 출력하세요.
+            ### [Context]
+            ${contextData}
 
-                [출력 예시 - Part 1, 사건 1, 2만 구성]
-                
-                [Part 1. 각성의 시작 (1화~50화)]
-                 ○ 핵심테마: 무능력자에서 기적의 시공자로 거듭나기
-                 ○ Part1 줄거리: 아버지와 형제들의 오해 속에서 F급으로 각성한 장한빛이 던전 시공자 능력을 발견하고, 이를 활용해 태산 그룹 내에서 자신만의 입지를 다져나가는 초기 성장 과정을 다룬다.
-                
-                 사건 1: [F급 각성과 최초의 증명 (1화~3화)]
-                  - 핵심테마: 마지노선 극복과 가족의 인정
-                  - 사건 1 줄거리: 26세 생일에 F급 시공자로 각성한 한빛이, 자신의 능력이 폐자재로도 B+급 내구도 벽을 만들 수 있음을 발견하고, 가족들 앞에서 최초의 놀라운 결과를 증명하는 이야기. (300자 내외)
-                   ○ [제1화] 태산의 막내, 새벽을 열다
-                     ▷ 26세 생일 자정에 각성 마지노선을 넘긴 한빛이 F급 시공자로 각성하고, 지하실 작업실에서 [측량]과 [시공] 스킬을 이용해 B+급 블록을 만들어낸다. (300자 내외)
-                     ▷ 등장인물: 장한빛
-                   ○ [제2화] B+급의 충격
-                     ▷ 아침 식탁에서 가족들 앞에서 능력을 공개하고, S급 탱커인 큰형 장한성이 직접 주먹으로 블록의 내구도를 시험하며 충격을 받는다. (300자 내외)
-                     ▷ 등장인물: 장한빛, 장태산, 장한성, 장한결, 장한별
-                   ○ [제3화] 리모델링의 선전포고
-                     ▷ 태산 회장의 지지와 형제들의 협력을 얻은 한빛이, 태산 건설의 만년 적자 프로젝트인 [용산 F급 게이트 보수 공사]를 첫 프로젝트로 자원한다. (300자 내외)
-                     ▷ 등장인물: 장한빛, 장태산, 김성진
+            ### [Task]
+            1. 사용자가 제공하는 사건의 **지정된 회차 범위(${targetRange})**를 반드시 준수하십시오.
+            2. 예를 들어 범위가 "4화~5화"라면, 반드시 **[제4화]**, **[제5화]**로 나누어 작성해야 합니다. (1화부터 시작하지 마십시오)
+            3. 각 회차는 400자 이상의 상세한 줄거리여야 합니다.
 
-                 사건 2: [첫 현장, F급 게이트의 이면 (4화~5화)]
-                  - 핵심테마: 안전 제일주의와 현장의 비효율성 극복
-                  - 사건 2 줄거리: 한빛이 첫 던전 현장에 투입되어 기존 건설 방식의 비효율성을 깨닫고, [측량] 능력으로 던전의 구조적 약점을 찾아내어 새로운 공법을 제시하는 내용. (300자 내외)
-                   ○ [제4화] 설계도가 필요해
-                     ▷ 한빛이 용산 F급 게이트에 도착하지만, 현장은 임시방편적인 보수로 가득 차 있고, 박철우 이사 등 건설 전문가들이 그의 젊음을 의심한다. (300자 내외)
-                     ▷ 등장인물: 장한빛, 박철우, 김기철
-                   ○ [제5화] 안전 루트 개척
-                     ▷ 한빛이 [측량] 스킬로 던전의 마나 배열과 구조적 약점을 분석해 기존보다 훨씬 안전하고 빠른 리모델링 경로를 제시한다. 박철우 이사가 놀라움을 표한다. (300자 내외)
-                     ▷ 등장인물: 장한빛, 박철우
+            ### [Output Format] (Strictly Follow)
+            반드시 아래 형식을 그대로 지켜주세요. 파싱에 사용됩니다.
 
-                 ○ Part1 등장인물 : 장한빛, 장태산, 장한성, 장한결, 장한별, 박철우, 김성진, 김기철 (Part 1에 등장하는 모든 인물)
+            [제N화] (회차 제목)
+            - 핵심 테마: (내용)
+            - N화 줄거리: (내용 - 400자 이상 상세하게)
+            - 등장인물: (이 회차에 등장하는 인물 이름)
             `;
 
-            const payload = {
-                model: "gemini-2.5-flash", // 복잡한 구조 설계에는 Pro 모델 추천
-                payload: {
-                    contents: [{ parts: [{ text: fullPrompt }] }]
-                }
-            };
+            const userPrompt = `
+            다음 사건을 분석하여 개별 회차로 나누어 작성해줘.
             
-            const res = await fetch('/api/generate-text', {
+            [대상 사건]
+            - 제목: ${currentRoadmap.title}
+            - 회차 범위: ${targetRange}
+            - 내용: ${currentRoadmap.content}
+            
+            위 사건을 **${targetRange}**에 해당하는 에피소드로 나누어 상세히 작성해.
+            요청한 포맷([제N화]...)을 정확히 지켜.
+            `;
+
+            const response = await fetch('/api/generate-text', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    model: "gemini-1.5-flash",
+                    payload: {
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    }
+                })
             });
-            
-            const data = await res.json();
-            const resultText = data.candidates[0].content.parts[0].text;
-            
-            currentRoadmap = resultText; // 전역 변수에 임시 저장
-            
-            contentEl.innerText = resultText;
-            contentEl.classList.remove('empty-state');
-            document.getElementById('btnSaveMap').style.display = 'block';
 
-        } catch (e) {
-            console.error("로드맵 생성 오류:", e);
-            contentEl.innerText = `로드맵 생성 실패: ${e.message}`;
-            currentRoadmap = "";
+            if (!response.ok) throw new Error("AI 호출 실패");
+            const data = await response.json();
+            const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (aiText) renderEpisodes(aiText);
+
+        } catch (error) {
+            console.error(error);
+            alert("생성 실패: " + error.message);
         } finally {
             btn.disabled = false;
-            btn.innerHTML = originalBtnHTML;
+            btn.innerHTML = originalBtnText;
         }
     }
 
-    // 로드맵 저장 (settings 테이블의 'roadmap' 컬럼에 저장)
-    async function saveRoadmap() {
-        if (!currentRoadmap) return alert("저장할 내용이 없습니다.");
+    // 5. 파싱 및 렌더링
+    function renderEpisodes(text) {
+        const container = document.getElementById('generated-list');
+        container.innerHTML = '';
+
+        const episodeBlocks = text.split(/\[제(\d+)화\]/).slice(1); 
+
+        if (episodeBlocks.length === 0) {
+            createEpisodeCard(0, "AI 생성 결과", text);
+            return;
+        }
+
+        for (let i = 0; i < episodeBlocks.length; i += 2) {
+            const epNumStr = episodeBlocks[i];
+            const bodyStr = episodeBlocks[i+1];
+
+            const lines = bodyStr.trim().split('\n');
+            const title = lines[0].trim(); 
+            const content = lines.slice(1).join('\n').trim(); 
+
+            const formattedContent = `[제${epNumStr}화] ${title}\n${content}`;
+            createEpisodeCard(epNumStr, title, formattedContent);
+        }
+    }
+
+    // 6. 카드 생성
+    function createEpisodeCard(epNum, title, fullContent) {
+        const container = document.getElementById('generated-list');
+        const card = document.createElement('div');
+        card.className = 'episode-card';
         
-        const btn = document.getElementById('btnSaveMap');
-        const originalBtnHTML = btn.innerHTML;
+        const cardId = `ep-card-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+
+        card.innerHTML = `
+            <div class="ep-header" id="${cardId}">
+                <div style="display:flex; align-items:center; flex:1;">
+                    <label>제</label>
+                    <input type="number" class="ep-num-input" value="${epNum}" id="num-${cardId}">
+                    <label>화</label>
+                    <input type="text" class="ep-title-input" value="${title}" id="title-${cardId}">
+                </div>
+            </div>
+            <div class="ep-body">
+                <textarea id="content-${cardId}">${fullContent}</textarea>
+            </div>
+            <div class="ep-footer">
+                <button class="save-ep-btn" onclick="saveEpisode('${cardId}')">
+                    💾 에피소드 저장 (DB)
+                </button>
+            </div>
+        `;
+        container.appendChild(card);
+    }
+
+    // 7. 저장
+    async function saveEpisode(cardId) {
+        const numVal = document.getElementById(`num-${cardId}`).value;
+        const titleVal = document.getElementById(`title-${cardId}`).value;
+        const contentVal = document.getElementById(`content-${cardId}`).value;
+        
+        const btn = document.querySelector(`button[onclick="saveEpisode('${cardId}')"]`);
+
+        if (!numVal || !titleVal) {
+            alert("회차 번호와 제목을 입력해주세요.");
+            return;
+        }
+
+        const originalBtnText = btn.innerHTML;
+        btn.innerHTML = "⏳ 확인 중...";
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
 
         try {
-            // settings 테이블의 다른 컬럼은 기존 값을 유지해야 하므로 currentSettings 사용
-            const payload = {
-                id: settingId,
-                title: currentSettings.title || '', 
-                plotDetails: currentSettings.plotDetails || '', 
-                worldSetting: currentSettings.worldSetting || '', 
-                characterDetails: currentSettings.characterDetails || '',
-                
-                roadmap: currentRoadmap // 🌟 로드맵 저장
-            };
+            // [Step 1] 현재 DB 조회
+            let finalTreatment = "";
+            let method = 'POST';
+            let url = '/api/episodes';
+            let existingId = null;
 
-            const response = await fetch('/api/save-settings', {
-                method: 'POST',
+            const checkRes = await fetch(`/api/episodes?setting_id=${settingId}`);
+            if (checkRes.ok) {
+                const episodes = await checkRes.json();
+                const existingEp = episodes.find(e => e.episode_number == numVal);
+                
+                if (existingEp) {
+                    finalTreatment = existingEp.treatment;
+                    existingId = existingEp.id;
+                    method = 'PUT';
+                    url = `/api/episodes/${existingId}`;
+                } else {
+                    finalTreatment = currentRoadmap ? currentRoadmap.content : "";
+                }
+            }
+
+            // [Step 2] 저장 요청
+            btn.innerHTML = "⏳ 저장 중...";
+            
+            const response = await fetch(url, {
+                method: method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    setting_id: settingId,
+                    episode_number: numVal,
+                    title: titleVal,
+                    prompt: "Treatment Generated",
+                    content: contentVal,
+                    treatment: finalTreatment
+                })
             });
 
             if (response.ok) {
-                alert("로드맵이 성공적으로 저장되었습니다!");
-                await loadRoadmapData(); 
+                btn.innerHTML = "✅ 저장 완료";
+                btn.classList.add('saved');
             } else {
-                alert("저장 실패. 서버 로그를 확인하세요.");
+                const err = await response.json();
+                alert("저장 실패: " + (err.message || "알 수 없는 오류"));
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
             }
-        } catch (e) {
-            console.error("저장 오류:", e);
-            alert("저장 중 오류가 발생했습니다.");
-        } finally {
+
+        } catch (error) {
+            console.error(error);
+            alert("네트워크 오류");
             btn.disabled = false;
-            btn.innerHTML = originalBtnHTML;
+            btn.innerHTML = originalBtnText;
         }
     }
-
-    init();
 </script>
-
 </body>
 </html>
