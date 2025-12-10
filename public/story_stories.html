@@ -236,7 +236,7 @@
     // **주의**: 실제 환경에서는 이 URL을 Canvas 환경 변수 등으로 대체해야 합니다.
     const API_BASE_URL = '/api';
 
-    const modelName = 'gemini-2.5-pro';
+    const modelName = 'gemini-2.5-flash';
     // 상태 변수
     let allSettings = [];
     let currentSettingStories = [];
@@ -276,7 +276,7 @@
     const applyDraftButton = document.getElementById('apply-draft-button');
 
     // AI API 설정 (Gemini API는 서버 통신과 별개로 클라이언트에서 직접 호출됨)
-    const GEMINI_MODEL = "gemini-2.5-pro";
+    const GEMINI_MODEL = "gemini-2.5-flash";
    
 	// AI 응답의 JSON 스키마 정의 (내용과 변경 사유를 받기 위함)
     const RESPONSE_SCHEMA = {

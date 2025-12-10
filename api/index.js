@@ -850,12 +850,12 @@ app.put(`/api/episodes/:id`, (req, res) => {
             id: episodeId
         });
     });
-});
-// 🌟🌟🌟 [NEW] Gemini API 프록시 엔드포인트 🌟🌟🌟
+});�
+// 🌟🌟🌟 [NEW] Gemini API 프록시 엔드포인트 (랜덤 로드밸런싱 적용) 🌟🌟🌟
 app.post('/api/generate-text', async (req, res) => {
 
-    // 1. 사용 가능한 모든 API 키를 배열로 수집합니다. (기본 키 + 1~10번 예비 키)
-    const availableKeys = [
+    // 1. 사용 가능한 모든 API 키를 배열로 수집
+    let availableKeys = [
         process.env.GEMINI_API_KEY,
         process.env.GEMINI_API_KEY1,
         process.env.GEMINI_API_KEY2,
@@ -866,11 +866,37 @@ app.post('/api/generate-text', async (req, res) => {
         process.env.GEMINI_API_KEY7,
         process.env.GEMINI_API_KEY8,
         process.env.GEMINI_API_KEY9,
-        process.env.GEMINI_API_KEY10
-    ].filter(key => key); // undefined, null, 빈 문자열은 제거합니다.
+        process.env.GEMINI_API_KEY10,
+        process.env.GEMINI_API_KEY11,
+        process.env.GEMINI_API_KEY12,
+        process.env.GEMINI_API_KEY13,
+        process.env.GEMINI_API_KEY14,
+        process.env.GEMINI_API_KEY15,
+        process.env.GEMINI_API_KEY16,
+        process.env.GEMINI_API_KEY17,
+        process.env.GEMINI_API_KEY18,
+        process.env.GEMINI_API_KEY19,
+        process.env.GEMINI_API_KEY20,
+        process.env.GEMINI_API_KEY21,
+        process.env.GEMINI_API_KEY22,
+        process.env.GEMINI_API_KEY23,
+        process.env.GEMINI_API_KEY24,
+        process.env.GEMINI_API_KEY25,
+        process.env.GEMINI_API_KEY26,
+        process.env.GEMINI_API_KEY27,
+        process.env.GEMINI_API_KEY28,
+        process.env.GEMINI_API_KEY29
+    ].filter(key => key); // 유효한 키만 필터링
 
     if (availableKeys.length === 0) {
         return res.status(500).json({ error: 'GEMINI_API_KEY environment variables are not set on the server.' });
+    }
+
+    // 🌟 [추가됨] 키 배열을 무작위로 섞습니다 (Fisher-Yates Shuffle)
+    // 이렇게 해야 매 요청마다 다른 키가 1순위가 되어 부하가 분산됩니다.
+    for (let i = availableKeys.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [availableKeys[i], availableKeys[j]] = [availableKeys[j], availableKeys[i]];
     }
 
     const { model, payload } = req.body;
@@ -882,8 +908,9 @@ app.post('/api/generate-text', async (req, res) => {
     let lastError = null;
     let lastStatus = 500;
 
-    // 2. 키 리스트를 순회하며 요청을 시도합니다.
+    // 2. 섞인 키 리스트를 순회하며 요청 시도
     for (const apiKey of availableKeys) {
+        // ... (나머지 로직은 동일)
         const url = `${GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`;
 
         try {
@@ -895,25 +922,20 @@ app.post('/api/generate-text', async (req, res) => {
                 body: JSON.stringify(payload)
             });
 
-            // 성공 시 바로 데이터를 반환하고 함수 종료
             if (response.ok) {
                 const data = await response.json();
                 return res.status(200).json(data);
             }
 
-            // 에러 발생 시 처리
             const errorBody = await response.json().catch(() => ({}));
             lastStatus = response.status;
             lastError = errorBody;
 
-            // 3. 재시도 여부 결정
-            // 429(Too Many Requests) 또는 403(Quota Exceeded) 또는 5xx(Server Error)인 경우에만 다음 키 시도
-            // 400(Bad Request)은 요청 자체가 잘못된 것이므로 키를 바꿔도 소용없음 -> 바로 실패 처리
+            // 429(Too Many Requests), 403, 5xx 에러만 다음 키 시도
             if (response.status === 429 || response.status === 403 || response.status >= 500) {
-                console.warn(`Gemini API Failed with key ending in ...${apiKey.slice(-4)} (Status: ${response.status}). Trying next key...`);
-                continue; // 다음 키로 루프 계속 진행
+                console.warn(`⚠️ Key ending in ...${apiKey.slice(-4)} failed (${response.status}). Switching to next key...`);
+                continue; 
             } else {
-                // 재시도해도 해결되지 않을 에러 (예: 잘못된 파라미터 등)
                 console.error(`Gemini API Fatal Error (${response.status}):`, errorBody);
                 return res.status(response.status).json({
                     error: `Gemini API call failed with status ${response.status}`,
@@ -924,12 +946,10 @@ app.post('/api/generate-text', async (req, res) => {
         } catch (error) {
             console.error('Proxy Fetch Error (Network):', error);
             lastError = { message: error.message };
-            // 네트워크 에러 등의 경우 다음 키 시도
             continue;
         }
     }
 
-    // 4. 모든 키가 실패했을 경우 최종 에러 반환
     console.error('All API keys exhausted.');
     return res.status(lastStatus).json({
         error: 'All available Gemini API keys failed.',
