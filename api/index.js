@@ -765,60 +765,89 @@ app.delete('/api/episodes/:id', (req, res) => {
     });
 });
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-// 🌟🌟🌟 [NEW] Gemini API 프록시 엔드포인트 🌟🌟🌟
+    // =================================================================
+// 1. 서버 시작 시 키 목록을 딱 한 번만 생성하고, 순서를 기억할 변수를 만듭니다.
+// =================================================================
+
+// 사용 가능한 모든 키를 수집합니다.
+const ALL_KEYS = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY1,
+    process.env.GEMINI_API_KEY2,
+    process.env.GEMINI_API_KEY3,
+    process.env.GEMINI_API_KEY4,
+    process.env.GEMINI_API_KEY5,
+    process.env.GEMINI_API_KEY6,
+    process.env.GEMINI_API_KEY7,
+    process.env.GEMINI_API_KEY8,
+    process.env.GEMINI_API_KEY9,
+    process.env.GEMINI_API_KEY10,
+    process.env.GEMINI_API_KEY11,
+    process.env.GEMINI_API_KEY12,
+    process.env.GEMINI_API_KEY13,
+    process.env.GEMINI_API_KEY14,
+    process.env.GEMINI_API_KEY15,
+    process.env.GEMINI_API_KEY16,
+    process.env.GEMINI_API_KEY17,
+    process.env.GEMINI_API_KEY18,
+    process.env.GEMINI_API_KEY19,
+    process.env.GEMINI_API_KEY20,
+    process.env.GEMINI_API_KEY21,
+    process.env.GEMINI_API_KEY22,
+    process.env.GEMINI_API_KEY23,
+    process.env.GEMINI_API_KEY24,
+    process.env.GEMINI_API_KEY25,
+    process.env.GEMINI_API_KEY26,
+    process.env.GEMINI_API_KEY27,
+    process.env.GEMINI_API_KEY28,
+    process.env.GEMINI_API_KEY29
+].filter(key => key && key.trim() !== ''); // 빈 키 제거
+
+// 현재 몇 번째 키를 쓸 차례인지 기억하는 변수 (전역 변수)
+let currentKeyIndex = 0;
+
+// =================================================================
+// 2. API 라우트 핸들러
+// =================================================================
 app.post('/api/generate-text', async (req, res) => {
-
-    // 1. 사용 가능한 모든 API 키를 배열로 수집합니다. (기본 키 + 1~10번 예비 키)
-    const availableKeys = [
-        process.env.GEMINI_API_KEY,
-        process.env.GEMINI_API_KEY1,
-        process.env.GEMINI_API_KEY2,
-        process.env.GEMINI_API_KEY3,
-        process.env.GEMINI_API_KEY4,
-        process.env.GEMINI_API_KEY5,
-        process.env.GEMINI_API_KEY6,
-        process.env.GEMINI_API_KEY7,
-        process.env.GEMINI_API_KEY8,
-        process.env.GEMINI_API_KEY9,
-        process.env.GEMINI_API_KEY10,
-        process.env.GEMINI_API_KEY11,
-        process.env.GEMINI_API_KEY12,
-        process.env.GEMINI_API_KEY13,
-        process.env.GEMINI_API_KEY14,
-        process.env.GEMINI_API_KEY15,
-        process.env.GEMINI_API_KEY16,
-        process.env.GEMINI_API_KEY17,
-        process.env.GEMINI_API_KEY18,
-        process.env.GEMINI_API_KEY19,
-        process.env.GEMINI_API_KEY20,
-        process.env.GEMINI_API_KEY21,
-        process.env.GEMINI_API_KEY22,
-        process.env.GEMINI_API_KEY23,
-        process.env.GEMINI_API_KEY24,
-        process.env.GEMINI_API_KEY25,
-        process.env.GEMINI_API_KEY26,
-        process.env.GEMINI_API_KEY27,
-        process.env.GEMINI_API_KEY28,
-        process.env.GEMINI_API_KEY29
-    ].filter(key => key); // undefined, null, 빈 문자열은 제거합니다.
-
-    if (availableKeys.length === 0) {
+    
+    if (ALL_KEYS.length === 0) {
         return res.status(500).json({ error: 'Server API Keys missing.' });
     }
 
     const { model, payload } = req.body;
-    
+
+    // -------------------------------------------------------------
+    // [라운드 로빈 핵심 로직]
+    // -------------------------------------------------------------
+    // 1. 이번 요청에서 처음으로 시도할 키의 인덱스를 가져옵니다.
+    const startIndex = currentKeyIndex;
+
+    // 2. 다음 요청은 그 다음 키를 쓰도록 전역 인덱스를 미리 업데이트합니다.
+    // (배열 길이를 넘어가면 다시 0번으로 돌아오게 % 연산자 사용)
+    currentKeyIndex = (currentKeyIndex + 1) % ALL_KEYS.length;
+
+    // 3. 키 배열을 재정렬합니다.
+    // 예: 키가 [A, B, C, D]이고 startIndex가 2(C)라면 -> [C, D, A, B] 순서로 만듭니다.
+    // 이렇게 하면 이번 요청은 C부터 시도하고, 실패하면 D, A, B 순으로 넘어갑니다.
+    const prioritizedKeys = [
+        ...ALL_KEYS.slice(startIndex),
+        ...ALL_KEYS.slice(0, startIndex)
+    ];
+
     let lastError = null;
     let lastStatus = 500;
 
-    // 2. 키 순회
-    for (const apiKey of availableKeys) {
+    // -------------------------------------------------------------
+    // [키 순회 시작]
+    // -------------------------------------------------------------
+    for (const apiKey of prioritizedKeys) {
         const url = `${GEMINI_API_URL}/${model}:generateContent?key=${apiKey}`;
 
         try {
-            console.log(`Trying API Key ending in ...${apiKey.slice(-4)}`); // 로그 추가
+            // (디버깅용) 현재 사용하는 키의 끝 4자리 확인
+            // console.log(`Attempting with Key ending in ...${apiKey.slice(-4)}`);
 
             const response = await fetch(url, {
                 method: 'POST',
@@ -828,36 +857,36 @@ app.post('/api/generate-text', async (req, res) => {
 
             if (response.ok) {
                 const data = await response.json();
-                return res.status(200).json(data); // 성공 시 바로 리턴
+                return res.status(200).json(data); // 성공 시 즉시 반환
             }
 
-            // 실패 시 처리
+            // 에러 발생 시 처리
             const errorBody = await response.json().catch(() => ({}));
             lastStatus = response.status;
             lastError = errorBody;
 
-            // 503(과부하)이나 429(요청 제한)일 때만 재시도
-            if (response.status === 429 || response.status === 503 || response.status >= 500) {
-                console.warn(`⚠️ Gemini API Failed (Status: ${response.status}). Waiting 2s before next key...`);
-                
-                // 🌟 [핵심 수정] 2초 대기 후 다음 키 시도
-                await delay(2000); 
+            // ⚠️ [중요 최적화]
+            // 429(Too Many Requests), 500번대 에러인 경우 대기 없이 바로 다음 키로 넘어갑니다.
+            // 내 주머니에 다른 키가 많으므로 기다릴 필요가 없습니다.
+            if (response.status === 429 || response.status >= 500) {
+                console.warn(`Key limit/Error (${response.status}). Switching to next key immediately....${apiKey.slice(-4)}`);
                 continue; 
             } else {
-                // 400 Bad Request 등은 재시도해도 소용없으므로 즉시 종료
+                // 400 Bad Request 등은 키 문제가 아니라 요청 데이터 문제이므로 즉시 실패 처리
                 return res.status(response.status).json({ error: "Gemini API Error", details: errorBody });
             }
 
         } catch (error) {
             console.error('Network Error:', error);
-            await delay(1000); // 네트워크 에러 시 1초 대기
-            continue;
+            // 네트워크 에러는 잠시 대기 후 재시도 할 수도 있지만, 
+            // 빠른 응답을 위해 바로 다음 키로 넘어가도 무방합니다.
+            continue; 
         }
     }
 
-    // 모든 키 실패 시
+    // 모든 키가 실패했을 때
     return res.status(lastStatus).json({
-        error: 'All available Gemini API keys failed or server is busy.',
+        error: 'All available Gemini API keys failed or rate limits reached.',
         details: lastError
     });
 });
