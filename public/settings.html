@@ -26,7 +26,7 @@
             color: var(--text-color);
         }
 
-        /* --- 상단 네비게이션바 (공통 요소) --- */
+        /* --- 상단 네비게이션바 --- */
         .navbar {
             background-color: var(--nav-bg);
             color: var(--nav-text);
@@ -42,8 +42,7 @@
         .nav-left { display: flex; align-items: center; gap: 15px; }
         .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
         
-        /* 메뉴 링크들 */
-        .nav-links { display: flex; gap: 5px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
         .nav-item {
             color: #bdc3c7;
             text-decoration: none;
@@ -66,10 +65,11 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
-        h2 { border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0; }
+        h2 { border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 0; color: #2c3e50; }
 
         .form-group { margin-bottom: 20px; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #444; }
+        .form-group label small { font-weight: normal; color: #888; margin-left: 5px; }
         
         .form-input, .form-textarea {
             width: 100%;
@@ -77,8 +77,22 @@
             border: 1px solid var(--border-color);
             border-radius: 6px;
             font-size: 1rem;
+            font-family: inherit;
         }
+        /* 높이 조정 */
         .form-textarea { min-height: 150px; resize: vertical; line-height: 1.6; }
+        
+        /* 읽기 전용 스타일 */
+        .readonly-field {
+            background-color: #f9f9f9;
+            color: #555;
+            cursor: default;
+        }
+
+        .btn-link {
+            background: none; border: none; color: var(--primary-color); 
+            font-size: 0.9rem; cursor: pointer; text-decoration: underline; padding: 0;
+        }
 
         .btn-save {
             width: 100%;
@@ -91,13 +105,12 @@
             font-weight: bold;
             cursor: pointer;
             transition: background 0.2s;
+            margin-top: 10px;
         }
         .btn-save:hover { background-color: #357abd; }
 
-        /* 반응형 */
         @media (max-width: 600px) {
             .navbar { flex-direction: column; align-items: stretch; gap: 10px; }
-            .nav-links { padding-bottom: 5px; }
             .container { margin: 15px; padding: 15px; }
         }
     </style>
@@ -106,9 +119,9 @@
 
 <nav class="navbar">
     <div class="nav-left">
-        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 프로젝트 목록</a>
+        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
     </div>
-    <div class="nav-links" id="navLinks">
+    <div class="nav-links">
         <a href="#" class="nav-item active"><i class="fas fa-cog"></i> 설정</a>
         <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
         <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
@@ -127,12 +140,19 @@
     </div>
 
     <div class="form-group">
-        <label>작품 소개 (로그라인)</label>
-        <textarea id="plotDetails" class="form-textarea" placeholder="이 소설의 핵심 줄거리를 요약해주세요. (이 내용은 AI가 플롯을 짤 때 중요한 참고 자료가 됩니다.)"></textarea>
+        <label>
+            작품 줄거리 (플롯 전체 요약) 
+        </label>
+        <textarea id="plotDetails" class="form-textarea" placeholder="플롯 탭에서 회차를 등록하면 여기에 표시됩니다."></textarea>
     </div>
 
     <div class="form-group">
-        <label>메모 / 기타 설정</label>
+        <label>등장인물 설정 (Character Details)</label>
+        <textarea id="characterDetails" class="form-textarea" placeholder="주요 등장인물의 이름, 성격, 관계 등을 자유롭게 서술하세요."></textarea>
+    </div>
+
+    <div class="form-group">
+        <label>메모 / 기타 설정 (World Setting)</label>
         <textarea id="worldSetting" class="form-textarea" style="height: 100px;" placeholder="장르, 타겟 독자층 등 기억해야 할 메모를 적어두세요."></textarea>
     </div>
 
@@ -145,51 +165,83 @@
     const urlParams = new URLSearchParams(window.location.search);
     const settingId = urlParams.get('setting_id');
 
-    // 1. 네비게이션 링크 초기화 (모든 페이지 공통 로직)
-    function initNav() {
+    function init() {
         if (!settingId) {
-            alert("잘못된 접근입니다. 프로젝트 목록으로 이동합니다.");
+            alert("잘못된 접근입니다.");
             window.location.href = 'index.html';
             return;
         }
-        
+        setupNav();
+        loadData();
+    }
+
+    function setupNav() {
         document.querySelectorAll('.nav-item').forEach(item => {
             const target = item.dataset.target;
-            if (target) {
-                item.href = `${target}?setting_id=${settingId}`;
-            }
+            if (target) item.href = `${target}?setting_id=${settingId}`;
         });
     }
 
-    // 2. 데이터 불러오기
+    // 데이터 불러오기
     async function loadData() {
         try {
-            const response = await fetch(`/api/load-settings?id=${settingId}`);
-            if (!response.ok) throw new Error("데이터 로드 실패");
-            
-            const data = await response.json();
-            
-            document.getElementById('title').value = data.title || '';
-            // 백엔드 필드 매핑: 
-            // - 작품 소개 -> plotDetails
-            // - 메모 -> worldSetting (임시 매핑)
-            document.getElementById('plotDetails').value = data.plotDetails || '';
-            document.getElementById('worldSetting').value = data.worldSetting || '';
+            // 🌟 [수정됨] 설정(settings)과 에피소드(episodes) 동시 호출
+            const [settingsRes, episodesRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`),
+                fetch(`/api/episodes?setting_id=${settingId}`) // 에피소드 리스트 호출
+            ]);
 
-            // 기존 episode_number 등을 유지하기 위해 전역 변수에 저장하거나 할 필요가 있음
-            // 여기선 input hidden 대신 save 시점에 다시 merge하거나 필요한 값만 보냄
-            window.currentData = data; 
+            if (!settingsRes.ok) throw new Error("설정 로드 실패");
+            
+            const settings = await settingsRes.json();
+            
+            // 1. 기본 설정 바인딩
+            document.getElementById('title').value = settings.title || '';
+            document.getElementById('characterDetails').value = settings.characterDetails || '';
+            document.getElementById('worldSetting').value = settings.worldSetting || '';
+
+            // 2. 🌟 에피소드 목록을 '줄거리' 칸에 표시
+            if (episodesRes.ok) {
+                const episodes = await episodesRes.json();
+                
+                if (episodes.length === 0) {
+                    document.getElementById('plotDetails').value = "(아직 등록된 회차가 없습니다. '플롯' 탭에서 에피소드를 추가해주세요.)";
+                } else {
+                    // 회차 순서 정렬
+                    episodes.sort((a, b) => a.episode_number - b.episode_number);
+                    
+                    // 텍스트로 변환 (예: 1화. 제목 - 내용요약)
+                    const plotSummary = episodes.map(ep => {
+                        const contentSnippet = ep.content ? ep.content : '내용 없음';
+                        return `[제 ${ep.episode_number}화] ${ep.title}\n - ${contentSnippet}`;
+                    }).join('\n\n');
+                    
+                    document.getElementById('plotDetails').value = plotSummary;
+                }
+            } else {
+                document.getElementById('plotDetails').value = "플롯 정보를 불러오지 못했습니다.";
+            }
+
+            // 기존 데이터 보존용
+            window.currentData = settings; 
+
         } catch (e) {
             console.error(e);
-            alert("설정을 불러오는데 실패했습니다.");
+            alert("데이터를 불러오는데 실패했습니다.");
         }
     }
 
-    // 3. 데이터 저장하기
+    // 데이터 저장하기
     async function saveSettings() {
         const title = document.getElementById('title').value;
         const plotDetails = document.getElementById('plotDetails').value;
         const worldSetting = document.getElementById('worldSetting').value;
+        const characterDetails = document.getElementById('characterDetails').value;
+        
+        // 🌟 [주의] plotDetails는 episodes 테이블에서 가져온 읽기 전용이므로 저장 대상에서 제외하거나,
+        // settings 테이블의 해당 컬럼을 사용하지 않게 됩니다.
+        // 다만 DB 구조상 plotDetails 컬럼이 있다면 현재 보여지는 텍스트를 스냅샷으로 저장할 수도 있습니다.
+        // 여기서는 혼란을 막기 위해 화면의 plotDetails 값은 저장하지 않고, 기존 값을 유지하거나 무시합니다.
 
         if (!title.trim()) {
             alert("제목은 필수입니다.");
@@ -199,12 +251,15 @@
         const payload = {
             id: settingId,
             title: title,
-            plotDetails: plotDetails,
             worldSetting: worldSetting,
-            // 기존 데이터 유지 (characterDetails 등 덮어쓰기 방지)
-            characterDetails: window.currentData?.characterDetails || '',
+            characterDetails: characterDetails, 
+            
+            // plotDetails: ... (제외: episodes 테이블이 원본이므로)
+            plotDetails: plotDetails, // 기존 값 유지 (또는 공백)
+
             previousContent: window.currentData?.previousContent || '',
-            episode_number: window.currentData?.episode_number || 1
+            episode_number: window.currentData?.episode_number || 1,
+            roadmaps: window.currentData?.roadmaps || ''
         };
 
         try {
@@ -216,8 +271,7 @@
 
             if (response.ok) {
                 alert("성공적으로 저장되었습니다.");
-                // 데이터 갱신
-                loadData();
+                loadData(); // 갱신
             } else {
                 const err = await response.json();
                 alert("저장 실패: " + err.error);
@@ -228,9 +282,7 @@
         }
     }
 
-    // 초기화 실행
-    initNav();
-    loadData();
+    init();
 </script>
 
 </body>

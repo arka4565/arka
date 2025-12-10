@@ -8,7 +8,7 @@
     <style>
         :root {
             --primary-color: #4a90e2;
-            --edit-color: #8e44ad; /* 편집 강조색 (보라색) */
+            --edit-color: #8e44ad;
             --bg-color: #f4f4f9;
             --card-bg: #ffffff;
             --text-color: #333;
@@ -26,268 +26,109 @@
             margin: 0;
             padding: 0;
             color: var(--text-color);
-            /* 🌟 [수정] 모바일 주소창 대응 높이 설정 */
-            height: 100vh; 
-            height: 100dvh; 
+            height: 100dvh; /* 모바일 대응 */
             display: flex;
             flex-direction: column;
-            overflow: hidden; 
+            overflow: hidden;
         }
 
-        /* --- 네비게이션 --- */
+        /* 네비게이션 */
         .navbar {
             background-color: var(--nav-bg);
             color: var(--nav-text);
             padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-            z-index: 1001; 
+            display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0; z-index: 1001;
         }
         .nav-left { display: flex; align-items: center; gap: 15px; }
         .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
         .nav-links { display: flex; gap: 5px; overflow-x: auto; }
         .nav-item {
-            color: #bdc3c7;
-            text-decoration: none;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            white-space: nowrap;
-            transition: all 0.2s;
+            color: #bdc3c7; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
         }
         .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
         .nav-item.active { color: white; background: var(--edit-color); font-weight: bold; }
 
-        /* --- 메인 레이아웃 --- */
-        .workspace-container {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            position: relative; 
-        }
+        /* 레이아웃 */
+        .workspace-container { display: flex; flex: 1; overflow: hidden; position: relative; }
 
-        /* 좌측 사이드바 (회차 목록) */
+        /* 사이드바 */
         .sidebar {
-            width: 260px;
-            background: #fff;
-            border-right: 1px solid var(--border-color);
-            display: flex;
-            flex-direction: column;
-            transition: transform 0.3s ease; 
-            z-index: 1000;
+            width: 260px; background: #fff; border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000;
         }
         .sidebar-header {
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-            font-weight: bold;
-            color: var(--edit-color);
-            background: #fdfbff;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; color: var(--edit-color); background: #fdfbff;
+            display: flex; justify-content: space-between; align-items: center;
         }
         .btn-close-sidebar { display: none; background:none; border:none; font-size:1.2rem; cursor:pointer; color:#666; }
-
-        .story-list {
-            flex: 1;
-            overflow-y: auto;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            /* 🌟 [수정] 리스트 하단 여유 공간 */
-            padding-bottom: 50px;
-        }
-        .story-item {
-            padding: 12px 15px;
-            border-bottom: 1px solid #f0f0f0;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
+        .story-list { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; padding-bottom: 50px; }
+        .story-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s; }
         .story-item:hover { background: #f8f9fa; }
         .story-item.active { background: #f3e5f5; border-left: 4px solid var(--edit-color); font-weight: bold; }
         .story-meta { font-size: 0.8rem; color: #888; margin-top: 4px; }
+        .sidebar-backdrop { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
 
-        /* 모바일 배경 어둡게 */
-        .sidebar-backdrop {
-            display: none;
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-
-        /* 우측 메인 영역 */
-        .main-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            background: #f8f9fa;
-            position: relative;
-            width: 100%; 
-        }
-
-        /* 탭 메뉴 */
-        .top-tabs {
-            display: flex;
-            background: white;
-            border-bottom: 1px solid var(--border-color);
-            flex-shrink: 0;
-        }
+        /* 메인 영역 */
+        .main-area { flex: 1; display: flex; flex-direction: column; background: #f8f9fa; position: relative; width: 100%; }
+        .top-tabs { display: flex; background: white; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
         .top-tab-btn {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            background: none;
-            font-size: 0.95rem;
-            cursor: pointer;
-            color: #777;
-            border-bottom: 3px solid transparent;
-            white-space: nowrap;
+            flex: 1; padding: 12px; border: none; background: none; font-size: 0.95rem; cursor: pointer;
+            color: #777; border-bottom: 3px solid transparent; white-space: nowrap;
         }
-        .top-tab-btn.active {
-            color: var(--edit-color);
-            border-bottom-color: var(--edit-color);
-            font-weight: bold;
-        }
-        
+        .top-tab-btn.active { color: var(--edit-color); border-bottom-color: var(--edit-color); font-weight: bold; }
         .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
         .tab-content.active { display: flex; }
 
         /* 탭 1: 에디터 */
-        .editor-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            padding: 15px;
-            gap: 15px;
-            overflow-y: auto;
-            /* 🌟 [수정] 하단 잘림 방지용 여백 대폭 추가 */
-            padding-bottom: 80px; 
-        }
-        
-        .edit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap; 
-            gap: 10px;
-            flex-shrink: 0;
-        }
-        
+        .editor-container { flex: 1; display: flex; flex-direction: column; padding: 15px; gap: 15px; overflow-y: auto; padding-bottom: 80px; }
+        .edit-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden; }
-        
-        .btn-mobile-menu {
-            display: none; 
-            background: white; border: 1px solid #ddd; padding: 8px 12px;
-            border-radius: 6px; cursor: pointer; color: #555;
-        }
-
-        .story-title {
-            font-size: 1.1rem; font-weight: bold; color: #333;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-        
-        .text-editor {
-            flex: 1; /* 남은 공간 차지 */
-            width: 100%;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            line-height: 1.8;
-            resize: none;
-            background: white;
-            font-family: 'Pretendard', sans-serif;
-            /* 🌟 [수정] 최소 높이 조정 */
-            min-height: 200px;
-        }
+        .btn-mobile-menu { display: none; background: white; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #555; }
+        .story-title { font-size: 1.1rem; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .text-editor { flex: 1; width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; line-height: 1.8; resize: none; background: white; font-family: 'Pretendard', sans-serif; min-height: 200px; }
         .text-editor:focus { outline: 2px solid var(--edit-color); border-color: transparent; }
-
-        /* AI 패널 */
-        .ai-revision-panel {
-            background: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #e1bee7;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            flex-shrink: 0; 
-            /* 🌟 [수정] 모바일에서 바닥에 붙지 않도록 마진 추가 */
-            margin-bottom: 20px; 
-        }
-        .panel-title { color: var(--edit-color); font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; }
         
+        /* AI 패널 */
+        .ai-revision-panel { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e1bee7; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0; margin-bottom: 20px; }
+        .panel-title { color: var(--edit-color); font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; }
         .ai-input-group { display: flex; gap: 8px; flex-direction: column; }
         .ai-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-        .btn-ai-action {
-            background: var(--edit-color); color: white; border: none; padding: 10px;
-            border-radius: 6px; cursor: pointer; font-weight: bold;
-        }
-        .btn-ai-action:hover { background: #7d3c98; }
-
-        .btn-save {
-            background: #2c3e50; color: white; border: none; padding: 8px 16px;
-            border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap;
-        }
+        .btn-ai-action { background: var(--edit-color); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .btn-save { background: #2c3e50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
 
         /* 탭 2: 관리 */
         .manage-container { padding: 20px; width: 100%; overflow-y: auto; padding-bottom: 80px; }
-        .manage-card {
-            background: white; padding: 20px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 15px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-        }
+        .manage-card { background: white; padding: 20px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
         .manage-card h3 { margin-top: 0; color: #444; font-size: 1.1rem; }
         
         .export-btn {
             display: inline-flex; align-items: center; gap: 10px;
             padding: 12px; border: 1px solid #ddd; border-radius: 8px;
-            background: white; cursor: pointer; width: 100%; margin-bottom: 10px;
-            justify-content: center;
+            background: white; cursor: pointer; width: 100%; margin-bottom: 10px; justify-content: center; font-weight: bold; color: #555;
         }
-        .btn-delete-project {
-            background: white; color: var(--danger-color); border: 1px solid var(--danger-color);
-            padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold;
-        }
+        .export-btn:hover { background: #f0f7ff; color: var(--edit-color); border-color: var(--edit-color); }
+
+        .btn-delete-project { background: white; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
 
         /* 모달 */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal { background: white; width: 90%; max-width: 800px; padding: 20px; border-radius: 10px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
-        
         .diff-container { display: flex; gap: 10px; margin: 15px 0; flex: 1; overflow: hidden; min-height: 200px; }
-        .diff-box {
-            flex: 1; padding: 10px; border-radius: 6px; overflow-y: auto;
-            white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; border: 1px solid #ddd;
-        }
+        .diff-box { flex: 1; padding: 10px; border-radius: 6px; overflow-y: auto; white-space: pre-wrap; font-size: 0.95rem; line-height: 1.6; border: 1px solid #ddd; }
         .old-ver { background: #ffeef0; border-color: #ffccd0; }
         .new-ver { background: #e8f5e9; border-color: #c8e6c9; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; flex-shrink: 0; }
 
-        /* 🌟 모바일 반응형 스타일 */
         @media (max-width: 768px) {
-            /* 사이드바 */
-            .sidebar {
-                position: absolute;
-                top: 0; left: 0; height: 100%;
-                transform: translateX(-100%);
-                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-            }
+            .sidebar { position: absolute; top: 0; left: 0; height: 100%; transform: translateX(-100%); box-shadow: 2px 0 10px rgba(0,0,0,0.1); }
             .sidebar.active { transform: translateX(0); }
-            
             .btn-close-sidebar { display: block; }
             .btn-mobile-menu { display: block; }
             .sidebar-backdrop.active { display: block; }
-
             .diff-container { flex-direction: column; }
             .diff-box { max-height: 200px; }
-            
-            /* 모바일에서 텍스트 에디터 최소 높이 줄임 (하단 패널 공간 확보 위해) */
             .text-editor { min-height: 150px; }
-            
-            /* AI 패널이 너무 꽉 차지 않게 여유 둠 */
             .ai-revision-panel { margin-bottom: 40px; }
         }
     </style>
@@ -324,7 +165,7 @@
     <main class="main-area">
         <div class="top-tabs">
             <button class="top-tab-btn active" onclick="switchTab('edit')"><i class="fas fa-pen-nib"></i> AI 윤문</button>
-            <button class="top-tab-btn" onclick="switchTab('manage')"><i class="fas fa-tasks"></i> 관리</button>
+            <button class="top-tab-btn" onclick="switchTab('manage')"><i class="fas fa-tasks"></i> 관리/내보내기</button>
         </div>
 
         <div id="tab-edit" class="tab-content active">
@@ -340,14 +181,10 @@
                 <textarea id="mainEditor" class="text-editor" placeholder="목록 버튼을 눌러 회차를 선택하세요."></textarea>
 
                 <div class="ai-revision-panel">
-                    <div class="panel-title">
-                        <i class="fas fa-robot"></i> AI 수정 지시
-                    </div>
+                    <div class="panel-title"><i class="fas fa-robot"></i> AI 수정 지시</div>
                     <div class="ai-input-group">
                         <input type="text" id="aiPrompt" class="ai-input" placeholder="예: 문체를 더 무겁게, 오타 수정">
-                        <button class="btn-ai-action" onclick="requestAiRevision()">
-                            <i class="fas fa-magic"></i> 수정
-                        </button>
+                        <button class="btn-ai-action" onclick="requestAiRevision()"><i class="fas fa-magic"></i> 수정</button>
                     </div>
                 </div>
             </div>
@@ -355,15 +192,24 @@
 
         <div id="tab-manage" class="tab-content">
             <div class="manage-container">
+                
                 <div class="manage-card">
-                    <h3><i class="fas fa-file-export"></i> 텍스트 내보내기</h3>
-                    <button class="export-btn" onclick="downloadTextFile()"><i class="fas fa-file-alt"></i> TXT 다운로드</button>
+                    <h3><i class="fas fa-book"></i> 설정 자료 내보내기</h3>
+                    <p style="color:#666; font-size:0.9rem; margin-bottom:10px;">로그라인, 세계관, 등장인물 설정을 텍스트 파일로 다운로드합니다.</p>
+                    <button class="export-btn" onclick="downloadSettingsTxt()"><i class="fas fa-file-alt"></i> 설정집 다운로드 (.txt)</button>
+                </div>
+
+                <div class="manage-card">
+                    <h3><i class="fas fa-file-export"></i> 본문 텍스트 내보내기</h3>
+                    <p style="color:#666; font-size:0.9rem; margin-bottom:10px;">작성된 모든 회차를 하나의 텍스트 파일로 합칩니다.</p>
+                    <button class="export-btn" onclick="downloadTextFile()"><i class="fas fa-file-alt"></i> 전체 본문 다운로드 (.txt)</button>
                     <button class="export-btn" onclick="copyToClipboard()"><i class="fas fa-copy"></i> 클립보드 복사</button>
                 </div>
 
                 <div class="manage-card">
                     <h3><i class="fas fa-database"></i> 데이터 백업</h3>
-                    <button class="export-btn" onclick="downloadBackup()"><i class="fas fa-download"></i> JSON 백업</button>
+                    <p style="color:#666; font-size:0.9rem; margin-bottom:10px;">프로젝트의 모든 데이터를 JSON 형식으로 저장합니다.</p>
+                    <button class="export-btn" onclick="downloadBackup()"><i class="fas fa-download"></i> 전체 백업 (.json)</button>
                 </div>
 
                 <div class="manage-card" style="border-color:#ffcccc; background:#fff5f5;">
@@ -794,6 +640,43 @@
                 alert("저장 실패");
             }
         } catch(e) { alert("오류 발생"); }
+    }
+	
+	// 🌟 [NEW] 설정집 다운로드 기능
+    async function downloadSettingsTxt() {
+        try {
+            const [sRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json())
+            ]);
+
+            let text = `[ 제목 ] ${sRes.title}\n\n`;
+            text += `====================================\n`;
+            text += `[ 작품 소개 (로그라인) ]\n`;
+            text += `====================================\n`;
+            text += `${sRes.plotDetails || '내용 없음'}\n\n`;
+
+            text += `====================================\n`;
+            text += `[ 세계관 설정 ]\n`;
+            text += `====================================\n`;
+            text += `${sRes.worldSetting || '내용 없음'}\n\n`;
+            
+            text += `====================================\n`;
+            text += `[ 등장인물 ]\n`;
+            text += `====================================\n`;
+			text += `${sRes.characterDetails || '내용 없음'}\n\n`;
+			
+          
+
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${sRes.title}_설정집.txt`;
+            link.click();
+
+        } catch (e) {
+            console.error(e);
+            alert("설정 데이터를 불러오는 중 오류가 발생했습니다.");
+        }
     }
 
     // --- 관리 기능 (내보내기 등) ---

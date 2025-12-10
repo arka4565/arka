@@ -105,13 +105,13 @@ router.get('/load-settings', (req, res) => {
  */
 app.post('/api/save-settings', (req, res) => {
     // episode_number 필드 추가
-    const { id, title, worldSetting, characterDetails, plotDetails, previousContent, episode_number } = req.body;
+    const { id, title, worldSetting, characterDetails, plotDetails, previousContent, episode_number,roadmaps } = req.body;
 
-    if (!title || episode_number === undefined || episode_number === null) return res.status(400).json({ error: 'Title and episode number are required.' });
+    if (!title) return res.status(400).json({ error: 'Title and episode number are required.' });
 
     if (id && id !== 'null') { // 기존 플롯 업데이트
-        const sql = `UPDATE settings SET title=?, worldSetting=?, characterDetails=?, plotDetails=?, previousContent=?, episode_number=? WHERE id=?`;
-        db.query(sql, [title, worldSetting, characterDetails, plotDetails, previousContent, episode_number, id], (err, result) => {
+        const sql = `UPDATE settings SET title=?, worldSetting=?, characterDetails=?, plotDetails=?, previousContent=?, episode_number=?, roadmaps=?  WHERE id=?`;
+        db.query(sql, [title, worldSetting, characterDetails, plotDetails, previousContent, episode_number,roadmaps, id], (err, result) => {
             if (err) {
                 console.error("❌ 설정 업데이트 실패:", err.message);
                 return res.status(500).json({ error: err.message });
@@ -119,8 +119,8 @@ app.post('/api/save-settings', (req, res) => {
             res.status(200).json({ message: 'Updated successfully', id: id });
         });
     } else { // 새 플롯 삽입
-        const sql = `INSERT INTO settings (title, worldSetting, characterDetails, plotDetails, previousContent, episode_number) VALUES (?, ?, ?, ?, ?, ?)`;
-        db.query(sql, [title, worldSetting, characterDetails, plotDetails, previousContent, episode_number], (err, result) => {
+        const sql = `INSERT INTO settings (title, worldSetting, characterDetails, plotDetails, previousContent, episode_number,roadmaps) VALUES (?, ?, ?, ?, ?, ?,?)`;
+        db.query(sql, [title, worldSetting, characterDetails, plotDetails, previousContent, episode_number,roadmaps], (err, result) => {
             if (err) {
                 console.error("❌ 설정 생성 실패:", err.message);
                 return res.status(500).json({ error: err.message });
@@ -633,7 +633,7 @@ app.get(`/api/episodes`, (req, res) => {
     }
 
     // createdAt을 프론트엔드 호환성을 위해 유지하거나 별칭 사용
-    const sql = 'SELECT id, setting_id, episode_number, title, prompt, content, createdAt FROM episodes WHERE setting_id = ? ORDER BY episode_number ASC';
+    const sql = 'SELECT id, setting_id, episode_number, title, prompt, content,treatment, createdAt FROM episodes WHERE setting_id = ? ORDER BY episode_number ASC';
 
     db.query(sql, [settingId], (err, results) => {
         if (err) {
@@ -676,7 +676,7 @@ app.get(`/api/previous-stories`, (req, res) => {
  * 새로 생성된 에피소드를 데이터베이스에 저장합니다.
  */
 app.post(`/api/episodes`, (req, res) => {
-    const { setting_id, episode_number, title, content, prompt } = req.body;
+    const { setting_id, episode_number, title, content, prompt,treatment } = req.body;
 
     // 🚨 주의: content가 필수값이므로 프론트엔드에서 최소한 공백(" ")이라도 보내야 합니다.
     if (!setting_id || !episode_number || !title || content === undefined) {
@@ -685,11 +685,11 @@ app.post(`/api/episodes`, (req, res) => {
 
     const sql = `
         INSERT INTO episodes 
-        (setting_id, episode_number, title, content, prompt, createdAt) 
-        VALUES (?, ?, ?, ?, ?, NOW())
+        (setting_id, episode_number, title, content, prompt,treatment, createdAt) 
+        VALUES (?, ?, ?, ?, ?,?, NOW())
     `;
     // content가 빈 문자열일 경우를 대비해 처리 (validation 통과 전제)
-    const values = [setting_id, episode_number, title, content, prompt || 'AI Generated'];
+    const values = [setting_id, episode_number, title, content, prompt,treatment || 'AI Generated'];
 
     db.query(sql, values, (err, result) => {
         if (err) {
@@ -712,7 +712,7 @@ app.post(`/api/episodes`, (req, res) => {
  */
 app.put(`/api/episodes/:id`, (req, res) => {
     const episodeId = req.params.id;
-    const { episode_number, title, content } = req.body;
+    const { episode_number, title, content, treatment } = req.body;
 
     if (!episode_number || !title || content === undefined) {
         return res.status(400).json({ message: 'Required update fields are missing.' });
@@ -720,10 +720,10 @@ app.put(`/api/episodes/:id`, (req, res) => {
 
     const sql = `
         UPDATE episodes 
-        SET episode_number = ?, title = ?, content = ?, updatedAt = NOW()
+        SET episode_number = ?, title = ?, content = ?,treatment=?, updatedAt = NOW()
         WHERE id = ?
     `;
-    const values = [episode_number, title, content, episodeId];
+    const values = [episode_number, title, content, treatment, episodeId];
 
     db.query(sql, values, (err, result) => {
         if (err) {
@@ -857,6 +857,91 @@ app.post('/api/generate-text', async (req, res) => {
         details: lastError
     });
 });
+
+
+// ... 기존 코드 아래에 추가 ...
+
+// ==========================================
+// 🌟 [NEW] 상세 로드맵(사건) 관리 API (Table: roadmap)
+// ==========================================
+
+/**
+ * 1. 개별 사건 저장
+ * POST /api/roadmap
+ */
+app.post('/api/roadmap', (req, res) => {
+    const { setting_id, part_index, event_order, title, theme, content } = req.body;
+
+    if (!setting_id || !title) {
+        return res.status(400).json({ message: '필수 항목 누락 (setting_id, title)' });
+    }
+
+    // 🌟 [핵심 변경] ON DUPLICATE KEY UPDATE 구문 추가
+    // setting_id + part_index + event_order 조합이 이미 존재하면 -> title, theme, content만 업데이트
+    const sql = `
+        INSERT INTO roadmap (setting_id, part_index, event_order, title, theme, content)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+        title = VALUES(title),
+        theme = VALUES(theme),
+        content = VALUES(content)
+    `;
+
+    db.query(sql, [setting_id, part_index || 0, event_order || 0, title, theme, content], (err, result) => {
+        if (err) {
+            console.error('roadmap 저장/수정 실패:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        
+        // insertId가 0이면 업데이트된 것, 0보다 크면 새로 생성된 것
+        const action = result.insertId ? 'created' : 'updated';
+        
+        console.log(`✅ 사건 저장 완료 (${action}). ID: ${result.insertId || 'Updated'}`);
+        res.status(200).json({ message: '저장되었습니다.', id: result.insertId });
+    });
+});
+/**
+ * 2. 저장된 사건 목록 조회
+ * GET /api/roadmap?setting_id=X&part_index=Y
+ */
+app.get('/api/roadmap', (req, res) => {
+    const { setting_id, part_index } = req.query;
+
+    if (!setting_id) return res.status(400).json({ error: 'setting_id is required' });
+
+    let sql = 'SELECT * FROM roadmap WHERE setting_id = ?';
+    let params = [setting_id];
+
+    // part_index가 있으면 해당 Part의 사건만 조회
+    if (part_index !== undefined) {
+        sql += ' AND part_index = ?';
+        params.push(part_index);
+    }
+
+    sql += ' ORDER BY part_index ASC, event_order ASC';
+
+    db.query(sql, params, (err, results) => {
+        if (err) return res.status(500).json({ error: '조회 실패' });
+        res.status(200).json(results);
+    });
+});
+
+/**
+ * 3. 사건 삭제
+ * DELETE /api/roadmap/:id
+ */
+app.delete('/api/roadmap/:id', (req, res) => {
+    const id = req.params.id;
+    const sql = 'DELETE FROM roadmap WHERE id = ?';
+    
+    db.query(sql, [id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.status(200).json({ message: '삭제되었습니다.' });
+    });
+});
+
+
+
 // 🌟🌟🌟 [END NEW] Gemini API 프록시 엔드포인트 🌟🌟🌟
 
 // 🌟 [만능 연결 설정]

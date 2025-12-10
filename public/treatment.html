@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>소설 트리트먼트 - AI Novel Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --map-color: #3498db; /* 로드맵 강조색 */
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --nav-bg: #2c3e50;
+            --nav-text: #ecf0f1;
+            --border-color: #ddd;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 네비게이션 --- */
+        .navbar {
+            background-color: var(--nav-bg);
+            color: var(--nav-text);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--map-color); font-weight: bold; } 
+
+        /* --- 메인 컨텐츠 --- */
+        .container {
+            flex: 1;
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 { 
+            border-left: 5px solid var(--map-color); 
+            padding-left: 10px; 
+            margin: 0; 
+            color: var(--map-color); 
+        }
+
+        /* AI 입력 및 버튼 영역 */
+        .ai-input-section {
+            background: #f0f7ff;
+            border: 1px solid var(--map-color);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .input-group { margin-bottom: 15px; }
+        .input-label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .map-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            min-height: 100px; /* 높이 증가 */
+            resize: vertical;
+            font-family: inherit;
+        }
+        .btn-generate {
+            background: var(--map-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn-generate:hover { background: #2980b9; }
+
+        /* 로드맵 결과 표시 영역 */
+        .roadmap-result {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px dashed #ddd;
+            padding-bottom: 10px;
+        }
+        .result-header h3 { margin: 0; color: #555; }
+        .btn-save-roadmap {
+            background: #50c878;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .result-content {
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+            font-family: monospace; /* 서식 구분을 위해 폰트 변경 */
+            font-size: 0.95rem;
+            line-height: 1.6;
+            min-height: 300px; /* 높이 증가 */
+        }
+        .empty-state { text-align: center; color: #999; padding: 50px; }
+
+        @media (max-width: 600px) {
+            .container { margin: 15px; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+    </div>
+    <div class="nav-links">
+        <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
+        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
+        </div>
+</nav>
+
+<div class="container">
+    <h2><i class="fas fa-map-marked-alt"></i> 소설 상세 로드맵 구성</h2>
+
+    <div class="ai-input-section">
+        <div class="input-group">
+            <label class="input-label">요청 사항 <small>(Part 및 사건 구성 지시)</small></label>
+            <textarea id="aiPrompt" class="map-textarea" placeholder="예시: 로드맵의 사건의 분량은 3화로 구성해줘. 등장인물은 해당 사건에 나오는 인물로만 구성해줘. 줄거리에서 안 나오면 등장인물 목록에서 안 나오게 해줘. 파트1에 사건 2개만 구성해줘."></textarea>
+        </div>
+        
+        <button id="btnGenerate" class="btn-generate" onclick="generateRoadmap()">
+            <i class="fas fa-bolt"></i> 로드맵 생성 시작
+        </button>
+    </div>
+
+    <div class="roadmap-result">
+        <div class="result-header">
+            <h3>생성 결과</h3>
+            <button id="btnSaveMap" class="btn-save-roadmap" onclick="saveRoadmap()" style="display:none;">
+                <i class="fas fa-save"></i> 저장 (settings에 반영)
+            </button>
+        </div>
+        <div id="roadmapContent" class="result-content empty-state">
+            세계관, 캐릭터 설정을 기반으로 상세 로드맵을 생성해보세요.
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+
+    let contextData = ""; 
+    let currentRoadmap = ""; 
+    let currentSettings = {}; // settings 테이블의 전체 데이터를 저장
+
+    async function init() {
+        if (!settingId) {
+            alert("잘못된 접근입니다.");
+            window.location.href = 'index.html';
+            return;
+        }
+        setupNav();
+        await loadContextData(); 
+        await loadRoadmapData(); 
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    // AI에게 전달할 배경 컨텍스트 로드 (세계관, 캐릭터 등)
+    async function loadContextData() {
+        try {
+            const [sRes, wRes, cRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
+                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
+            ]);
+            
+            currentSettings = sRes; // settings 데이터 저장
+            
+            // AI 프롬프트에 들어갈 상세 컨텍스트 구성
+            contextData = `
+            [작품 제목]: ${sRes.title || '미정'}
+            [작품 로그라인(줄거리 개요)]: ${sRes.plotDetails || '미정'}
+            [기타 설정/메모]: ${sRes.worldSetting || '없음'}
+
+            [세계관 설정 목록]: ${wRes.map(w => w.title + ": " + w.description.substring(0, 100)).join('\n') || '없음'}
+            
+            [등장인물 상세 목록]: ${cRes.map(c => `${c.name} (${c.role}, ${c.description.substring(0, 100)})`).join('\n') || '없음'}
+            `;
+        } catch (e) { console.warn("Context load failed", e); }
+    }
+
+    // 기존 로드맵 데이터 로드
+    async function loadRoadmapData() {
+        const contentEl = document.getElementById('roadmapContent');
+        const saveBtn = document.getElementById('btnSaveMap');
+        
+        try {
+            const res = await fetch(`/api/load-settings?id=${settingId}`);
+            const settings = await res.json();
+            
+            currentRoadmap = settings.roadmap || ""; // settings 테이블의 roadmap 컬럼 가정
+            
+            if (currentRoadmap.trim()) {
+                contentEl.innerText = currentRoadmap;
+                contentEl.classList.remove('empty-state');
+                saveBtn.style.display = 'block';
+            } else {
+                contentEl.innerText = "세계관, 캐릭터 설정을 기반으로 상세 로드맵을 생성해보세요.";
+                contentEl.classList.add('empty-state');
+                saveBtn.style.display = 'none';
+            }
+
+        } catch (e) {
+            console.error("로드맵 데이터 로드 오류:", e);
+        }
+    }
+
+    // 🌟 로드맵 생성 요청
+    async function generateRoadmap() {
+        const prompt = document.getElementById('aiPrompt').value.trim();
+        
+        if (!prompt) return alert("요청 사항을 입력해주세요.");
+
+        const btn = document.getElementById('btnGenerate');
+        const contentEl = document.getElementById('roadmapContent');
+        const originalBtnHTML = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 로드맵 생성 중...';
+        contentEl.innerText = "AI가 아이디어를 구상하는 중입니다...";
+
+        try {
+            const fullPrompt = `
+                [역할] 전문 웹소설 구성 작가 및 플롯 디자이너
+                [작품 정보]
+                ${contextData}
+
+                [요청 사항]
+                ${prompt}
+
+                [출력 조건]
+                1. 요청 사항과 작품 정보를 바탕으로 **소설의 상세 로드맵**을 작성하세요.
+                2. 로드맵은 Part > 사건(Sub-Arc) > 회차(Episode)의 3단계 계층 구조를 따르세요.
+                3. **핵심 테마, Part 줄거리, 사건 줄거리, 회차 줄거리**는 모두 개별적으로 작성하고, **등장인물은 해당 회차/사건에 실제로 필요한 인물만** 나열하세요.
+                4. 아래 예시와 정확히 동일한 형식(번호, 기호, 줄바꿈)으로, **줄글 텍스트**로만 출력하세요.
+
+                [출력 예시 - Part 1, 사건 1, 2만 구성]
+                
+                [Part 1. 각성의 시작 (1화~50화)]
+                 ○ 핵심테마: 무능력자에서 기적의 시공자로 거듭나기
+                 ○ Part1 줄거리: 아버지와 형제들의 오해 속에서 F급으로 각성한 장한빛이 던전 시공자 능력을 발견하고, 이를 활용해 태산 그룹 내에서 자신만의 입지를 다져나가는 초기 성장 과정을 다룬다.
+                
+                 사건 1: [F급 각성과 최초의 증명 (1화~3화)]
+                  - 핵심테마: 마지노선 극복과 가족의 인정
+                  - 사건 1 줄거리: 26세 생일에 F급 시공자로 각성한 한빛이, 자신의 능력이 폐자재로도 B+급 내구도 벽을 만들 수 있음을 발견하고, 가족들 앞에서 최초의 놀라운 결과를 증명하는 이야기. (300자 내외)
+                   ○ [제1화] 태산의 막내, 새벽을 열다
+                     ▷ 26세 생일 자정에 각성 마지노선을 넘긴 한빛이 F급 시공자로 각성하고, 지하실 작업실에서 [측량]과 [시공] 스킬을 이용해 B+급 블록을 만들어낸다. (300자 내외)
+                     ▷ 등장인물: 장한빛
+                   ○ [제2화] B+급의 충격
+                     ▷ 아침 식탁에서 가족들 앞에서 능력을 공개하고, S급 탱커인 큰형 장한성이 직접 주먹으로 블록의 내구도를 시험하며 충격을 받는다. (300자 내외)
+                     ▷ 등장인물: 장한빛, 장태산, 장한성, 장한결, 장한별
+                   ○ [제3화] 리모델링의 선전포고
+                     ▷ 태산 회장의 지지와 형제들의 협력을 얻은 한빛이, 태산 건설의 만년 적자 프로젝트인 [용산 F급 게이트 보수 공사]를 첫 프로젝트로 자원한다. (300자 내외)
+                     ▷ 등장인물: 장한빛, 장태산, 김성진
+
+                 사건 2: [첫 현장, F급 게이트의 이면 (4화~5화)]
+                  - 핵심테마: 안전 제일주의와 현장의 비효율성 극복
+                  - 사건 2 줄거리: 한빛이 첫 던전 현장에 투입되어 기존 건설 방식의 비효율성을 깨닫고, [측량] 능력으로 던전의 구조적 약점을 찾아내어 새로운 공법을 제시하는 내용. (300자 내외)
+                   ○ [제4화] 설계도가 필요해
+                     ▷ 한빛이 용산 F급 게이트에 도착하지만, 현장은 임시방편적인 보수로 가득 차 있고, 박철우 이사 등 건설 전문가들이 그의 젊음을 의심한다. (300자 내외)
+                     ▷ 등장인물: 장한빛, 박철우, 김기철
+                   ○ [제5화] 안전 루트 개척
+                     ▷ 한빛이 [측량] 스킬로 던전의 마나 배열과 구조적 약점을 분석해 기존보다 훨씬 안전하고 빠른 리모델링 경로를 제시한다. 박철우 이사가 놀라움을 표한다. (300자 내외)
+                     ▷ 등장인물: 장한빛, 박철우
+
+                 ○ Part1 등장인물 : 장한빛, 장태산, 장한성, 장한결, 장한별, 박철우, 김성진, 김기철 (Part 1에 등장하는 모든 인물)
+            `;
+
+            const payload = {
+                model: "gemini-2.5-flash", // 복잡한 구조 설계에는 Pro 모델 추천
+                payload: {
+                    contents: [{ parts: [{ text: fullPrompt }] }]
+                }
+            };
+            
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const data = await res.json();
+            const resultText = data.candidates[0].content.parts[0].text;
+            
+            currentRoadmap = resultText; // 전역 변수에 임시 저장
+            
+            contentEl.innerText = resultText;
+            contentEl.classList.remove('empty-state');
+            document.getElementById('btnSaveMap').style.display = 'block';
+
+        } catch (e) {
+            console.error("로드맵 생성 오류:", e);
+            contentEl.innerText = `로드맵 생성 실패: ${e.message}`;
+            currentRoadmap = "";
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHTML;
+        }
+    }
+
+    // 로드맵 저장 (settings 테이블의 'roadmap' 컬럼에 저장)
+    async function saveRoadmap() {
+        if (!currentRoadmap) return alert("저장할 내용이 없습니다.");
+        
+        const btn = document.getElementById('btnSaveMap');
+        const originalBtnHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중...';
+
+        try {
+            // settings 테이블의 다른 컬럼은 기존 값을 유지해야 하므로 currentSettings 사용
+            const payload = {
+                id: settingId,
+                title: currentSettings.title || '', 
+                plotDetails: currentSettings.plotDetails || '', 
+                worldSetting: currentSettings.worldSetting || '', 
+                characterDetails: currentSettings.characterDetails || '',
+                
+                roadmap: currentRoadmap // 🌟 로드맵 저장
+            };
+
+            const response = await fetch('/api/save-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                alert("로드맵이 성공적으로 저장되었습니다!");
+                await loadRoadmapData(); 
+            } else {
+                alert("저장 실패. 서버 로그를 확인하세요.");
+            }
+        } catch (e) {
+            console.error("저장 오류:", e);
+            alert("저장 중 오류가 발생했습니다.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnHTML;
+        }
+    }
+
+    init();
+</script>
+
+</body>
+</html>

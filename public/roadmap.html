@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Novel Assistant - Roadmap Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #f8f9fa;
+            --container-bg: #ffffff;
+            --primary-color: #4a90e2;
+            --secondary-color: #2c3e50;
+            --accent-color: #27ae60;
+            --text-color: #333;
+            --border-radius: 12px;
+            --shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background-color: var(--container-bg);
+            padding: 40px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            min-height: 80vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 20px;
+        }
+
+        header h1 { margin: 0 0 10px 0; color: var(--secondary-color); }
+        header p { color: #666; margin: 0; }
+
+        /* --- Section 1: Part List Styles --- */
+        .section-header {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .section-header::before {
+            content: ''; display: block; width: 6px; height: 24px;
+            background-color: var(--primary-color);
+            margin-right: 10px; border-radius: 3px;
+        }
+
+        .part-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .part-card {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 180px; /* 고정 높이 */
+        }
+
+        .part-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(74, 144, 226, 0.2);
+            border-color: var(--primary-color);
+        }
+
+        .part-badge {
+            display: inline-block;
+            background-color: #f1f3f5;
+            color: #495057;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            align-self: flex-start;
+        }
+
+        .part-card h3 {
+            font-size: 1.1rem;
+            margin: 0 0 10px 0;
+            color: var(--secondary-color);
+            line-height: 1.4;
+            /* 2줄 이상 말줄임 */
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .part-card p.preview {
+            font-size: 0.9rem;
+            color: #868e96;
+            margin: 0;
+            /* 3줄 말줄임 */
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+            flex-grow: 1;
+        }
+
+        /* --- Section 2: Result (Event Cards) Styles --- */
+        .event-card {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            animation: slideUp 0.5s ease;
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #f1f3f5;
+            padding-bottom: 15px;
+        }
+
+        .event-title-box { display: flex; flex-direction: column; gap: 5px; }
+        .event-title { font-size: 1.3rem; font-weight: bold; color: var(--secondary-color); }
+        .event-range { 
+            display: inline-block; 
+            background: var(--primary-color); color: #fff; 
+            padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; width: fit-content;
+        }
+
+        .save-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .save-btn:hover { background-color: #219150; }
+        .save-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+        .event-theme {
+            background-color: #f8f9fa;
+            color: #555;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-style: italic;
+            border-left: 4px solid #ced4da;
+        }
+
+        .event-content {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: #333;
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+        }
+
+        /* --- Utilities --- */
+        .hidden { display: none !important; }
+
+        #loading {
+            text-align: center;
+            margin: 50px 0;
+            display: none;
+        }
+        .spinner {
+            width: 40px; height: 40px;
+            border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .btn-group { margin-top: 40px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
+        .btn-secondary {
+            background-color: #868e96; color: white; border: none; padding: 10px 20px;
+            border-radius: 6px; cursor: pointer; font-size: 1rem; margin-right: 10px;
+        }
+        .btn-secondary:hover { background-color: #495057; }
+        
+        .btn-outline {
+             background-color: transparent; border: 1px solid #868e96; color: #868e96; padding: 6px 12px;
+             border-radius: 6px; cursor: pointer; font-size: 0.9rem;
+        }
+        .btn-outline:hover { background-color: #f1f3f5; }
+
+        .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>📅 사건 기획 (Roadmap Builder)</h1>
+            <p>전체 줄거리(Part)를 선택하여 상세 에피소드로 구체화하고 저장하세요.</p>
+        </header>
+
+        <div id="loading">
+            <div class="spinner"></div>
+            <p id="loading-text">데이터를 불러오는 중...</p>
+        </div>
+
+        <div id="part-selection-area">
+            <div class="section-header">분석할 Part 선택</div>
+            <div id="part-list" class="part-grid">
+                </div>
+            <div id="empty-msg" style="text-align: center; color: #999; display: none; padding: 30px;">
+                <p>⚠️ 저장된 Part 정보가 없거나 형식이 올바르지 않습니다.</p>
+                <p>Plan 페이지에서 줄거리를 먼저 생성해주세요.</p>
+            </div>
+        </div>
+
+        <div id="roadmap-result-area" class="hidden">
+            <div class="top-controls">
+                <div class="section-header">상세 사건 리스트 (Event List)</div>
+                <button class="btn-outline" onclick="resetSelection()">🔄 목록으로 돌아가기</button>
+            </div>
+            <div id="roadmap-container">
+                </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-secondary" onclick="window.location.href='plan.html'">Plan 목록으로</button>
+        </div>
+    </div>
+
+   <script>
+        // --- Global Variables ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const settingId = urlParams.get('setting_id') || urlParams.get('id'); // id와 setting_id 둘 다 체크
+        
+        // [수정 1] 누락된 변수 선언 추가
+        let currentSettings = {}; 
+        
+        let currentWorldSetting = ""; 
+        let currentPartIndex = 0; // DB 저장 시 사용할 Part 번호
+        let contextData = ""; 
+        let parsedParts = [];     // JSON 파싱된 데이터
+
+        // --- Initialization ---
+        window.onload = async function() {
+            //console.log("🚀 페이지 로드 시작. Setting ID:", settingId);
+
+            if (!settingId) {
+                alert("잘못된 접근입니다. 설정 ID가 없습니다.");
+                // window.location.href = 'index.html'; // 필요 시 주석 해제
+                return;
+            }
+
+            try {
+                // 1. 배경 지식 로드 (순서 중요)
+                await loadContextData(); 
+                
+                // 2. Part 데이터 로드
+                await loadSettingData(settingId);
+            } catch (error) {
+                console.error("❌ 초기화 중 치명적 오류:", error);
+                alert("페이지 초기화 실패: " + error.message);
+            }
+        };
+
+         // AI Context 로드
+        async function loadContextData() {
+            //console.log("🔄 Context 데이터 로딩 중...");
+            try {
+                // API 호출
+                const [sRes, wRes, cRes] = await Promise.all([
+                    fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                    fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
+                    fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
+                ]);
+                
+                // [수정 2] 전역 변수에 할당 (이제 에러 안 남)
+                currentSettings = sRes; 
+
+                // 프롬프트용 데이터 구성
+                contextData = `
+                [작품 제목]: ${sRes.title || '미정'}
+                [세계관 요약]: ${Array.isArray(wRes) ? wRes.map(w => w.title + ": " + w.description).join('\n') : '없음'}
+                [주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}
+                `;
+                //console.log("✅ Context 로드 완료");
+
+            } catch (e) { 
+                console.warn("⚠️ Context load failed (일부 데이터 누락 가능):", e); 
+            }
+        }
+
+        // --- Functions ---
+
+        /**
+         * 1. DB에서 설정 데이터(Part 목록 포함) 불러오기
+         */
+        async function loadSettingData(id) {
+            showLoading("Part 목록 로딩 중...");
+            try {
+                //console.log(`📡 DB 조회 시작: /api/load-settings?id=${id}`);
+                const response = await fetch(`/api/load-settings?id=${id}`);
+                
+                if (!response.ok) throw new Error(`DB 연결 실패 (Status: ${response.status})`);
+
+                const data = await response.json();
+                //console.log("📦 DB 응답 데이터:", data);
+                
+                // 데이터 매핑
+                // [중요] DB 컬럼명이 'roadmaps'인지 확인하세요.
+                const rawRoadmaps = data.roadmaps; 
+                //console.log("📜 로드된 Roadmaps 원본:", rawRoadmaps);
+
+                currentWorldSetting = data.worldSetting || "일반적인 판타지 세계관";
+
+                // JSON 파싱 및 렌더링
+                parseAndRenderParts(rawRoadmaps);
+
+            } catch (error) {
+                console.error("❌ loadSettingData 에러:", error);
+                document.getElementById('empty-msg').style.display = 'block';
+                document.getElementById('empty-msg').innerHTML = `<p>데이터 로드 오류: ${error.message}</p>`;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        /**
+         * 2. JSON 데이터 파싱 및 Part 목록 렌더링
+         */
+        function parseAndRenderParts(rawData) {
+            const listContainer = document.getElementById('part-list');
+            const emptyMsg = document.getElementById('empty-msg');
+            listContainer.innerHTML = '';
+            parsedParts = [];
+
+            // 데이터가 없거나 빈 문자열인 경우
+            if (!rawData || (typeof rawData === 'string' && rawData.trim() === "")) {
+                console.warn("⚠️ roadmaps 데이터가 비어있습니다.");
+                emptyMsg.style.display = 'block';
+                emptyMsg.innerHTML = "<p>저장된 Part 줄거리가 없습니다.<br>Plan 페이지에서 먼저 내용을 생성하고 저장해주세요.</p>";
+                return;
+            }
+
+            try {
+                // 문자열이면 파싱, 객체면 그대로 사용
+                let jsonData = rawData;
+                if (typeof rawData === 'string') {
+                    try {
+                        jsonData = JSON.parse(rawData);
+                    } catch (e) {
+                        console.error("JSON Parse 1차 실패, 원본 사용 시도:", e);
+                        // 혹시 이중 문자열일 경우를 대비해 한 번 더 파싱 시도할 수도 있음 (선택 사항)
+                    }
+                }
+
+                //console.log("🧩 파싱된 JSON 데이터:", jsonData);
+
+                if (Array.isArray(jsonData)) {
+                    parsedParts = jsonData.map(item => ({
+                        partIndex: item.part,
+                        title: item.title || `Part ${item.part}`,
+                        content: item.content || "",
+                        range: item.range || ""
+                    }));
+
+                    if (parsedParts.length === 0) throw new Error("배열이 비어있음");
+
+                    parsedParts.forEach((part, index) => {
+                        const card = document.createElement('div');
+                        card.className = 'part-card';
+                        card.onclick = () => generateEventsForPart(index); 
+
+                        card.innerHTML = `
+                            <div>
+                                <span class="part-badge">Part ${part.partIndex}</span>
+                                <h3>${part.title}</h3>
+                                <p class="preview">${part.content}</p>
+                            </div>
+                            <div style="text-align: right; margin-top: 10px; font-weight: bold; color: var(--primary-color); font-size: 0.9rem;">
+                                상세 기획하기 &rarr;
+                            </div>
+                        `;
+                        listContainer.appendChild(card);
+                    });
+                    emptyMsg.style.display = 'none';
+                    //console.log(`✅ ${parsedParts.length}개의 Part 카드가 생성되었습니다.`);
+
+                } else {
+                    console.error("형식 불일치: 배열이 아님", jsonData);
+                    throw new Error("데이터 형식이 올바르지 않습니다 (배열 아님).");
+                }
+            } catch (e) {
+                console.error("❌ JSON Parse Error:", e);
+                emptyMsg.style.display = 'block';
+                emptyMsg.innerHTML = `<p>데이터 형식 오류<br><small>${e.message}</small></p>`;
+            }
+        }
+
+        /**
+         * 3. 선택한 Part로 AI 사건 생성 요청
+         */
+        async function generateEventsForPart(index) {
+            const selectedPart = parsedParts[index];
+            currentPartIndex = selectedPart.partIndex || (index + 1); 
+
+            document.getElementById('part-selection-area').classList.add('hidden');
+            document.getElementById('roadmap-result-area').classList.remove('hidden');
+            document.getElementById('roadmap-container').innerHTML = ''; 
+
+            showLoading(`'${selectedPart.title}' 분석 중...<br>상세 사건을 기획하고 있습니다.`);
+
+            try {
+                // System Instruction (기존과 동일)
+                const systemPrompt = `
+                ### [Role]
+                당신은 소설의 챕터(Part)를 분석하여 구체적인 '사건(Event)' 리스트로 기획하는 스토리보드 작가입니다.
+
+                ### [작품 정보]
+                ${contextData}
+
+                ### [Coverage & Scope Rules] (매우 중요!)
+                1. 사용자가 제시한 Part의 범위(예: 1화~25화)를 **처음부터 끝까지 빠짐없이** 채워야 합니다.
+                2. 각 사건은 **2~3화 분량**으로 배분하십시오.
+                3. **계산 예시:** 만약 Part가 25화 분량이라면, 2~3화씩 나누었을 때 **총 8개에서 12개의 사건**이 나와야 합니다.
+                4. **마지막 사건**의 끝 회차는 반드시 Part의 **마지막 회차와 일치**해야 합니다.
+
+                ### [Formatting Rules] (Strictly Required)
+                UI 파싱을 위해 반드시 아래 형식을 지켜주세요.
+
+                사건 N: [타이틀(X화~Y화)]
+                - 핵심테마: (키워드/감정)
+                - 사건 N 줄거리: (200자 내외 상세 서술)
+                `;
+
+                // User Prompt
+                const userPrompt = `
+                다음 [Part 정보]를 바탕으로 2~3화 분량의 사건 리스트를 상세히 작성해줘.
+
+                [Part 정보]
+                - 제목: ${selectedPart.title}
+                - 내용: ${selectedPart.content}
+                `;
+
+                const response = await fetch('/api/generate-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "gemini-2.5-flash", // 모델명 확인 (2.5는 아직 없거나 pro일 수 있음)
+                        payload: {
+                            contents: [{ parts: [{ text: userPrompt }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
+                        }
+                    })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "AI 응답 실패");
+                }
+
+                const data = await response.json();
+                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (!aiText) throw new Error("AI 응답 내용이 비어있습니다.");
+
+                renderResultCards(aiText);
+
+            } catch (error) {
+                console.error(error);
+                alert("생성 중 오류가 발생했습니다: " + error.message);
+                resetSelection();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        /**
+         * 4. AI 응답 텍스트를 카드 형태로 변환 및 저장 기능 연결
+         */
+        function renderResultCards(text) {
+            const container = document.getElementById('roadmap-container');
+            const eventBlocks = text.split(/사건 \d+:/).filter(block => block.trim() !== "");
+
+            if (eventBlocks.length === 0) {
+                container.innerHTML = `<div class="event-card"><div class="event-content">${text.replace(/\n/g, '<br>')}</div></div>`;
+                return;
+            }
+
+            container.innerHTML = ''; 
+
+            eventBlocks.forEach((block, index) => {
+                let content = block.trim();
+
+                let titleMatch = content.match(/\[(.*?)\]/);
+                let fullTitle = titleMatch ? titleMatch[1] : "제목 없음";
+                let rangeMatch = fullTitle.match(/\((.*?)\)/);
+                let rangeText = rangeMatch ? rangeMatch[1] : ""; 
+                let titleText = fullTitle.replace(/\(.*?\)/, '').trim(); 
+
+                let themeMatch = content.match(/- 핵심테마:(.*?)(?=- 사건|\n|$)/s);
+                let themeText = themeMatch ? themeMatch[1].trim() : "";
+
+                let summaryMatch = content.match(/- 사건 \d+ 줄거리:(.*)/s);
+                let summaryText = summaryMatch ? summaryMatch[1].trim() : content.split("줄거리:")[1]?.trim() || content;
+                summaryText = summaryText.replace(/\*\*/g, ''); 
+
+                const eventData = {
+                    setting_id: settingId,
+                    part_index: currentPartIndex,
+                    event_order: index + 1,
+                    title: titleText,
+                    theme: themeText,
+                    content: summaryText
+                };
+
+                const card = document.createElement('div');
+                card.className = 'event-card';
+                card.innerHTML = `
+                    <div class="event-header">
+                        <div class="event-title-box">
+                            <span class="event-title">#${index + 1}. ${titleText}</span>
+                            ${rangeText ? `<span class="event-range">${rangeText}</span>` : ''}
+                        </div>
+                        <button class="save-btn" onclick='saveToDB(this, ${JSON.stringify(eventData).replace(/'/g, "&#39;")})'>
+                            💾 저장
+                        </button>
+                    </div>
+                    ${themeText ? `<div class="event-theme">💡 ${themeText}</div>` : ''}
+                    <div class="event-content">${summaryText}</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        /**
+         * 5. 개별 사건 DB 저장 함수
+         */
+        async function saveToDB(btnElement, data) {
+            if (!confirm(`'${data.title}' 사건을 저장하시겠습니까?`)) return;
+
+            const originalText = btnElement.innerHTML;
+            btnElement.disabled = true;
+            btnElement.innerHTML = "⏳ 저장 중...";
+
+            try {
+                const response = await fetch('/api/roadmap', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    btnElement.innerHTML = "✅ 저장됨";
+                    btnElement.style.backgroundColor = "#bdc3c7"; 
+                } else {
+                    const err = await response.json();
+                    alert("저장 실패: " + err.error);
+                    btnElement.disabled = false;
+                    btnElement.innerHTML = originalText;
+                }
+            } catch (error) {
+                console.error(error);
+                alert("네트워크 오류: " + error.message);
+                btnElement.disabled = false;
+                btnElement.innerHTML = originalText;
+            }
+        }
+
+        // --- UI Utilities ---
+        function resetSelection() {
+            document.getElementById('part-selection-area').classList.remove('hidden');
+            document.getElementById('roadmap-result-area').classList.add('hidden');
+            document.getElementById('roadmap-container').innerHTML = '';
+        }
+
+        function showLoading(msg) {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('loading-text').innerText = msg;
+            document.getElementById('part-selection-area').classList.add('hidden');
+            document.getElementById('roadmap-result-area').classList.add('hidden');
+        }
+
+       function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+            
+            const resultContainer = document.getElementById('roadmap-container');
+            
+            // [수정] innerHTML 텍스트 비교 대신, 실제 자식 요소(카드)가 있는지 확인
+            if (resultContainer.children.length === 0) {
+                // 결과 카드가 없으면 -> Part 목록 화면을 보여준다
+                document.getElementById('part-selection-area').classList.remove('hidden');
+                document.getElementById('roadmap-result-area').classList.add('hidden');
+            } else {
+                // 결과 카드가 있으면 -> 결과 화면을 보여준다
+                document.getElementById('roadmap-result-area').classList.remove('hidden');
+                document.getElementById('part-selection-area').classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

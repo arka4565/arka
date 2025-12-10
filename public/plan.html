@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>소설 구조 설계 (Plan) - AI Novel Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --map-color: #3498db;
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --nav-bg: #2c3e50;
+            --nav-text: #ecf0f1;
+            --border-color: #ddd;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- 네비게이션 --- */
+        .navbar {
+            background-color: var(--nav-bg);
+            color: var(--nav-text);
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .nav-left { display: flex; align-items: center; gap: 15px; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--map-color); font-weight: bold; } 
+
+        /* --- 메인 컨텐츠 --- */
+        .container {
+            flex: 1;
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 20px;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        h2 { 
+            border-left: 5px solid var(--map-color); 
+            padding-left: 10px; 
+            margin: 0; 
+            color: var(--map-color); 
+        }
+
+        /* 입력 섹션 */
+        .ai-input-section {
+            background: #f0f7ff;
+            border: 1px solid var(--map-color);
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .input-group { margin-bottom: 15px; }
+        .input-label { display: block; font-weight: bold; margin-bottom: 5px; color: #555; }
+        .map-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            min-height: 80px;
+            resize: vertical;
+            font-family: inherit;
+        }
+        .btn-generate {
+            background: var(--map-color);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: background 0.2s;
+        }
+        .btn-generate:hover { background: #2980b9; }
+
+        /* 결과 영역 헤더 */
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 15px;
+        }
+        .btn-save-roadmap {
+            background: #27ae60;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-save-roadmap:hover { background: #219150; }
+
+        /* --- Part 리스트 스타일 --- */
+        .roadmap-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .part-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fff;
+            overflow: hidden;
+            transition: box-shadow 0.2s;
+        }
+        .part-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        .part-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .part-title { font-weight: bold; color: #2c3e50; font-size: 1.05rem; }
+        .part-range { font-size: 0.85rem; color: #7f8c8d; background: #eee; padding: 2px 6px; border-radius: 4px; }
+        
+        .part-body {
+            padding: 15px;
+        }
+        .part-content-view {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            color: #444;
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        /* 수정 영역 */
+        .part-edit-area {
+            background: #fdfdfd;
+            border-top: 1px dashed #ddd;
+            padding-top: 15px;
+            display: none; /* 기본 숨김 */
+        }
+        .part-edit-area.active { display: block; }
+        
+        .edit-input-group {
+            display: flex;
+            gap: 10px;
+        }
+        .edit-input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn-part-action {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn-toggle-edit { background: #95a5a6; color: white; }
+        .btn-apply-edit { background: var(--map-color); color: white; }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 50px;
+            background: #f9f9f9;
+            border-radius: 8px;
+        }
+
+        @media (max-width: 600px) {
+            .container { margin: 15px; padding: 15px; }
+            .edit-input-group { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+    </div>
+    <div class="nav-links">
+        <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
+        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="#" class="nav-item active"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="result-header">
+        <h2><i class="fas fa-map-marked-alt"></i> 소설 로드맵 구성</h2>
+        <button id="btnSaveMap" class="btn-save-roadmap" onclick="saveRoadmap()" style="display:none;">
+            <i class="fas fa-save"></i> 전체 저장
+        </button>
+    </div>
+
+    <div class="ai-input-section" id="initialInputSection">
+        <div class="input-group">
+            <label class="input-label"><i class="fas fa-robot"></i> 전체 구조 설계 요청</label>
+            <textarea id="aiPrompt" class="map-textarea" placeholder="예: 주인공이 밑바닥부터 시작해서 황제가 되는 과정을 5개의 Part로 나누어줘. 각 파트는 기승전결이 확실해야 해.">소설 전체를 16개의 Part로 나누어서 설정해줘.</textarea>
+        </div>
+        
+        <div style="display:flex; gap:10px; margin-bottom:15px; align-items:center;">
+             <label class="input-label" style="margin-bottom:0;">예상 전체 회차:</label>
+             <input type="number" id="totalEpisodes" class="form-input" style="width:100px; padding:8px; border:1px solid #ddd; border-radius:4px;" placeholder="400" value="400">
+        </div>
+
+        <button id="btnGenerate" class="btn-generate" onclick="generateRoadmap()">
+            <i class="fas fa-bolt"></i> 로드맵 신규 생성 (전체)
+        </button>
+    </div>
+
+    <div id="roadmapListArea" class="roadmap-list">
+        <div class="empty-state">
+            아직 생성된 로드맵이 없습니다.<br>
+            위 입력창을 통해 전체 구조를 설계해보세요.
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+
+    // 전역 변수
+    let contextData = ""; 
+    let roadmapData = []; // [{ part: 1, title: "", range: "", content: "" }, ...]
+    let currentSettings = {};
+
+    async function init() {
+        if (!settingId) {
+            alert("잘못된 접근입니다.");
+            window.location.href = 'index.html';
+            return;
+        }
+        setupNav();
+        await loadContextData(); // AI 배경 지식 로드
+        await loadRoadmapData(); // 저장된 로드맵 로드
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    // AI Context 로드
+    async function loadContextData() {
+        try {
+            const [sRes, wRes, cRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
+                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
+            ]);
+            
+            currentSettings = sRes;
+
+            contextData = `
+            [작품 제목]: ${sRes.title || '미정'}
+            [세계관 요약]: ${wRes.map(w => w.title + ": " + w.description).join('\n') || '없음'}
+            [주요 등장인물]: ${cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') || '없음'}
+            `;
+        } catch (e) { console.warn("Context load failed", e); }
+    }
+
+    // 기존 로드맵 데이터 로드
+    async function loadRoadmapData() {
+        const saveBtn = document.getElementById('btnSaveMap');
+        
+        // currentSettings는 loadContextData에서 이미 로드됨 (또는 여기서 다시 체크)
+        // 여기서는 currentSettings.roadmaps에 JSON String이 있다고 가정
+        
+        let savedMap = currentSettings.roadmaps;
+        
+        if (savedMap) {
+            try {
+                // 1. JSON 파싱 시도
+                roadmapData = JSON.parse(savedMap);
+                
+                // 2. 만약 배열이 아니면(예전 데이터가 텍스트라면) 호환성 처리
+                if (!Array.isArray(roadmapData)) {
+                    // 텍스트를 배열 하나로 래핑하거나 파싱 시도 (여기선 단순 래핑)
+                    roadmapData = [{
+                        part: 1,
+                        title: "기존 데이터",
+                        range: "전체",
+                        content: savedMap
+                    }];
+                }
+            } catch (e) {
+                // 파싱 실패 시 일반 텍스트로 간주
+                console.log("JSON 파싱 실패, 텍스트 모드로 로드");
+                roadmapData = [{
+                    part: 1,
+                    title: "전체 구상",
+                    range: "전체",
+                    content: savedMap
+                }];
+            }
+            renderRoadmap();
+            saveBtn.style.display = 'block';
+        } else {
+            // 데이터 없음
+            roadmapData = [];
+            renderRoadmap(); // 빈 상태 렌더링
+        }
+    }
+
+    // 🌟 [기능 1] 전체 로드맵 생성 (초기)
+    async function generateRoadmap() {
+        const prompt = document.getElementById('aiPrompt').value.trim();
+        const totalEpisodes = document.getElementById('totalEpisodes').value || 100;
+        
+        if (!prompt) return alert("요청 사항을 입력해주세요.");
+        if (!confirm("기존 로드맵이 있다면 덮어씌워집니다. 진행하시겠습니까?")) return;
+
+        const btn = document.getElementById('btnGenerate');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 전체 구조 생성 중...';
+
+        try {
+            const systemInstruction = `
+            너는 소설 구조 설계 전문가다.
+            사용자의 요청에 따라 소설 전체를 여러 개의 Part로 나누어 설계하라.
+            
+			[작품 정보]
+			${contextData}
+			
+            [필수 출력 형식]
+            반드시 아래와 같은 구분자를 사용하여 각 Part를 명확히 분리하라.
+            각 Part의 시작에는 "<<<PART_START>>>"를, 끝에는 "<<<PART_END>>>"를 붙여라.
+            Part 제목과 회차 범위는 첫 줄에 적어라.
+            Part 줄거리는 분량이 충분히 나오도록 **상세하게** 작성하라.
+
+            형식 예시:
+            <<<PART_START>>>
+            [Part 1] 각성의 시작 (1~20화)
+            - 핵심 테마: 주인공의 각성과 첫 시련
+            - 줄거리: ...내용...
+            <<<PART_END>>>
+            
+            <<<PART_START>>>
+            [Part 2] 길드의 음모 (21~50화)
+            - 핵심 테마: ...
+            - 줄거리: ...내용...
+            <<<PART_END>>>
+            `;
+
+            const fullPrompt = `
+                [전체 예상 회차]: ${totalEpisodes}화
+                [요청 사항]: ${prompt}
+            `;
+
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-2.5-flash",
+                    payload: {
+                        contents: [{ parts: [{ text: fullPrompt }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    }
+                })
+            });
+
+            const data = await res.json();
+            const textResult = data.candidates[0].content.parts[0].text;
+            
+            // 파싱하여 roadmapData 배열로 변환
+            parseAndSetRoadmap(textResult);
+            
+            renderRoadmap();
+            document.getElementById('btnSaveMap').style.display = 'block';
+            saveRoadmap(); // 생성 직후 자동 저장
+
+        } catch (e) {
+            console.error(e);
+            alert("생성 중 오류 발생: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // 🌟 [수정됨] 텍스트 파싱 로직 (잡담 제거 기능 추가)
+    function parseAndSetRoadmap(text) {
+        // 1. AI의 서론(잡담) 제거: 첫 번째 태그(<<<PART_START>>>)가 나오기 전까지의 모든 텍스트를 날립니다.
+        const firstTagIndex = text.indexOf("<<<PART_START>>>");
+        
+        let cleanText = text;
+        if (firstTagIndex !== -1) {
+            // 태그가 발견되면, 그 시작점부터 끝까지만 사용합니다. (앞부분 잡담 삭제)
+            cleanText = text.substring(firstTagIndex); 
+        }
+
+        // 2. 태그를 기준으로 분리
+        const parts = cleanText.split("<<<PART_START>>>");
+        const newRoadmap = [];
+        
+        parts.forEach((chunk, index) => {
+            // 빈 덩어리거나 공백만 있는 경우 무시
+            if (!chunk.trim()) return;
+            
+            const endIdx = chunk.indexOf("<<<PART_END>>>");
+            // <<<PART_END>>>가 없으면 끝까지, 있으면 거기까지만 내용으로 씀
+            let content = (endIdx !== -1) ? chunk.substring(0, endIdx).trim() : chunk.trim();
+            
+            if (!content) return; // 내용이 없으면 건너뜀
+
+            // 첫 줄에서 제목 추출
+            let lines = content.split('\n');
+            let firstLine = lines[0];
+            
+            // 제목이 너무 길거나(50자 이상) 형식이 이상하면 그냥 'Part N'으로 처리
+            let title = firstLine.replace(/[\[\]]/g, '').trim();
+            if (title.length > 50) title = `Part ${newRoadmap.length + 1}`;
+
+            let remainingContent = lines.slice(1).join('\n').trim();
+            
+            newRoadmap.push({
+                part: newRoadmap.length + 1, // 순서 재정렬
+                title: title,
+                content: remainingContent || content // 본문이 비었으면 전체를 본문으로
+            });
+        });
+
+        if (newRoadmap.length === 0) {
+            // 파싱 실패 시 통짜로 처리하되, 잡담일 수 있으므로 경고
+            newRoadmap.push({ part: 1, title: "전체 로드맵 (자동 분리 실패)", content: text });
+        }
+
+        roadmapData = newRoadmap;
+    }
+
+    // 🌟 [수정됨] 화면 렌더링 (삭제 버튼 추가)
+    function renderRoadmap() {
+        const container = document.getElementById('roadmapListArea');
+        container.innerHTML = "";
+
+        if (!roadmapData || roadmapData.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    아직 생성된 로드맵이 없습니다.<br>
+                    위 입력창을 통해 전체 구조를 설계해보세요.
+                </div>`;
+            return;
+        }
+
+        roadmapData.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'part-card';
+            
+            // 삭제 버튼(trash icon) 추가됨
+            card.innerHTML = `
+                <div class="part-header">
+                    <span class="part-title">
+                        <span style="color:var(--map-color); margin-right:5px;">#${index + 1}</span> 
+                        ${item.title}
+                    </span>
+                    <div style="display:flex; gap:5px;">
+                        <button class="btn-part-action btn-toggle-edit" onclick="toggleEdit(${index})" title="수정">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn-part-action" onclick="deletePart(${index})" style="background:#e74c3c; color:white;" title="삭제">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="part-body">
+                    <div class="part-content-view" id="view-${index}">${item.content}</div>
+                    
+                    <div class="part-edit-area" id="edit-area-${index}">
+                        <label class="input-label" style="font-size:0.9rem;">이 Part만 수정 요청:</label>
+                        <div class="edit-input-group">
+                            <input type="text" id="prompt-${index}" class="edit-input" placeholder="예: 결말 부분을 더 비극적으로 바꿔줘.">
+                            <button class="btn-part-action btn-apply-edit" onclick="regeneratePart(${index})">
+                                <i class="fas fa-magic"></i> 적용
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+    }
+	
+	// 🌟 [추가됨] 개별 파트 삭제 기능
+    function deletePart(index) {
+        if(!confirm("정말 이 Part를 삭제하시겠습니까?")) return;
+        
+        // 배열에서 해당 인덱스 삭제
+        roadmapData.splice(index, 1);
+        
+        // Part 번호 재정렬 (선택사항)
+        roadmapData.forEach((item, i) => item.part = i + 1);
+        
+        renderRoadmap(); // 화면 갱신
+        saveRoadmap();   // 변경사항 저장
+    }
+
+    function toggleEdit(index) {
+        const area = document.getElementById(`edit-area-${index}`);
+        area.style.display = (area.style.display === 'block') ? 'none' : 'block';
+    }
+
+    // 🌟 [기능 3] 특정 Part만 수정 (Regenerate)
+    async function regeneratePart(index) {
+        const userRequest = document.getElementById(`prompt-${index}`).value;
+        if (!userRequest) return alert("수정 요청사항을 입력하세요.");
+
+        const targetPart = roadmapData[index];
+        const btn = document.querySelector(`#edit-area-${index} .btn-apply-edit`);
+        const originalText = btn.innerHTML;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            // 다른 파트들의 요약 정보를 컨텍스트로 제공 (전후 맥락 유지)
+            const otherPartsSummary = roadmapData.map((p, i) => {
+                if (i === index) return `[TARGET PART ${i+1}]: (현재 내용을 수정해야 함)`;
+                return `[Part ${i+1} 요약]: ${p.title}`;
+            }).join('\n');
+
+            const prompt = `
+            [역할]
+            너는 소설의 특정 Part를 수정하는 편집자다.
+            
+            [전체 맥락]
+            ${otherPartsSummary}
+            
+            [현재 Part 내용]
+            제목: ${targetPart.title}
+            내용: ${targetPart.content}
+            
+            [수정 요청사항]
+            "${userRequest}"
+            
+            위 요청사항을 반영하여 해당 Part의 내용을 새로 작성해라.
+            제목(Title)과 본문(Content)을 구분해서 출력하지 말고, 
+            사용자가 읽기 좋은 줄글 형태(개조식 포함)로 본문 내용만 출력해라.
+            `;
+
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-2.5-flash",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+
+            const data = await res.json();
+            const newContent = data.candidates[0].content.parts[0].text;
+
+            // 데이터 업데이트
+            roadmapData[index].content = newContent;
+            
+            // UI 갱신 및 저장
+            renderRoadmap();
+            saveRoadmap();
+            alert("수정 완료되었습니다.");
+
+        } catch (e) {
+            console.error(e);
+            alert("수정 중 오류 발생");
+        } finally {
+            // 렌더링으로 인해 버튼이 재생성되므로 복구 불필요하나 안전장치
+            if(document.body.contains(btn)) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+            }
+        }
+    }
+
+    // 🌟 [기능 4] 저장 (JSON 배열을 문자열로 변환하여 DB 저장)
+    async function saveRoadmap() {
+        if (!roadmapData || roadmapData.length === 0) return;
+
+        const btn = document.getElementById('btnSaveMap');
+        const prevHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 저장 중';
+        btn.disabled = true;
+
+        try {
+            const payload = {
+                id: settingId,
+                title: currentSettings.title,
+                worldSetting: currentSettings.worldSetting,
+                characterDetails: currentSettings.characterDetails,
+                plotDetails: currentSettings.plotDetails,
+                previousContent: currentSettings.previousContent,
+                episode_number: currentSettings.episode_number,
+                // 핵심: 배열을 JSON 문자열로 변환해서 저장
+                roadmaps: JSON.stringify(roadmapData) 
+            };
+
+            const response = await fetch('/api/save-settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                // 살짝 딜레이 후 복구
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-check"></i> 저장됨';
+                    setTimeout(() => {
+                        btn.innerHTML = prevHtml;
+                        btn.disabled = false;
+                    }, 1500);
+                }, 500);
+            } else {
+                alert("저장 실패");
+                btn.disabled = false;
+                btn.innerHTML = prevHtml;
+            }
+        } catch (e) {
+            console.error(e);
+            alert("저장 오류");
+            btn.disabled = false;
+            btn.innerHTML = prevHtml;
+        }
+    }
+
+    init();
+</script>
+
+</body>
+</html>
