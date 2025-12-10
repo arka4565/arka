@@ -787,7 +787,21 @@ app.post('/api/generate-text', async (req, res) => {
         process.env.GEMINI_API_KEY12,
         process.env.GEMINI_API_KEY13,
         process.env.GEMINI_API_KEY14,
-        process.env.GEMINI_API_KEY15
+        process.env.GEMINI_API_KEY15,
+        process.env.GEMINI_API_KEY16,
+        process.env.GEMINI_API_KEY17,
+        process.env.GEMINI_API_KEY18,
+        process.env.GEMINI_API_KEY19,
+        process.env.GEMINI_API_KEY20,
+        process.env.GEMINI_API_KEY21,
+        process.env.GEMINI_API_KEY22,
+        process.env.GEMINI_API_KEY23,
+        process.env.GEMINI_API_KEY24,
+        process.env.GEMINI_API_KEY25,
+        process.env.GEMINI_API_KEY26,
+        process.env.GEMINI_API_KEY27,
+        process.env.GEMINI_API_KEY28,
+        process.env.GEMINI_API_KEY29
     ].filter(key => key); // undefined, null, 빈 문자열은 제거합니다.
 
     if (availableKeys.length === 0) {
