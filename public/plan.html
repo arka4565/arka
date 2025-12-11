@@ -371,7 +371,7 @@
             const sysPrompt = `
             당신은 소설 구조 설계 전문가입니다.
             [작품 정보] ${contextData}
-            [목표] 전체 분량(${total}화)을 고려하여 사용자의 요청에 맞게 Part(챕터)를 나누어 설계하세요. Part 줄거리는 분량이 충분히 나오도록 **상세하게** 작성하라.
+            [목표] 전체 분량(${total}화)을 고려하여 사용자의 요청에 맞게 Part(챕터)를 나누어 설계하세요. Part 줄거리는 분량이 충분히 나오도록 **상세하게** 작성하라. 대략 **한글글자로 1000자정도** 나오게 작성하라.
             [형식] JSON 배열 형식으로만 응답하세요. 예:
             [
               {"part": 1, "title": "Part 1 제목", "range": "1~25화","theme": "핵심테마", "content": "상세 줄거리..."},
@@ -379,14 +379,14 @@
             ]
             `;
 			 const fullPrompt = `
-                [전체 예상 회차]: ${totalEpisodes}화
+                [전체 예상 회차]: ${total}화
                 [요청 사항]: ${prompt}
             `;
             const response = await fetch('/api/generate-text', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: "gemini-2.5-flash",
+                    model: "gemini-2.5-flash-lite",
                     payload: {
                         contents: [{ parts: [{ text: fullPrompt }] }],
                         systemInstruction: { parts: [{ text: sysPrompt }] }

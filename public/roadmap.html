@@ -418,6 +418,77 @@
         btn.innerText = "생성 중...";
         
         try {
+			// 🌟 1. 앞뒤 Part 정보 가져오기 (Context Awareness)
+            let prevPartContext = "이전 Part 정보 없음 (이야기의 시작)";
+            let nextPartContext = "다음 Part 정보 없음 (이야기의 결말)";
+			// 전체 목록에서 현재 Part의 인덱스 찾기
+            const currentIndex = parsedParts.findIndex(p => p.partIndex === currentPart.partIndex);
+            
+            if (currentIndex > 0) {
+                // (1) 이전 Part 찾기
+				if (currentPart.partIndex > 1) {
+                const prevIndex = currentPart.partIndex - 1;
+                
+                // (1) 이전 Part의 모든 사건 가져오기
+                const res = await fetch(`/api/roadmap?setting_id=${settingId}&part_index=${prevIndex}`);
+               
+                if (res.ok) {
+                    const prevEvents = await res.json();
+                     //console.log(prevEvents);
+                    if (prevEvents && prevEvents.length > 0) {
+                        // (2) event_order 내림차순 정렬 (마지막 사건이 0번으로 오게)
+                        prevEvents.sort((a, b) => b.event_order - a.event_order);
+                        
+                        // (3) 상위 3개만 추출 (Last 3)
+                        const last3Events = prevEvents.slice(0, 3);
+                        
+                        // (4) AI에게는 시간 순서대로(오름차순) 보여주기 위해 다시 정렬
+                        last3Events.sort((a, b) => a.event_order - b.event_order);
+                        
+                        // (5) 텍스트 변환
+                        const eventTexts = last3Events.map(e => 
+                            `   - ${e.content}`
+                        ).join('\n');
+
+                        prevPartContext = `
+                        [이전 챕터]
+                        ${eventTexts}
+                        
+                        ※ 연결 지침: 위 사건들의 결과와 감정선이 현재 챕터의 도입부로 자연스럽게 이어져야 합니다.
+                        `;
+                    }
+                }
+            }
+               
+
+                // (2) 다음 Part 찾기
+				if (currentIndex < parsedParts.length - 1 && parsedParts[currentIndex + 1]) {
+						const nextPart = parsedParts[currentIndex + 1];
+						
+						
+						nextPartContext = `
+						[다음 챕터]
+						- ${nextPart.content}
+						
+						※ 연결성 지침: 이 Part의 후반부 사건들은 위 '다음 챕터'의 사건이 시작될 수 있는 계기나 분위기를 조성해야 합니다. 분위기를 조성하는 것이지 이번 Part의 사건에 '다음 챕터'의 내용이 들어가면 안됩니다.
+						`;
+				  
+				}
+			
+				if (currentIndex < parsedParts.length - 2 && parsedParts[currentIndex + 2]) {	
+				    const nextPart = parsedParts[currentIndex + 1];
+                    const nextPart2 = parsedParts[currentIndex + 2];
+					
+                    nextPartContext = `
+                    [다음 챕터]
+					 - ${nextPart.content}
+                     - ${nextPart2.content}
+                    
+                    ※ 연결성 지침: 이 Part의 후반부 사건들은 위 '다음 챕터'의 사건이 시작될 수 있는 계기나 분위기를 조성해야 합니다. 분위기를 조성하는 것이지 이번 Part의 사건에 '다음 챕터'의 내용이 들어가면 안됩니다.
+                    `;
+                }
+            }
+			
             const systemPrompt = `
                 ### [Role]
                 당신은 소설의 챕터(Part)를 분석하여 구체적인 '사건(Event)' 리스트로 기획하는 스토리보드 작가입니다.
@@ -431,12 +502,18 @@
                 3. **계산 예시:** 만약 Part가 25화 분량이라면, 2~3화씩 나누었을 때 **총 8개에서 12개의 사건**이 나와야 합니다.
                 4. **마지막 사건**의 끝 회차는 반드시 Part의 **마지막 회차와 일치**해야 합니다.
 
-                ### [Formatting Rules] (Strictly Required)
-                UI 파싱을 위해 반드시 아래 형식을 지켜주세요.
+				[Output Format] (Strictly JSON)
+				반드시 아래와 같은 **JSON 배열 포맷**으로만 응답해야 합니다. 다른 설명이나 마크다운 텍스트를 포함하지 마십시오.
 
-                사건 N: [타이틀(X화~Y화)]
-                - 핵심테마: (키워드/감정)
-                - 사건 N 줄거리: (줄거리는 분량이 충분히 나오도록 **상세하게** 작성하라.)
+				[
+				  {
+					"title": "사건 제목",
+					"range": "X화~Y화",
+					"theme": "핵심 테마 (감정/키워드)",
+					"content": "상세 줄거리 (400자 이상)"
+				  },
+				  ...
+				]
                 `;
 
                 // User Prompt
@@ -445,9 +522,19 @@
 
                 [Part 정보]
                 - 제목: ${currentPart.title}
+                - 회차 범위: ${currentPart.range}
                 - 내용: ${currentPart.content}
+				위 내용을 바탕으로 **${currentPart.range}** 사이의 상세 사건 리스트를 JSON으로 작성해줘.
+				절대로 1화부터 시작하지 말고, **${currentPart.range}**에 맞는 회차 번호를 매겨야 해.
+				
+				[Context Flow]
+				1. ${prevPartContext}
+				2. ${nextPartContext}
+				
+				위 [Context Flow]를 참고하여 앞뒤 내용이 매끄럽게 연결되도록 사건을 구성해야 해.
                 `;
-
+				console.log(systemPrompt)
+				console.log(userPrompt)
                 const response = await fetch('/api/generate-text', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -469,39 +556,42 @@
         finally { btn.disabled = false; btn.innerText = "AI 생성 요청"; }
     }
 
-    // 5. AI 결과 파싱 및 렌더링
+    // 5. AI 결과 파싱 및 렌더링 (JSON 방식)
     function parseAndRenderAiResult(text) {
         const container = document.getElementById('roadmap-container');
-        container.innerHTML = ''; // 기존 내용 지우고 새로 생성
+        container.innerHTML = ''; 
 
-        const eventBlocks = text.split(/사건 \d+:/).filter(block => block.trim() !== "");
-        
-        if (eventBlocks.length === 0) {
-            container.innerHTML = `<div class="event-card"><div class="event-content">${text.replace(/\n/g, '<br>')}</div></div>`;
-            return;
-        }
-
-        const events = eventBlocks.map((block, index) => {
-            let content = block.trim();
-            let titleMatch = content.match(/\[(.*?)\]/);
-            let fullTitle = titleMatch ? titleMatch[1] : "제목 없음";
-            let rangeMatch = fullTitle.match(/\((.*?)\)/);
-            let rangeText = rangeMatch ? rangeMatch[1] : "";
-            let titleText = fullTitle.replace(/\(.*?\)/, '').trim();
-            let themeMatch = content.match(/- 핵심테마:(.*?)(?=- 사건|\n|$)/s);
-            let themeText = themeMatch ? themeMatch[1].trim() : "";
-            let summaryMatch = content.match(/- 사건 \d+ 줄거리:(.*)/s);
-            let summaryText = summaryMatch ? summaryMatch[1].trim() : content.split("줄거리:")[1]?.trim() || content;
+        try {
+            // 1. 마크다운 코드블럭(```json ... ```) 제거
+            let cleanJson = text.replace(/```json|```/g, '').trim();
             
-            return {
-                event_order: index + 1,
-                title: titleText,
-                episode_range: rangeText,
-                theme: themeText,
-                content: summaryText.replace(/\*\*/g, '')
-            };
-        });
-        renderEvents(events);
+            // 2. JSON 파싱
+            const eventsData = JSON.parse(cleanJson);
+
+            // 3. 배열인지 확인 후 변환
+            if (!Array.isArray(eventsData)) throw new Error("데이터 형식이 배열이 아닙니다.");
+
+            const events = eventsData.map((item, index) => {
+                return {
+                    event_order: index + 1,
+                    title: item.title || "제목 없음",
+                    episode_range: item.range || "미정",
+                    theme: item.theme || "",
+                    content: item.content || ""
+                };
+            });
+
+            // 4. 렌더링 함수 호출
+            renderEvents(events);
+
+        } catch (e) {
+            console.error("JSON 파싱 오류:", e);
+            console.log("원본 텍스트:", text);
+            alert("AI 데이터 처리 중 오류가 발생했습니다. (JSON Parsing Error)");
+            
+            // (선택사항) 파싱 실패 시 원본 텍스트라도 보여주기
+            container.innerHTML = `<div class="event-card"><div class="event-content" style="color:red;">데이터 파싱 실패.<br>원본 내용:<br>${text}</div></div>`;
+        }
     }
 
     // 6. 이벤트 목록 렌더링 (View & Edit 모드)

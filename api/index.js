@@ -809,7 +809,7 @@ const ALL_KEYS = [
 
 // 현재 몇 번째 키를 쓸 차례인지 기억하는 변수 (전역 변수)
 let currentKeyIndex = 0;
-
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // =================================================================
 // 2. API 라우트 핸들러
 // =================================================================
@@ -873,6 +873,7 @@ app.post('/api/generate-text', async (req, res) => {
             // 내 주머니에 다른 키가 많으므로 기다릴 필요가 없습니다.
             if (response.status === 429 || response.status >= 500) {
                 console.warn(`Key limit/Error (${response.status}). Switching to next key immediately....${apiKey.slice(-4)}`);
+				await delay(2000);
                 continue; 
             } else {
                 // 400 Bad Request 등은 키 문제가 아니라 요청 데이터 문제이므로 즉시 실패 처리
@@ -882,6 +883,7 @@ app.post('/api/generate-text', async (req, res) => {
         } catch (error) {
             console.error('Network Error:', error);
             // 네트워크 에러는 잠시 대기 후 재시도 할 수도 있지만, 
+			await delay(2000);
             // 빠른 응답을 위해 바로 다음 키로 넘어가도 무방합니다.
             continue; 
         }

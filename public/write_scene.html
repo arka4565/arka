@@ -16,12 +16,19 @@
 
         * { box-sizing: border-box; }
 
-        body {
-            font-family: 'Pretendard', sans-serif;
-            background-color: var(--bg-color);
-            margin: 0;
-            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-        }
+       body {
+    font-family: 'Pretendard', sans-serif;
+    background-color: var(--bg-color);
+    margin: 0;
+    display: flex; 
+    flex-direction: column; 
+    
+    /* 높이 설정 수정 부분 */
+    height: 100vh; /* 구형 브라우저 호환용 */
+    height: 100dvh; /* 모바일 브라우저 주소창 대응 */
+    
+    overflow: hidden;
+}
 
         /* 네비게이션 */
         .navbar {
@@ -112,14 +119,96 @@
         .btn-next { background: var(--primary-color); color: white; }
         .btn-save-all { background: #e67e22; color: white; }
 
+        /* --- 기존 .sidebar 스타일 수정 및 새로운 스타일 추가 --- */
+
+/* 사이드바 기본 레이아웃 */
+.sidebar {
+    width: 250px; 
+    background: white; 
+    border-right: 1px solid var(--border-color);
+    display: flex; 
+    flex-direction: column; 
+    flex-shrink: 0;
+    transition: all 0.3s ease; /* 부드러운 전환 효과 */
+}
+
+/* 목록 컨테이너 (데스크탑은 항상 보임) */
+.episode-list-container {
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* 모바일용 토글 버튼 (데스크탑에서는 숨김) */
+.sidebar-toggle-btn {
+    display: none; 
+    padding: 15px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    font-weight: bold;
+    color: #555;
+    justify-content: space-between;
+    align-items: center;
+}
+
         /* 모바일 대응 */
-        @media (max-width: 900px) {
-            .container { flex-direction: column; }
-            .sidebar { width: 100%; height: 120px; }
-            .workspace { flex-direction: column; }
-            .ref-panel { max-height: 150px; flex: none; }
-            .editor-panel { flex: 1; }
-        }
+@media (max-width: 900px) {
+    .container { flex-direction: column; }
+    .workspace { flex-direction: column; }
+    .ref-panel { max-height: 150px; flex: none; }
+    .editor-panel { flex: 1; }
+.sidebar {
+        width: 100%;
+        height: auto; /* 고정 높이 제거 */
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    /* 토글 버튼 보이게 설정 */
+    .sidebar-toggle-btn {
+        display: flex; 
+    }
+
+    /* 목록 컨테이너: 기본적으로 숨김 (토글) */
+    .episode-list-container {
+        display: none; 
+        max-height: 300px; /* 펼쳤을 때 최대 높이 */
+        border-top: 1px solid #eee;
+    }
+
+    /* 클래스가 추가되면 보이게 처리 */
+    .episode-list-container.show {
+        display: block;
+    }
+    /* --- 아래 내용을 추가/수정해 주세요 --- */
+
+    /* 1. 메인 영역 하단에 넉넉한 여백 추가 (버튼이 가려지지 않게 함) */
+    .main-area {
+        padding-bottom: 100px !important; 
+    }
+
+    /* 2. 버튼들이 좁은 화면에서도 뭉개지지 않고 줄바꿈되도록 설정 */
+    .controls {
+        flex-wrap: wrap;
+        gap: 10px;
+        /* 필요하다면 버튼 영역을 화면 하단에 고정 (선택사항) */
+        /* position: sticky; bottom: 0; background: var(--bg-color); z-index: 10; padding-bottom: 20px; */
+    }
+    
+    /* 버튼 크기 조정 (터치하기 편하게) */
+    .btn {
+        flex: 1; /* 버튼들이 너비를 균등하게 차지 */
+        justify-content: center;
+        padding: 12px 10px;
+    }
+    
+    /* 특정 버튼(저장 등)이 너무 작아지지 않게 최소 너비 보장 */
+    .btn-save-all {
+        min-width: 100%; /* 모바일에서는 저장 버튼을 한 줄 꽉 차게 배치 */
+        margin-left: 0 !important;
+        margin-top: 10px;
+    }
+}
     </style>
 </head>
 <body>
@@ -143,9 +232,16 @@
 </nav>
 
 <div class="container">
-    <aside class="sidebar" id="episodeList">
+    <aside class="sidebar">
+    <div class="sidebar-toggle-btn" onclick="toggleSidebarList()">
+        <span id="currentEpTitleDisplay">📂 회차 선택하기</span>
+        <i class="fas fa-chevron-down" id="toggleIcon"></i>
+    </div>
+
+    <div id="episodeList" class="episode-list-container">
         <div style="padding:15px; text-align:center; color:#999;">로딩 중...</div>
-    </aside>
+    </div>
+</aside>
 
     <main class="main-area">
         <div id="sceneNavigator" class="progress-bar">
@@ -212,7 +308,19 @@
         await loadContextData();
         await loadEpisodes();
     }
-
+function toggleSidebarList() {
+    const list = document.getElementById('episodeList');
+    const icon = document.getElementById('toggleIcon');
+    
+    // show 클래스 토글
+    if (list.classList.contains('show')) {
+        list.classList.remove('show');
+        icon.className = 'fas fa-chevron-down';
+    } else {
+        list.classList.add('show');
+        icon.className = 'fas fa-chevron-up';
+    }
+}
     function setupNav() {
         document.querySelectorAll('.nav-item').forEach(item => {
             const target = item.dataset.target;
@@ -264,7 +372,14 @@
         // 스타일 처리
         document.querySelectorAll('.ep-item').forEach(i => i.classList.remove('active'));
         el.classList.add('active');
+// [추가됨] 모바일 토글 버튼 텍스트 업데이트 (현재 선택한 회차 제목 보여주기)
+    const toggleTitle = document.getElementById('currentEpTitleDisplay');
+    if (toggleTitle) toggleTitle.innerText = `📂 ${ep.title}`;
 
+    // [추가됨] 모바일이라면 선택 후 목록 자동으로 닫기
+    if (window.innerWidth <= 900) {
+        toggleSidebarList(); // 목록 닫기
+    }
         const treatmentText = ep.treatment || "";
         
         // 파싱 시작

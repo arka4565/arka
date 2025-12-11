@@ -280,7 +280,8 @@
     const settingId = urlParams.get('setting_id') || urlParams.get('id');
 
     let currentRoadmap = null; 
-    let contextData = "";      
+    let contextData = "";    
+	let globalRoadmaps = []; // 🌟 [추가] 전체 로드맵 리스트 저장용
 	
 // 🌟 토글 기능 (오버레이 포함)
     function toggleSidebar() {
@@ -348,7 +349,16 @@
         try {
             const response = await fetch(`/api/roadmap?setting_id=${settingId}`);
             if (!response.ok) throw new Error("로드 실패");
-            const roadmaps = await response.json();
+           let roadmaps = await response.json();
+
+            // 🌟 [수정] Part 순서 -> Event 순서로 정렬
+            roadmaps.sort((a, b) => {
+                if (a.part_index !== b.part_index) return a.part_index - b.part_index;
+                return a.event_order - b.event_order;
+            });
+
+            // 전역 변수에 저장 (다음 사건 찾기용)
+            globalRoadmaps = roadmaps;
 
             listContainer.innerHTML = '';
             if (roadmaps.length === 0) {
@@ -432,20 +442,49 @@
                     console.warn("직전 회차 로드 실패:", err);
                 }
             }
-			
+			// 🌟 B. [핵심] 다음 사건(Roadmap Event) 2개 가져오기
+            let nextEventsContext = "마지막 사건입니다. 완결성 있게 작성하세요.";
+            if (globalRoadmaps.length > 0) {
+                // 현재 로드맵의 인덱스 찾기
+                const currentIndex = globalRoadmaps.findIndex(r => r.id === currentRoadmap.id);
+                
+                if (currentIndex !== -1 && currentIndex < globalRoadmaps.length - 1) {
+                    let nextInfo = "";
+                    // 다음 1번째
+                    const next1 = globalRoadmaps[currentIndex + 1];
+                    nextInfo += `1. [다음 사건 (Event #${next1.event_order})]: ${next1.title}\n -회차범위:${next1.episode_range}\n  - 내용: ${next1.content}\n`;
+                    
+                    // 다음 2번째 (있으면)
+                    if (currentIndex < globalRoadmaps.length - 2) {
+                        const next2 = globalRoadmaps[currentIndex + 2];
+                        nextInfo += `2. [다다음 사건 (Event #${next2.event_order})]: ${next2.title}\n -회차범위:${next2.episode_range}\n   - 내용: ${next2.content}\n`;
+                    }
+                    
+                    nextEventsContext = `
+                    [미래 사건 흐름 (Look-Ahead)]
+                    이 회차 이후에는 아래 사건들이 이어질 예정입니다.
+                    ${nextInfo}
+                    
+                    ※ 중요: 이번 트리트먼트의 엔딩이나 전개 과정에 위 '미래 사건'을 위한 복선이나 계기를 반드시 심어두십시오. 
+                    이야기가 뚝 끊기지 않고 다음 사건으로 자연스럽게 흘러가야 합니다. 미래사건이 이번 트리트먼트 내용에 들어가면 안됩니다.
+                    `;
+                }
+            }
             const targetRange = currentRoadmap.episode_range || "회차 미정";
 			
             const systemPrompt = `
             ### [Role]
             당신은 웹소설 드라마 작가입니다. 주어진 '사건(Event)'을 바탕으로 **개별 회차(Episode)의 트리트먼트**를 작성해야 합니다.
-			특히, **[직전 회차 요약]**을 참고하여 이야기의 흐름이 끊기지 않고 자연스럽게 이어지도록 작성하십시오.
+			특히, **[과거 맥락]**과 **[미래 사건]**을 참고하여 이야기의 흐름이 끊기지 않고 자연스럽게 이어지도록 작성하십시오.
 			
-            ### [Context]
+            ### [설정]
             ${contextData}
 			
-			### [직전 회차 요약 (Context Flow)]
+			### [과거 맥락]
             ${prevStoryContext}
-
+			
+			${nextEventsContext}
+			
             ### [Task]
             1. 사용자가 제공하는 사건의 **지정된 회차 범위(${targetRange})**를 반드시 준수하십시오.
             2. 예를 들어 범위가 "4화~5화"라면, 반드시 **[제4화]**, **[제5화]**로 나누어 작성해야 합니다. (1화부터 시작하지 마십시오)
@@ -471,7 +510,8 @@
             위 사건을 **${targetRange}**에 해당하는 에피소드로 나누어 상세히 작성해.
             요청한 포맷([제N화]...)을 정확히 지켜.
             `;
-
+			console.log(systemPrompt)
+			console.log(userPrompt)
             const response = await fetch('/api/generate-text', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
