@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Novel Assistant - Treatment Builder</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,34 +16,40 @@
             --card-shadow: 0 2px 12px rgba(0,0,0,0.08);
             --nav-bg: #2c3e50;
             --nav-text: #ecf0f1;
+            --sidebar-width: 320px;
+            --nav-height: 60px; /* 네비게이션 높이 고정 */
         }
+
+        * { box-sizing: border-box; }
 
         body {
             font-family: 'Pretendard', sans-serif;
             background-color: var(--bg-color);
             margin: 0;
             display: flex;
-            flex-direction: column; /* 세로 배치 (Nav -> Container) */
+            flex-direction: column;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* --- 상단 네비게이션바 --- */
+        /* --- [1] 상단 네비게이션바 --- */
         .navbar {
+            height: var(--nav-height);
             background-color: var(--nav-bg);
             color: var(--nav-text);
-            padding: 10px 20px;
+            padding: 0 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             flex-shrink: 0;
             z-index: 1000;
+            position: relative;
         }
 
-        .nav-left { display: flex; align-items: center; gap: 15px; }
-        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+        .nav-left { display: flex; align-items: center; height: 100%; gap: 10px; }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; display: flex; align-items: center; height: 100%; gap: 5px; }
         
-        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; height: 100%; align-items: center; }
         .nav-item {
             color: #bdc3c7;
             text-decoration: none;
@@ -53,37 +59,58 @@
             white-space: nowrap;
             transition: all 0.2s;
             cursor: pointer;
+            display: inline-flex;
+            align-items: center;
         }
         .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
         .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
-        
-        /* 아이콘 간격 */
         .nav-item i { margin-right: 6px; }
 
-        /* --- 메인 컨테이너 (사이드바 + 메인영역) --- */
+        /* 모바일 토글 버튼 */
+        .mobile-list-btn {
+            background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer;
+            padding: 0; margin: 0; width: 40px; height: 40px;
+            display: none; align-items: center; justify-content: center;
+            border-radius: 50%; transition: background 0.2s;
+        }
+        .mobile-list-btn:hover { background: rgba(255, 255, 255, 0.1); }
+
+        /* --- [2] 메인 컨테이너 --- */
         .container {
             display: flex;
-            flex: 1; /* 남은 높이 채움 */
+            flex: 1; 
             overflow: hidden;
             width: 100%;
+            position: relative;
         }
 
-        /* --- 왼쪽 사이드바 --- */
+        /* --- [3] 사이드바 --- */
         .sidebar {
-            width: 350px;
+            width: var(--sidebar-width);
             background-color: var(--sidebar-bg);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            z-index: 10;
+            z-index: 1001; 
+            flex-shrink: 0;
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
 
         .sidebar-header {
-            padding: 20px;
+            padding: 15px;
             border-bottom: 1px solid var(--border-color);
             background: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 55px;
         }
-        .sidebar-header h2 { margin: 0; font-size: 1.2rem; color: var(--secondary-color); }
+        .sidebar-header h2 { margin: 0; font-size: 1.1rem; color: var(--secondary-color); }
+        
+        .btn-close-sidebar {
+            background: none; border: none; color: #999; font-size: 1.2rem; cursor: pointer;
+            display: none; 
+        }
 
         .roadmap-list {
             flex: 1;
@@ -92,100 +119,89 @@
             background: #f9fafb;
         }
 
-        .roadmap-item {
-            background: white;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
+        /* 모바일 반응형 */
+        @media (max-width: 991px) {
+            .mobile-list-btn { display: flex; }
+            .generator-controls { padding: 20px; }
+
+            .sidebar {
+                position: fixed;
+                top: var(--nav-height);
+                left: 0; bottom: 0;
+                width: 280px; 
+                transform: translateX(-100%);
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            }
+            .sidebar.open { transform: translateX(0); }
+            .btn-close-sidebar { display: block; } 
         }
 
-        .roadmap-item:hover { border-color: var(--primary-color); transform: translateY(-2px); }
-        .roadmap-item.active { border: 2px solid var(--primary-color); background-color: #f0f7ff; }
-
-        .rm-badge { background: #e9ecef; color: #495057; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; margin-bottom: 5px; display: inline-block; }
-        .rm-range {
-            display: inline-block;
-            background-color: #fff0f6;
-            color: #c0392b;
-            font-size: 0.75rem;
-            font-weight: bold;
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-left: 5px;
-            border: 1px solid #ffdde1;
+        /* 오버레이 */
+        #sidebar-overlay {
+            position: fixed;
+            top: var(--nav-height);
+            left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none; opacity: 0; transition: opacity 0.3s;
         }
-        
-        .rm-title { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 5px; }
-        .rm-desc { font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        #sidebar-overlay.show { display: block; opacity: 1; }
 
-        /* --- 오른쪽 메인 영역 --- */
+        /* --- [4] 메인 영역 --- */
         .main-area {
             flex: 1;
             display: flex;
             flex-direction: column;
             padding: 0;
             overflow-y: auto;
+            position: relative;
+            z-index: 1;
         }
 
+        /* 아이템 스타일 */
+        .roadmap-item {
+            background: white; border: 1px solid #eee; border-radius: 8px; padding: 15px;
+            margin-bottom: 12px; cursor: pointer; transition: all 0.2s;
+        }
+        .roadmap-item:hover { border-color: var(--primary-color); transform: translateY(-2px); }
+        .roadmap-item.active { border: 2px solid var(--primary-color); background-color: #f0f7ff; }
+        .rm-badge { background: #e9ecef; color: #495057; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; margin-bottom: 5px; display: inline-block; }
+        .rm-range { display: inline-block; background-color: #fff0f6; color: #c0392b; font-size: 0.75rem; font-weight: bold; padding: 2px 8px; border-radius: 12px; margin-left: 5px; border: 1px solid #ffdde1; }
+        .rm-title { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 5px; }
+        .rm-desc { font-size: 0.85rem; color: #666; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* 컨트롤 패널 */
         .generator-controls {
-            background: white;
-            padding: 30px;
-            border-bottom: 1px solid var(--border-color);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+            background: white; padding: 30px; border-bottom: 1px solid var(--border-color); box-shadow: 0 2px 5px rgba(0,0,0,0.03);
         }
-
         .selected-info { margin-bottom: 20px; padding: 15px; background: #f1f3f5; border-radius: 8px; border-left: 5px solid var(--secondary-color); }
         .info-title { font-weight: bold; font-size: 1.1rem; color: var(--secondary-color); margin-bottom: 5px; }
-        .info-content { color: #555; font-size: 0.95rem; line-height: 1.5; }
+        .info-content { color: #555; font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; }
 
         .gen-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white; border: none; padding: 12px 30px; border-radius: 25px;
             font-size: 1rem; font-weight: bold; cursor: pointer; transition: transform 0.2s;
-            box-shadow: 0 4px 10px rgba(118, 75, 162, 0.3);
-            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 10px rgba(118, 75, 162, 0.3); display: flex; align-items: center; gap: 8px; width: 100%; justify-content: center;
         }
         .gen-btn:hover { transform: translateY(-2px); opacity: 0.9; }
         .gen-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
 
-        .generated-list {
-            padding: 30px;
-            max-width: 900px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
+        /* 리스트 & 카드 */
+        .generated-list { padding: 20px; width: 100%; max-width: 800px; margin: 0 auto; box-sizing: border-box; }
         .episode-card {
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 30px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid #eee;
-            animation: fadeIn 0.5s ease;
+            background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: var(--card-shadow); border: 1px solid #eee; animation: fadeIn 0.5s ease;
         }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .ep-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; }
-        .ep-num-input { width: 60px; padding: 5px; font-weight: bold; text-align: center; border: 1px solid #ddd; border-radius: 4px; }
-        .ep-title-input { flex: 1; margin: 0 10px; padding: 8px; font-size: 1.1rem; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; }
-        
+        .ep-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #f0f0f0; flex-wrap: wrap; gap: 10px; }
+        .ep-input-group { display: flex; align-items: center; flex: 1; min-width: 200px; }
+        .ep-num-input { width: 50px; padding: 6px; font-weight: bold; text-align: center; border: 1px solid #ddd; border-radius: 4px; margin: 0 5px; }
+        .ep-title-input { flex: 1; padding: 8px; font-size: 1rem; font-weight: bold; border: 1px solid #ddd; border-radius: 4px; }
         .ep-body textarea {
-            width: 100%; height: 450px; padding: 15px;
-            border: 1px solid #ddd; border-radius: 8px;
-            font-size: 1rem; line-height: 1.6; resize: vertical;
-            background-color: #fafafa;
-            font-family: 'Pretendard', sans-serif;
-            box-sizing: border-box;
+            width: 100%; height: 300px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem; line-height: 1.6; resize: vertical; background-color: #fafafa; font-family: 'Pretendard', sans-serif; box-sizing: border-box;
         }
-
         .ep-footer { margin-top: 15px; text-align: right; }
         .save-ep-btn {
-            background-color: #27ae60; color: white; border: none; padding: 10px 20px;
-            border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+            background-color: #27ae60; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
         }
         .save-ep-btn:hover { background-color: #219150; }
         .save-ep-btn.saved { background-color: #bdc3c7; cursor: default; }
@@ -201,36 +217,47 @@
 
 <nav class="navbar">
     <div class="nav-left">
-        <a href="javascript:void(0)" onclick="goToList()" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+        <button class="mobile-list-btn" onclick="toggleSidebar()">
+             <i class="fas fa-bars"></i>
+        </button>
+        <a href="javascript:void(0)" onclick="goToList()" class="nav-logo">
+            <i class="fas fa-chevron-left"></i> 목록
+        </a>
     </div>
+    
     <div class="nav-links">
-		
         <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
         <a href="javascript:void(0)" onclick="movePage('world.html')" class="nav-item"><i class="fas fa-globe"></i> 세계관</a>
         <a href="javascript:void(0)" onclick="movePage('characters.html')" class="nav-item"><i class="fas fa-users"></i> 캐릭터</a>
         <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
         <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="javascript:void(0)" onclick="movePage('write_scene.html')" class="nav-item"><i class="fas fa-layer-group"></i>장면집필</a>
         <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 상세편집</a>
         <a href="javascript:void(0)" onclick="movePage('plan.html')" class="nav-item"><i class="fas fa-layer-group"></i> 기획</a>
-        <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item"><i class="fas fa-map-signs"></i> 로드맵</a>
+        <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item "><i class="fas fa-map-signs"></i> 로드맵</a>
         <a href="javascript:void(0)" onclick="movePage('treatment.html')" class="nav-item active"><i class="fas fa-file-alt"></i> 트리트먼트</a>
     </div>
 </nav>
 
 <div class="container">
-    <div class="sidebar">
+    <div id="sidebar" class="sidebar">
         <div class="sidebar-header">
             <h2>🗺️ 사건 목록</h2>
+            <button class="btn-close-sidebar" onclick="toggleSidebar()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
         <div id="roadmap-list" class="roadmap-list">
             <div style="text-align: center; padding: 20px; color: #999;">로딩 중...</div>
         </div>
     </div>
+    
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <div class="main-area">
         <div class="generator-controls">
-            <div id="guide-msg" style="text-align: center; color: #888; padding: 40px;">
-                👈 왼쪽 목록에서 사건을 선택하면 작업이 시작됩니다.
+            <div id="guide-msg" style="text-align: center; color: #888; padding: 30px;">
+                👈 왼쪽 <b>목록 버튼</b>을 눌러 사건을 선택하세요.
             </div>
 
             <div id="selected-panel" class="hidden">
@@ -254,7 +281,28 @@
 
     let currentRoadmap = null; 
     let contextData = "";      
+	
+// 🌟 토글 기능 (오버레이 포함)
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        
+        sidebar.classList.toggle('open');
+        
+        if (sidebar.classList.contains('open')) {
+            overlay.classList.add('show');
+        } else {
+            overlay.classList.remove('show');
+        }
+    }
 
+    // 화면 크기 변경 시 초기화
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 992) {
+            document.getElementById('sidebar').classList.remove('open');
+            document.getElementById('sidebar-overlay').classList.remove('show');
+        }
+    });
     // 페이지 이동 함수
     function movePage(page) {
         if (settingId) {
@@ -288,8 +336,8 @@
             contextData = `
             [작품 정보]
             - 제목: ${sRes.title}
-            [세계관 요소]: ${Array.isArray(wRes) ? wRes.map(w => w.title).join(', ') : ''}
-            [주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name}(${c.role})`).join(', ') : ''}
+			[세계관 요약]: ${Array.isArray(wRes) ? wRes.map(w => w.title + ": " + w.description).join('\n') : '없음'}
+			[주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}
             `;
         } catch (e) { console.warn("Context loading error", e); }
     }
@@ -353,17 +401,50 @@
         const btn = document.getElementById('generate-btn');
         const originalBtnText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = `<div class="spinner"></div>&nbsp; 회차 분석 및 생성 중... (약 15초)`;
+		btn.innerHTML = `<div class="spinner"></div>&nbsp; 직전 회차 분석 및 생성 중...`;
 
         try {
+			// 1. 현재 로드맵의 시작 회차 번호 파싱 (예: "4~6화" -> 4)
+            const rangeStr = currentRoadmap.episode_range || "";
+            const match = rangeStr.match(/(\d+)/); 
+            const startEpNum = match ? parseInt(match[1], 10) : 1;
+            
+            // 2. DB에서 직전 회차(startEpNum - 1) 정보 가져오기
+            let prevStoryContext = "이전 회차 정보 없음 (이야기의 시작이거나 데이터 없음)";
+			if (startEpNum > 1) {
+                try {
+                    const prevEpNum = startEpNum - 1;
+                    // 전체 에피소드 가져오기 (혹은 API 필터링 사용)
+                    const res = await fetch(`/api/episodes?setting_id=${settingId}`);
+                    if (res.ok) {
+                        const episodes = await res.json();
+                        // 직전 회차 찾기
+                        const prevEp = episodes.find(e => e.episode_number == prevEpNum);
+                        if (prevEp) {
+                            prevStoryContext = `
+                            [제${prevEp.episode_number}화 제목]: ${prevEp.title}
+                            [줄거리 요약]: ${prevEp.content || prevEp.treatment}
+                            `;
+                            console.log("직전 회차 로드 성공:", prevEp.title);
+                        }
+                    }
+                } catch (err) {
+                    console.warn("직전 회차 로드 실패:", err);
+                }
+            }
+			
             const targetRange = currentRoadmap.episode_range || "회차 미정";
-
+			
             const systemPrompt = `
             ### [Role]
             당신은 웹소설 드라마 작가입니다. 주어진 '사건(Event)'을 바탕으로 **개별 회차(Episode)의 트리트먼트**를 작성해야 합니다.
-
+			특히, **[직전 회차 요약]**을 참고하여 이야기의 흐름이 끊기지 않고 자연스럽게 이어지도록 작성하십시오.
+			
             ### [Context]
             ${contextData}
+			
+			### [직전 회차 요약 (Context Flow)]
+            ${prevStoryContext}
 
             ### [Task]
             1. 사용자가 제공하는 사건의 **지정된 회차 범위(${targetRange})**를 반드시 준수하십시오.

@@ -130,7 +130,15 @@ app.post('/api/save-settings', (req, res) => {
     }
 });
 
-
+// roadmap 데이터(JSON) 통째로 저장 (settings 테이블 업데이트)
+app.post('/api/save-roadmap-data', (req, res) => {
+    const { id, roadmaps } = req.body;
+    const sql = 'UPDATE settings SET roadmaps = ? WHERE id = ?';
+    db.query(sql, [roadmaps, id], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ message: 'Saved successfully' });
+    });
+});
 // --- 세계관 (World Settings) 관리 API 엔드포인트 ---
 
 /**
@@ -142,7 +150,7 @@ router.get('/worldsettings', (req, res) => {
     if (!setting_id) return res.status(400).json({ error: 'setting_id is required' });
 
     // created_at 순으로 정렬
-    const sql = 'SELECT id, setting_id, title, description, created_at FROM world_settings WHERE setting_id = ? ORDER BY created_at ASC';
+    const sql = 'SELECT id, setting_id, title, description,keywords, created_at FROM world_settings WHERE setting_id = ? ORDER BY created_at ASC';
     db.query(sql, [setting_id], (err, results) => {
         if (err) {
             console.error('Database load error in /api/worldsettings:', err);
@@ -164,7 +172,7 @@ router.get('/worldsettings/:id', (req, res) => {
     }
 
     // worldSettingId (고유 ID)를 사용해 단 하나의 레코드를 조회
-    const sql = 'SELECT id, setting_id, title, description, created_at FROM world_settings WHERE id = ?';
+    const sql = 'SELECT id, setting_id, title, description,keywords, created_at FROM world_settings WHERE id = ?';
 
     db.query(sql, [worldSettingId], (err, results) => {
         if (err) {
@@ -187,20 +195,21 @@ router.get('/worldsettings/:id', (req, res) => {
  * POST /api/worldsettings
  */
 app.post('/api/worldsettings', (req, res) => {
-    const { setting_id, title, description } = req.body;
+    // keywords 추가됨
+    const { setting_id, title, description, keywords } = req.body; 
 
     if (!setting_id || !title) {
         return res.status(400).json({ error: 'setting_id and title are required.' });
     }
 
-    const sql = `INSERT INTO world_settings (setting_id, title, description) VALUES (?, ?, ?)`;
+    // keywords 컬럼 추가
+    const sql = `INSERT INTO world_settings (setting_id, title, description, keywords) VALUES (?, ?, ?, ?)`;
 
-    db.query(sql, [setting_id, title, description || null], (err, result) => {
+    db.query(sql, [setting_id, title, description || null, keywords || ''], (err, result) => {
         if (err) {
             console.error("❌ 세계관 추가 실패:", err.message);
             return res.status(500).json({ error: err.message });
         }
-        console.log(`✅ 세계관 저장 완료. ID: ${result.insertId}`);
         res.status(201).json({ message: 'World setting created successfully', id: result.insertId });
     });
 });
@@ -213,28 +222,22 @@ app.post('/api/worldsettings', (req, res) => {
  */
 app.put('/api/worldsettings/:id', (req, res) => {
     const worldSettingId = req.params.id;
-    const { title, description } = req.body;
+    // keywords 추가됨
+    const { title, description, keywords } = req.body;
 
     if (!worldSettingId || !title) {
-        return res.status(400).json({ error: 'World Setting ID and title are required for update.' });
+        return res.status(400).json({ error: 'World Setting ID and title are required.' });
     }
 
-    // world_settings 테이블 업데이트 쿼리
-    const sql = `UPDATE world_settings SET title = ?, description = ? WHERE id = ?`;
+    // keywords 컬럼 추가
+    const sql = `UPDATE world_settings SET title = ?, description = ?, keywords = ? WHERE id = ?`;
 
-    db.query(sql, [title, description || null, worldSettingId], (err, result) => {
+    db.query(sql, [title, description || null, keywords || '', worldSettingId], (err, result) => {
         if (err) {
             console.error("❌ 세계관 수정 실패:", err.message);
             return res.status(500).json({ error: err.message });
         }
-
-        if (result.affectedRows === 0) {
-            // ID가 없거나, 변경된 내용이 없는 경우
-            return res.status(404).json({ error: 'World setting not found or no changes made.' });
-        }
-
-        console.log(`✅ 세계관 수정 완료. ID: ${worldSettingId}`);
-        res.status(200).json({ message: 'World setting updated successfully', id: worldSettingId });
+        res.status(200).json({ message: 'Updated successfully', id: worldSettingId });
     });
 });
 
@@ -914,10 +917,8 @@ app.post('/api/roadmap', (req, res) => {
         INSERT INTO roadmap (setting_id, part_index, event_order, title, episode_range, theme, content)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        title = VALUES(title),
-        episode_range = VALUES(episode_range),
-        theme = VALUES(theme),
-        content = VALUES(content)
+        setting_id = VALUES(setting_id),
+        event_order = VALUES(event_order)
     `;
 
     // 파라미터 순서 주의: episode_range 추가됨

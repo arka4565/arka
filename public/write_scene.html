@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>장면별 집필 - AI Novel Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #2ecc71; /* 집필 집중 컬러 (녹색 계열) */
+            --bg-color: #f4f6f8;
+            --text-color: #333;
+            --nav-bg: #2c3e50;
+            --border-color: #ddd;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+        /* 네비게이션 */
+        .navbar {
+            background-color: var(--nav-bg); color: white; padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7; text-decoration: none; padding: 8px 12px;
+            border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
+
+        /* 메인 레이아웃 */
+        .container { display: flex; flex: 1; overflow: hidden; }
+
+        /* 좌측: 회차 목록 */
+        .sidebar {
+            width: 250px; background: white; border-right: 1px solid var(--border-color);
+            display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0;
+        }
+        .ep-item {
+            padding: 15px; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s;
+        }
+        .ep-item:hover { background: #f9f9f9; }
+        .ep-item.active { background: #e8f5e9; border-left: 4px solid var(--primary-color); font-weight: bold; }
+
+        /* 중앙: 집필 영역 */
+        .main-area { flex: 1; display: flex; flex-direction: column; padding: 20px; overflow-y: auto; }
+
+        /* 상단 진행바 */
+        .progress-bar {
+            display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; flex-shrink: 0;
+        }
+        .scene-step {
+            flex: 1; min-width: 80px; text-align: center; padding: 10px;
+            background: #e0e0e0; border-radius: 6px; font-size: 0.9rem; cursor: pointer; color: #666;
+            white-space: nowrap; font-weight: bold; border: 1px solid #ccc;
+        }
+        .scene-step.active { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+        .scene-step.done { background: #a5d6a7; color: #1b5e20; border-color: #81c784; }
+
+        /* 작업 영역 분할 (지시문 vs 에디터) */
+        .workspace { display: flex; gap: 20px; flex: 1; min-height: 0; }
+        
+        /* 왼쪽: 트리트먼트 지시문 (Reference) */
+        .ref-panel {
+            flex: 1; background: white; border: 1px solid #ddd; border-radius: 8px;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .ref-header { 
+            background: #f8f9fa; padding: 10px 15px; font-weight: bold; color: #555; 
+            border-bottom: 1px solid #eee; font-size: 0.95rem;
+        }
+        .ref-content { 
+            padding: 15px; overflow-y: auto; white-space: pre-wrap; line-height: 1.6; color: #444; font-size: 0.95rem; flex: 1;
+        }
+
+        /* 오른쪽: 에디터 */
+        .editor-panel {
+            flex: 1.5; display: flex; flex-direction: column; gap: 10px;
+        }
+        .editor-header-bar { display: flex; justify-content: space-between; align-items: center; }
+        
+        .char-badge {
+            margin-left:8px; font-size:0.85rem; color:#666; background:#eee; padding:2px 8px; border-radius:12px;
+        }
+
+        .editor-textarea {
+            flex: 1; padding: 20px; border: 1px solid #ccc; border-radius: 8px;
+            font-size: 1.05rem; line-height: 1.8; resize: none; font-family: 'Pretendard', sans-serif;
+            outline: none;
+        }
+        .editor-textarea:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2); }
+
+        /* 하단 컨트롤 */
+        .controls {
+            margin-top: 15px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+        }
+        .btn {
+            padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 0.9rem;
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn-ai { background: #2c3e50; color: white; }
+        .btn-prev { background: #95a5a6; color: white; }
+        .btn-next { background: var(--primary-color); color: white; }
+        .btn-save-all { background: #e67e22; color: white; }
+
+        /* 모바일 대응 */
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+            .sidebar { width: 100%; height: 120px; }
+            .workspace { flex-direction: column; }
+            .ref-panel { max-height: 150px; flex: none; }
+            .editor-panel { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="nav-left">
+        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+    </div>
+    <div class="nav-links">
+        <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
+        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
+        <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
+        <a href="#" class="nav-item "><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item active" data-target="write_scene.html"><i class="fas fa-layer-group"></i>장면집필</a>
+        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
+        <a href="#" class="nav-item" data-target="plan.html"><i class="fas fa-magic"></i> 기획</a>
+        <a href="#" class="nav-item" data-target="roadmap.html"><i class="fas fa-magic"></i> 로드맵</a>
+        <a href="#" class="nav-item" data-target="treatment.html"><i class="fas fa-magic"></i> 트리트먼트</a>
+    </div>
+</nav>
+
+<div class="container">
+    <aside class="sidebar" id="episodeList">
+        <div style="padding:15px; text-align:center; color:#999;">로딩 중...</div>
+    </aside>
+
+    <main class="main-area">
+        <div id="sceneNavigator" class="progress-bar">
+            </div>
+
+        <div class="workspace">
+            <div class="ref-panel">
+                <div class="ref-header">
+                    <i class="fas fa-map-signs"></i> <span id="currentSceneTitle">장면 지시문</span>
+                </div>
+                <div id="sceneInstruction" class="ref-content">
+                    왼쪽 목록에서 에피소드를 선택하면,<br>
+                    설정된 트리트먼트(장면 구성)가 이곳에 표시됩니다.
+                </div>
+            </div>
+
+            <div class="editor-panel">
+                <div class="editor-header-bar">
+                    <div>
+                        <span style="font-weight:bold; color:#333;">📝 본문 작성</span>
+                        <span id="sceneCharCount" class="char-badge">0자</span>
+                    </div>
+                    <button class="btn btn-ai" onclick="generateSceneWithAI()">
+                        <i class="fas fa-magic"></i> AI 초안 생성
+                    </button>
+                </div>
+                <textarea id="sceneEditor" class="editor-textarea" placeholder="이 장면의 내용을 작성하세요..." oninput="updateSceneCharCount()"></textarea>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-prev" onclick="prevScene()"><i class="fas fa-arrow-left"></i> 이전 장면</button>
+            
+            <div style="text-align:center; font-size:0.9rem; color:#666;">
+                현재: <span id="currentStepDisplay">0 / 0</span>
+            </div>
+
+            <div>
+                <button class="btn btn-next" onclick="nextScene()">다음 장면 <i class="fas fa-arrow-right"></i></button>
+                <button class="btn btn-save-all" onclick="saveToStory()" style="margin-left:10px; display:none;" id="btnMerge">
+                    <i class="fas fa-save"></i> 전체 합치기 (저장)
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+
+    let episodes = [];
+    let currentEpId = null;
+    let sceneData = []; // [{ title, instruction, content }]
+    let currentSceneIndex = 0;
+    let currentTreatmentHeader = ""; // 🌟 트리트먼트 상단(설정, 인물 등) 저장용
+    // RAG용 전체 데이터
+    let allWorldSettings = [];
+    let allCharacters = [];
+
+    async function init() {
+        if (!settingId) return alert("잘못된 접근입니다.");
+        setupNav();
+        await loadContextData();
+        await loadEpisodes();
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    // 1. 세계관/캐릭터 데이터 로드 (저장만 함)
+    async function loadContextData() {
+        try {
+            const [wRes, cRes] = await Promise.all([
+                fetch(`/api/worldsettings?setting_id=${settingId}`),
+                fetch(`/api/characters?setting_id=${settingId}`)
+            ]);
+            allWorldSettings = await wRes.json();
+            allCharacters = await cRes.json();
+        } catch(e) { console.warn("Context Load Error:", e); }
+    }
+
+    // 2. 에피소드 목록 로드
+    async function loadEpisodes() {
+        try {
+            const res = await fetch(`/api/episodes?setting_id=${settingId}`);
+            episodes = await res.json();
+            episodes.sort((a,b) => a.episode_number - b.episode_number);
+
+            const listEl = document.getElementById('episodeList');
+            listEl.innerHTML = '';
+            
+            if (episodes.length === 0) {
+                listEl.innerHTML = '<div style="padding:15px; text-align:center;">작성된 회차가 없습니다.</div>';
+                return;
+            }
+
+            episodes.forEach(ep => {
+                const div = document.createElement('div');
+                div.className = 'ep-item';
+                div.innerHTML = `<span style="font-weight:bold;">#${ep.episode_number}</span> ${ep.title}`;
+                div.onclick = () => selectEpisode(ep, div);
+                listEl.appendChild(div);
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    // 3. 에피소드 선택 및 트리트먼트 파싱
+    function selectEpisode(ep, el) {
+        currentEpId = ep.id;
+        
+        // 스타일 처리
+        document.querySelectorAll('.ep-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+
+        const treatmentText = ep.treatment || "";
+        
+        // 파싱 시작
+        parseTreatmentToScenes(treatmentText);
+        
+        // UI 생성
+        renderSceneNavigator();
+        
+        // 첫 씬 로드
+        if (sceneData.length > 0) {
+            loadScene(0);
+        } else {
+            alert("트리트먼트가 비어있습니다. '플롯' 탭에서 먼저 생성해주세요.");
+        }
+    }
+
+    // 🌟 [수정됨] 파싱 로직: 씬이 시작되기 전의 내용을 '헤더'로 저장
+    function parseTreatmentToScenes(text) {
+        sceneData = [];
+        currentTreatmentHeader = ""; // 초기화
+        
+        if (!text || text.trim() === "") {
+            sceneData.push({ title: "장면 1", instruction: "내용 없음", content: "" });
+            return;
+        }
+
+        const lines = text.split(/\r?\n/);
+        let currentScene = null;
+        let buffer = [];
+
+        // 정규식: SCENE 1, **SCENE 1, ### SCENE 1 등 모두 허용
+        const sceneHeaderRegex = /^[\*\#]*\s*SCENE\s*(\d+)(.*)/i;
+
+        lines.forEach(line => {
+            const match = line.match(sceneHeaderRegex);
+
+            if (match) {
+                // (1) 새로운 씬이 시작됨
+                
+                // 이전 씬이 있었다면 저장
+                if (currentScene) {
+                    currentScene.instruction = buffer.join('\n').trim();
+                    sceneData.push(currentScene);
+                }
+
+                // 새 씬 객체 생성
+                const sceneNum = match[1];
+                const sceneTitle = match[2].replace(/[\*\:]/g, '').trim();
+
+                currentScene = {
+                    title: `SCENE ${sceneNum}: ${sceneTitle}`,
+                    instruction: "", 
+                    content: "" 
+                };
+                buffer = []; // 버퍼 초기화
+            } else {
+                // (2) 씬 헤더가 아님 (내용)
+                if (currentScene) {
+                    // 현재 잡고 있는 씬이 있으면 -> 씬 내용으로 추가
+                    buffer.push(line);
+                } else {
+                    // 🌟 [핵심] 아직 첫 씬이 시작 안 됨 -> '헤더(등장인물/세계관)'로 저장!
+                    currentTreatmentHeader += line + "\n";
+                }
+            }
+        });
+
+        // 마지막 씬 저장
+        if (currentScene) {
+            currentScene.instruction = buffer.join('\n').trim();
+            sceneData.push(currentScene);
+        }
+
+        // 파싱 실패 시 전체를 하나의 씬으로
+        if (sceneData.length === 0) {
+            sceneData.push({ title: "전체 내용", instruction: text, content: "" });
+        }
+        
+        console.log("트리트먼트 헤더 추출 완료:", currentTreatmentHeader); // 디버깅용 확인
+    }
+
+    function renderSceneNavigator() {
+        const navEl = document.getElementById('sceneNavigator');
+        navEl.innerHTML = '';
+        
+        sceneData.forEach((scene, idx) => {
+            const btn = document.createElement('div');
+            btn.className = 'scene-step';
+            btn.innerText = `SCENE ${idx + 1}`;
+            btn.onclick = () => { saveCurrentSceneBuffer(); loadScene(idx); };
+            navEl.appendChild(btn);
+        });
+    }
+
+    function saveCurrentSceneBuffer() {
+        if (sceneData[currentSceneIndex]) {
+            sceneData[currentSceneIndex].content = document.getElementById('sceneEditor').value;
+        }
+    }
+
+    function loadScene(index) {
+        if (index < 0 || index >= sceneData.length) return;
+        
+        currentSceneIndex = index;
+        const scene = sceneData[index];
+
+        document.getElementById('currentSceneTitle').innerText = scene.title;
+        document.getElementById('sceneInstruction').innerText = scene.instruction;
+        document.getElementById('sceneEditor').value = scene.content || "";
+        
+        updateNavUI();
+        updateSceneCharCount();
+    }
+
+    function updateNavUI() {
+        const steps = document.querySelectorAll('.scene-step');
+        steps.forEach((s, i) => {
+            s.classList.remove('active');
+            if (sceneData[i].content && sceneData[i].content.trim().length > 10) s.classList.add('done');
+            if (i === currentSceneIndex) s.classList.add('active');
+        });
+
+        document.getElementById('currentStepDisplay').innerText = `${currentSceneIndex + 1} / ${sceneData.length}`;
+        
+        const isLast = currentSceneIndex === sceneData.length - 1;
+        document.getElementById('btnMerge').style.display = isLast ? 'inline-flex' : 'none';
+        document.querySelector('.btn-next').style.display = isLast ? 'none' : 'inline-flex';
+    }
+
+    function prevScene() {
+        saveCurrentSceneBuffer();
+        if (currentSceneIndex > 0) loadScene(currentSceneIndex - 1);
+    }
+
+    function nextScene() {
+        saveCurrentSceneBuffer();
+        if (currentSceneIndex < sceneData.length - 1) loadScene(currentSceneIndex + 1);
+    }
+
+    function updateSceneCharCount() {
+        const text = document.getElementById('sceneEditor').value;
+        // 공백 제외 글자 수 (네이버/문피아 기준)
+        const count = text.replace(/\s/g, '').length; 
+        document.getElementById('sceneCharCount').innerText = `${count}자 (공백제외)`;
+    }
+
+    // 🌟 [RAG] 현재 씬에 필요한 설정 추출 함수
+    function getRelevantContext(sceneText, headerText) {
+        // 검색 대상 텍스트 = 헤더(등장인물/세계관 목록) + 현재 씬 지시문
+        const searchText = (headerText || "") + "\n" + (sceneText || "");
+
+        // 1. 세계관 필터링 (키워드 매칭)
+        let relevantWorld = allWorldSettings.filter(w => {
+            // (A) 제목 포함 여부
+            if (searchText.includes(w.title)) return true;
+            
+            // (B) 키워드(#태그) 포함 여부
+            if (w.keywords) {
+                const keywords = w.keywords.split(',').map(k => k.trim());
+                // 키워드 중 하나라도 'searchText'에 있으면 포함
+                return keywords.some(k => k && searchText.includes(k));
+            }
+            return false;
+        });
+
+        // 🚨 안전장치
+        if (relevantWorld.length === 0) {
+            relevantWorld = allWorldSettings.slice(0, 3);
+        }
+
+        // 2. 캐릭터 필터링
+        let relevantChars = allCharacters.filter(c => {
+            // 캐릭터 이름이 'searchText' 전체 어디든 있으면 가져옴
+            return searchText.includes(c.name);
+        });
+        
+        if (relevantChars.length === 0) {
+            relevantChars = allCharacters.slice(0, 3);
+        }
+
+        // 3. 텍스트 조합 (결과 반환)
+        let context = "";
+        if (relevantWorld.length > 0) {
+            context += "[관련 세계관 정보]\n";
+            context += relevantWorld.map(w => `📌 ${w.title}: ${w.description}`).join('\n\n');
+            context += "\n\n";
+        }
+        if (relevantChars.length > 0) {
+            context += "[등장인물 정보 (이번 회차 관련)]\n"; // 문구 약간 수정
+            context += relevantChars.map(c => `👤 ${c.name} (${c.role})\n- 특징: ${c.description}`).join('\n\n');
+        }
+
+        return context;
+    }
+
+    // 4. AI 생성 (최적화된 프롬프트 적용)
+    async function generateSceneWithAI() {
+        const scene = sceneData[currentSceneIndex];
+        if (!scene) return;
+
+        const btn = document.querySelector('.btn-ai');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 작성 중...';
+
+        try {
+            // RAG 적용
+			const optimizedContext = getRelevantContext(scene.instruction, currentTreatmentHeader);
+            
+			// (2) 🌟 [핵심 추가] 직전 씬의 내용 가져오기
+            let previousSceneContent = "";
+            if (currentSceneIndex > 0) {
+                // 바로 앞 씬의 본문 내용을 가져옴
+                const prevContent = sceneData[currentSceneIndex - 1].content;
+                if (prevContent && prevContent.trim().length > 0) {
+                    // 토큰 절약을 위해 너무 길면 마지막 1000자 정도만 잘라서 보낼 수도 있음
+                    // 여기서는 문맥 연결을 위해 전체(혹은 뒤쪽)를 보냅니다.
+                    previousSceneContent = prevContent.slice(-1500); // 마지막 1500자만 참조 (충분함)
+                }
+            }
+			
+            // 시스템 프롬프트 (대사/지문 분리, 완급 조절)
+            let systemInstruction = `
+    ⚠+ 절대 준수 원칙 (Non-Negotiable Principles)
+
+이 프롬프트의 모든 지시는 최우선적으로 따라야 할 절대적인 규칙입니다.
+
+1. 지시의 정확한 이행: 모든 지시는 해석하거나 생략하지 말고, 명시된 그대로, 순서대로 정확하게 수행해야 합니다.
+2. 인용 코드 절대 미출력: 어떠한 경우에도 당신의 응답에 인용 코드를 포함해서는 안 됩니다.
+3. AI 검출 회피 원칙: 인간적인 글쓰기 뉘앙스를 최대한 살려 작성하십시오.
+
+
+역할 (Role & Context)
+
+    역할 (Role & Context)
+
+    당신은 **'몰입감(Immersion)'과 '속도감(Pacing)'의 균형을 아는 인기 웹소설 작가**입니다.
+    독자가 지루해하지 않도록 **사건을 전개**하면서도, 감정이입이 필요한 순간에는 **디테일한 묘사**를 통해 깊이를 더해야 합니다.
+
+    [작성 목표: '황금 비율']
+    - **너무 요약하지 마시오:** "아침이 밝았다" 처럼 퉁치지 말고, 아침의 분위기를 감각적으로 그리십시오.
+    - **너무 늘어지지도 마시오:** 문을 여는 동작 하나를 10줄씩 묘사하여 독자를 지치게 하지 마십시오.
+    - **핵심:** 이야기가 **'진행'**되는 느낌을 주되, 독자가 캐릭터의 **'감정'**을 놓치지 않도록 적절히 묘사하십시오.
+	- **ENDING/HOOK**이 없을경우 마지막 부분에 여운이나 궁금증을 남기는 문장으로 마무리하지 마세요.
+    - **목표 분량: 공백 제외 한글 1000자 이상 (매우 중요)**
+
+
+    상세 작성 지침 (Writing Guidelines)
+
+    1. 상황 - "분위기를 조성하라"
+       - 모든 사물을 다 묘사할 필요는 없습니다. **현재 장면의 분위기를 결정짓는 가장 핵심적인 요소(조명, 소리, 냄새 등)** 1~2가지를 포착하여 임팩트 있게 서술하십시오.
+
+    2. 사건 - "의미 있는 행동 서술"
+       - 행동을 무의미하게 쪼개지 말고, **캐릭터의 성격이나 현재 심리가 드러나는 행동** 위주로 구체화하십시오.
+       - 예: 단순히 "물을 마셨다"가 아니라, "타는 목마름에 컵을 낚아채듯 들어 물을 들이켰다" 처럼 행동의 '뉘앙스'를 살리십시오.
+
+    3. 갈등 - "위기감의 구체화"
+       - 갈등의 원인을 명확히 하고, 그로 인해 캐릭터가 느끼는 압박감을 **'감각적'**으로 표현하십시오.
+       - 고통, 초조함, 분노 등은 추상적인 단어보다 신체 반응(심장 박동, 거친 호흡, 식은땀 등)과 결합하여 서술하는 것이 좋습니다.
+
+    4. 심리 - "공감 가는 반응"
+       - 독백이 너무 길어지면 지루해집니다. 사건에 대한 **즉각적이고 직관적인 반응**을 먼저 보여주고, 짧고 굵은 독백으로 내면을 정리하십시오.
+
+    5. 대사 - "생동감 있는 티키타카"
+       - 캐릭터의 말투와 성격을 반영하여 **살아있는 구어체**를 구사하십시오.
+       - 긴 설명조의 대사를 피하고, 인물 간에 짧고 빠르게 오가는 **리듬감(티키타카)**을 살리십시오.
+       - 대사만으로도 상황의 긴박함이나 인물의 감정이 느껴지도록 작성하십시오.
+    
+	6. 연출 - "비언어적 묘사와 무게감"
+       - 대사 사이사이에 **표정, 손짓, 시선 처리** 등의 비언어적 행동(지문)을 적절히 배치하여 장면을 입체적으로 만드십시오.
+       - **중요한 대사 직전**에는 정적을 흐르게 하거나, 캐릭터의 미세한 표정 변화를 묘사하여 **대사에 무게감**을 실어주십시오.
+       - 마치 카메라가 인물을 클로즈업하거나 줌아웃하는 듯한 시각적 연출을 글에 녹여내십시오.
+
+    6. ENDING/HOOK - "자연스러운 연결"
+       - 억지로 끊지 말고, 해당 장면의 사건이 마무리되거나 다음 장면으로 넘어가는 지점에서 자연스럽게 문단을 맺으십시오.
+       - 다만, 마지막 문장은 독자에게 여운이나 궁금증을 남기는 문장으로 마무리하는 것이 좋습니다.
+
+
+    형식 및 규칙 (Formatting & Rules)
+
+    1. 줄바꿈 규칙( A타입 서식)
+
+	대화는 반드시 줄을 바꿔서 시작합니다.
+
+	마침표(.), 느낌표(!), 물음표(?)로 문장이 끝날 때마다 무조건 줄을 바꿉니다.
+
+	인물의 행동, 심리, 서술은 한 문장만 쓰고 줄을 바꿉니다. 한 문단에 여러 문장이 섞이지 않도록 합니다.
+
+	단, 연속적인 짧은 감탄사나 의성어("앗!", "아, 안돼!")는 한 문단에 쓸 수 있습니다. 또 **한명이 말하는건 합쳐서 작성**해야 합니다.
+
+	2. 빈 줄 추가 규칙:
+
+	장면, 시간, 공간, 시점(인물)이 바뀔 때만 빈 줄을 추가하여 문단을 구분합니다.
+
+	3. 마크업 제거 :
+
+	 소설 내용을 올릴 사이트는 마크업 문법을 지원하지 않은 plain text 업로드를 지원하는 곳입니다. ** 표시, 기울어진 이탤릭, ~취소선~ 표시 등 문장을 꾸미는 요소를 모두 제거해야합니다.
+
+
+    핵심 원칙: 인간적 글쓰기 (AI 검출 회피)
+
+	AI가 생성한 느낌을 최소화하고, 자연스럽고 인간적인 글을 작성하기 위한 핵심 원칙입니다.
+
+	1. 문장 구조의 자연스러움
+	- 완벽하지 않은 문장 구조 허용 (때로는 문법적으로 완벽하지 않더라도 괜찮음).
+	- 짧은 문장과 긴 문장을 자연스럽게 섞어 문장에 리듬감을 부여.
+	- 말 줄임표(...)를 감정의 여운이나 생각의 흐름을 표현하기 위해 자연스럽게 활용.
+	- 감탄사나 간투사 ("음", "아", "글쎄", "정말") 등을 적절히 포함하여 생각하는 듯한 느낌을 부여.
+	- 문장 연결이 다소 어색하더라도 자연스러운 생각의 흐름을 우선.
+	- 한명이 말하는건 합쳐서 작성해야 합니다.
+
+	2. 어휘 선택의 인간적 특성
+	- 동일한 의미를 표현할 때, 동의어를 넘어 완전히 다른 방식의 표현으로 반복하여 지루함을 피함.
+	- 학술적이거나 격식적인 표현보다 일상어를 우선 사용하고, 필요시 구어체적 표현을 자연스럽게 섞음.
+	- "나는 생각한다", "개인적으로는", "솔직히 말하면" 등 주관적 표현으로 개인적 색채를 드러냄.
+	- 때로는 의도적으로 부정확하거나 애매한 표현을 사용하여 인간적인 망설임이나 고민을 표현.
+
+	3. 논리적 완벽함 회피
+	- 지나치게 체계적인 구성보다 자연스러운 생각의 흐름을 따름.
+	- 논리적 완벽함보다 감정적 몰입과 변화를 우선시하며, 때로는 감정이 논리를 압도하는 순간을 묘사.
+	- 개인적인 경험이나 주관적인 판단을 논리적 근거 없이도 자연스럽게 드러냄.
+	- 갑작스러운 주제 전환이나 연상 작용을 통해 생각의 흐름을 생생하게 표현.
+
+	4. 개인적 경험과 감정
+	- 구체적이고 생생한 개인적 일화, 감정, 생각을 포함하여 글에 진정성을 부여.
+	- 감정의 기복과 변화(기쁨, 슬픔, 분노, 혼란 등)를 자연스럽게 표현.
+	- '나만의' 독특한 관점이나 해석을 통해 다른 글과 차별화.
+	- 때로는 확신에 찬 어투, 때로는 망설이는 어투를 혼용하여 입체적인 목소리 구현.
+
+	5. 시간적 흐름의 자연스러움
+	- 현재-과거-미래를 자연스럽게 오가며 서술하여 입체적인 시간 감각을 만듦.
+	- 갑작스러운 회상이나 연상을 통해 인물의 내면을 효과적으로 드러냄.
+	- 시제의 변화를 통해 글에 생동감을 부여.
+
+	6. 의도적 불완전성과 인간적 특질
+	- 문단 중간에 갑작스러운 생각 변화나 주제 이탈 허용.
+	- "음... 이건 좀 다른 이야기인데", "잠깐, 이 말을 왜 했지?" 같은 자연스러운 혼잣말.
+	- 개인적 편견이나 선입견을 솔직하게 드러내고 이를 성찰하는 과정.
+	- 때로는 논리적 일관성보다 감정의 진실함을 우선시.
+	- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.
+	
+장르별 어체 및 문체 특성
+
+- 어체: 3인칭 관찰자 시점으로 서술하되 주인공만 전지적 관찰자 시점으로 서술.
+- 문체: 대화체와 서술체의 균형 잡힌 조화, 인물의 심리 묘사와 상황 전개의 생동감.
+
+	[품질 체크]
+	- ✅ 분량 적정성 (±5% 이내).
+	- ✅ 목차상 위치에 맞는 내용 적절성.
+	- ✅ 전체 톤앤매너 일관성.
+	- ✅ 독자 타겟에 맞는 난이도와 접근성.
+	- ✅ 인간적 글쓰기 (AI 검출 회피).
+	- ✅ 원고의 타이틀 작성.
+
+	[⚠+ 중요 주의사항]
+	1. 분량 준수는 ±5% 이내로 엄격히 관리.
+	2. 장르별 어체와 문체 특성 반드시 반영.
+	3. 인간적 글쓰기로 AI 검출 회피.
+	
+    [참고 설정]
+    ${optimizedContext}	
+	`;
+	
+	let prompt = "";
+            
+            if (previousSceneContent) {
+                prompt += `
+    [직전 장면 내용 (이 내용에서 자연스럽게 이어지도록 작성)]
+    ${previousSceneContent}
+    --------------------------------------------------
+    `;
+            }
+         prompt = `           
+           [현재 장면 지시문 (작성해야 할 내용)]
+            ${scene.instruction}\n\n
+	    
+	[요청]
+    위 [직전 장면]의 흐름을 이어받아, [현재 장면 지시문]의 내용을 소설 본문으로 작성해줘.
+    내용을 반복하지 말고, 바로 다음 문장부터 시작해.
+        `;
+
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-2.5-flash",
+                    payload: {
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    }
+                })
+            });
+            const data = await res.json();
+            const text = data.candidates[0].content.parts[0].text;
+            
+            document.getElementById('sceneEditor').value = text;
+            saveCurrentSceneBuffer();
+            updateSceneCharCount();
+
+        } catch(e) { 
+            console.error(e);
+            alert("AI 생성 실패: " + e.message); 
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // 5. 전체 합치기 및 저장
+    async function saveToStory() {
+        saveCurrentSceneBuffer();
+        if (!confirm("모든 장면을 합쳐서 '전체집필(Stories)' 탭에 저장하시겠습니까?")) return;
+
+        // 전체 텍스트 병합
+        let fullContent = "";
+        sceneData.forEach(s => {
+            // fullContent += `\n\n*** ${s.title} ***\n\n`; // 구분선이 싫으면 이 줄 주석 처리
+            fullContent += s.content + "\n\n";
+        });
+
+        // 현재 에피소드 찾기 (story ID 확인용)
+        const sRes = await fetch(`/api/stories?setting_id=${settingId}`);
+        const stories = await sRes.json();
+        const currentEp = episodes.find(e => e.id === currentEpId);
+        const existingStory = stories.find(s => s.episode_number === currentEp.episode_number);
+
+        let url = '/api/stories';
+        let method = 'POST';
+        
+        // 데이터 준비
+        let body = {
+            setting_id: settingId,
+            episode_number: currentEp.episode_number,
+            title: currentEp.title,
+            content: fullContent,
+            prompt: "Merged from Scenes"
+        };
+
+        if (existingStory) {
+            url = `/api/stories/${existingStory.id}`;
+            method = 'PUT';
+            // PUT은 id가 URL에 있으므로 body에 id 포함 안 해도 됨 (API 구조에 따라 다름)
+        }
+
+        try {
+            const saveRes = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (saveRes.ok) {
+                alert("저장되었습니다! '전체집필' 탭에서 확인하세요.");
+                //window.location.href = `write.html?setting_id=${settingId}`;
+            } else {
+                alert("저장 실패");
+            }
+        } catch(e) { alert("통신 오류"); }
+    }
+
+    init();
+</script>
+
+</body>
+</html>

@@ -2,11 +2,12 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>AI Novel Assistant - Roadmap Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-   <style>
+    <style>
         :root {
             --bg-color: #f8f9fa;
             --container-bg: #ffffff;
@@ -20,7 +21,6 @@
             --nav-text: #ecf0f1;
         }
 
-        /* 1. 전체 레이아웃 (세로 배치: Nav -> Container) */
         body {
             font-family: 'Pretendard', sans-serif;
             background-color: var(--bg-color);
@@ -29,11 +29,11 @@
             padding: 0;
             height: 100vh;
             display: flex;
-            flex-direction: column; /* 세로 방향 정렬 */
-            overflow: hidden; /* 전체 스크롤 방지 */
+            flex-direction: column;
+            overflow: hidden;
         }
 
-        /* --- 상단 네비게이션바 --- */
+        /* --- 네비게이션 --- */
         .navbar {
             background-color: var(--nav-bg);
             color: var(--nav-text);
@@ -41,13 +41,11 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-shrink: 0; /* 크기 줄어들지 않음 */
+            flex-shrink: 0;
             z-index: 1000;
         }
-
         .nav-left { display: flex; align-items: center; gap: 15px; }
         .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; display: flex; align-items: center; gap: 5px; }
-        
         .nav-links { display: flex; gap: 5px; overflow-x: auto; }
         .nav-item {
             color: #bdc3c7;
@@ -62,29 +60,28 @@
         .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
         .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
 
-        /* 2. 메인 컨테이너 (수정됨) */
+        /* --- 메인 컨테이너 --- */
         .container {
             display: flex;
-            flex-direction: column; /* 내부 요소 세로 배치 */
-            flex: 1;                /* 남은 높이 모두 차지 */
-            overflow-y: auto;       /* 내부 스크롤 */
+            flex-direction: column;
+            flex: 1;
+            overflow-y: auto;
             width: 100%;
             max-width: 1000px;
-            margin: 0 auto;         /* 중앙 정렬 */
-            padding: 30px;          /* 내부 여백 */
+            margin: 0 auto;
+            padding: 30px;
         }
 
         header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 30px;
             border-bottom: 2px solid #eee;
             padding-bottom: 20px;
         }
-
         header h1 { margin: 0 0 10px 0; color: var(--secondary-color); }
         header p { color: #666; margin: 0; }
 
-        /* --- Section 1: Part List Styles --- */
+        /* --- Part List Styles --- */
         .section-header {
             font-size: 1.2rem;
             font-weight: 700;
@@ -115,15 +112,13 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            height: 180px; /* 고정 높이 */
+            height: 180px; 
         }
-
         .part-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 20px rgba(74, 144, 226, 0.2);
             border-color: var(--primary-color);
         }
-
         .part-badge {
             display: inline-block;
             background-color: #f1f3f5;
@@ -133,26 +128,17 @@
             font-size: 0.8rem;
             font-weight: 600;
             margin-bottom: 10px;
-            align-self: flex-start;
         }
-
         .part-card h3 {
-            font-size: 1.1rem;
-            margin: 0 0 10px 0;
-            color: var(--secondary-color);
-            line-height: 1.4;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            font-size: 1.1rem; margin: 0 0 10px 0; color: var(--secondary-color);
+            line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
         }
-
         .part-card p.preview {
-            font-size: 0.9rem;
-            color: #868e96;
-            margin: 0;
-            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
-            flex-grow: 1;
+            font-size: 0.9rem; color: #868e96; margin: 0;
+            display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; flex-grow: 1;
         }
 
-        /* --- Section 2: Result (Event Cards) Styles --- */
+        /* --- Event Cards Styles --- */
         .event-card {
             background: #fff;
             border: 1px solid #e9ecef;
@@ -162,99 +148,68 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
             animation: slideUp 0.5s ease;
         }
-
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
         .event-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #f1f3f5;
-            padding-bottom: 15px;
+            display: flex; justify-content: space-between; align-items: flex-start;
+            margin-bottom: 15px; border-bottom: 1px solid #f1f3f5; padding-bottom: 15px; gap: 10px;
         }
-
-        .event-title-box { display: flex; flex-direction: column; gap: 5px; }
+        .event-title-box { display: flex; flex-direction: column; gap: 5px; flex: 1; }
         .event-title { font-size: 1.3rem; font-weight: bold; color: var(--secondary-color); }
         .event-range { 
-            display: inline-block; 
-            background: var(--primary-color); color: #fff; 
+            display: inline-block; background: var(--primary-color); color: #fff; 
             padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; width: fit-content;
         }
 
+        .btn-action-group { display: flex; gap: 5px; }
+        
         .save-btn {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 5px;
+            background-color: var(--accent-color); color: white; border: none; padding: 8px 16px;
+            border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+            display: flex; align-items: center; gap: 5px;
         }
         .save-btn:hover { background-color: #219150; }
-        .save-btn:disabled { background-color: #ccc; cursor: not-allowed; }
+        .save-btn.saved { background-color: #bdc3c7; cursor: default; }
+        
+        .edit-btn {
+            background-color: white; color: #555; border: 1px solid #ddd; padding: 8px 12px;
+            border-radius: 6px; cursor: pointer; font-weight: 600;
+        }
+        .edit-btn:hover { background-color: #f0f0f0; }
 
         .event-theme {
-            background-color: #f8f9fa;
-            color: #555;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-style: italic;
-            border-left: 4px solid #ced4da;
+            background-color: #f8f9fa; color: #555; padding: 12px; border-radius: 8px;
+            margin-bottom: 15px; font-style: italic; border-left: 4px solid #ced4da;
         }
+        .event-content { font-size: 1.05rem; line-height: 1.7; color: #333; white-space: pre-wrap; }
 
-        .event-content {
-            font-size: 1.05rem;
-            line-height: 1.7;
-            color: #333;
-            white-space: pre-wrap; /* 줄바꿈 유지 */
-        }
+        /* 수정 모드용 스타일 */
+        .edit-input { width: 100%; padding: 8px; margin-bottom: 5px; border: 1px solid #3498db; border-radius: 4px; font-size: 1rem; }
+        .edit-textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #3498db; border-radius: 6px; font-size: 1rem; resize: vertical; line-height: 1.6; }
+        .event-edit-form { display: none; margin-top: 10px; }
+        .event-edit-form.active { display: block; }
 
-        /* --- Utilities --- */
+        /* Utilities */
         .hidden { display: none !important; }
-
-        #loading {
-            text-align: center;
-            margin: 50px 0;
-            display: none;
-        }
-        .spinner {
-            width: 40px; height: 40px;
-            border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px auto;
-        }
+        #loading { text-align: center; margin: 50px 0; display: none; }
+        .spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 15px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        .btn-group { margin-top: 40px; text-align: center; border-top: 1px solid #eee; padding-top: 20px; }
-        .btn-secondary {
-            background-color: #868e96; color: white; border: none; padding: 10px 20px;
-            border-radius: 6px; cursor: pointer; font-size: 1rem; margin-right: 10px;
-        }
-        .btn-secondary:hover { background-color: #495057; }
-        
-        .btn-outline {
-             background-color: transparent; border: 1px solid #868e96; color: #868e96; padding: 6px 12px;
-             border-radius: 6px; cursor: pointer; font-size: 0.9rem;
-        }
-        .btn-outline:hover { background-color: #f1f3f5; }
-
         .top-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .btn-outline { background: transparent; border: 1px solid #868e96; color: #868e96; padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+        .btn-outline:hover { background: #f1f3f5; }
+        
+        .ai-generate-bar {
+            background: #e3f2fd; padding: 15px; border-radius: 8px; margin-bottom: 20px; 
+            display: flex; justify-content: space-between; align-items: center; border: 1px solid #bbdefb;
+        }
     </style>
 </head>
 <body>
+
 <nav class="navbar">
     <div class="nav-left">
-        <a href="javascript:void(0)" onclick="goToList()" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
+        <a href="javascript:void(0)" onclick="location.href='index.html'" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
     </div>
     <div class="nav-links">
         <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
@@ -262,245 +217,208 @@
         <a href="javascript:void(0)" onclick="movePage('characters.html')" class="nav-item"><i class="fas fa-users"></i> 캐릭터</a>
         <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
         <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 상세편집</a>
+        <a href="javascript:void(0)" onclick="movePage('write_scene.html')" class="nav-item"><i class="fas fa-layer-group"></i>장면집필</a>
+        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-magic"></i> 상세편집</a>
         <a href="javascript:void(0)" onclick="movePage('plan.html')" class="nav-item"><i class="fas fa-layer-group"></i> 기획</a>
         <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item active"><i class="fas fa-map-signs"></i> 로드맵</a>
         <a href="javascript:void(0)" onclick="movePage('treatment.html')" class="nav-item "><i class="fas fa-file-alt"></i> 트리트먼트</a>
     </div>
 </nav>
-    <div class="container">
-        <header>
-            <h1>📅 사건 기획 (Roadmap Builder)</h1>
-            <p>전체 줄거리(Part)를 선택하여 상세 에피소드로 구체화하고 저장하세요.</p>
-        </header>
 
-        <div id="loading">
-            <div class="spinner"></div>
-            <p id="loading-text">데이터를 불러오는 중...</p>
-        </div>
+<div class="container">
+    <header>
+        <h1>📅 사건 기획 (Roadmap Builder)</h1>
+        <p>Part를 선택하여 상세 사건을 기획하거나, 이미 저장된 내용을 수정하세요.</p>
+    </header>
 
-        <div id="part-selection-area">
-            <div class="section-header">분석할 Part 선택</div>
-            <div id="part-list" class="part-grid">
-                </div>
-            <div id="empty-msg" style="text-align: center; color: #999; display: none; padding: 30px;">
-                <p>⚠️ 저장된 Part 정보가 없거나 형식이 올바르지 않습니다.</p>
-                <p>Plan 페이지에서 줄거리를 먼저 생성해주세요.</p>
-            </div>
-        </div>
-
-        <div id="roadmap-result-area" class="hidden">
-            <div class="top-controls">
-                <div class="section-header">상세 사건 리스트 (Event List)</div>
-                <button class="btn-outline" onclick="resetSelection()">🔄 목록으로 돌아가기</button>
-            </div>
-            <div id="roadmap-container">
-                </div>
-        </div>
-
-        <div class="btn-group">
-            <button class="btn-secondary" onclick="window.location.href='plan.html'">Plan 목록으로</button>
-        </div>
-    </div>
+    <div id="loading">
+        <div class="spinner"></div>
+        <p id="loading-text">데이터를 불러오는 중...</p>
     </div>
 
-   <script>
-        // --- Global Variables ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const settingId = urlParams.get('setting_id') || urlParams.get('id'); // id와 setting_id 둘 다 체크
-        // 탭 전환 기능
-    // 페이지 이동 함수
+    <div id="part-selection-area">
+        <div class="section-header">작업할 Part 선택</div>
+        <div id="part-list" class="part-grid"></div>
+        <div id="empty-msg" style="text-align: center; color: #999; display: none; padding: 30px;">
+            <p>⚠️ 저장된 Part 정보가 없습니다. [기획] 페이지에서 먼저 구조를 설계해주세요.</p>
+        </div>
+    </div>
+
+    <div id="roadmap-result-area" class="hidden">
+        <div class="top-controls">
+            <div class="section-header">상세 사건 리스트 (Event List)</div>
+            <button class="btn-outline" onclick="resetSelection()">🔄 Part 목록으로</button>
+        </div>
+
+        <div class="ai-generate-bar">
+            <span><i class="fas fa-magic"></i> AI에게 사건 구성을 요청하시겠습니까?</span>
+            <button class="save-btn" style="background:#4a90e2;" onclick="callAiGeneration()">
+                AI 생성 요청
+            </button>
+        </div>
+
+        <div id="roadmap-container"></div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id') || urlParams.get('id');
+    
+    let currentSettings = {}; 
+    let currentWorldSetting = ""; 
+    let currentPart = null; // 선택된 Part 객체
+    let contextData = ""; 
+    let parsedParts = [];     
+
     function movePage(page) {
-        if (settingId) {
-            location.href = `${page}?setting_id=${settingId}`;
-        } else {
-            location.href = page;
-        }
-    }
-    function goToList() {
-        location.href = 'index.html';
+        if (settingId) location.href = `${page}?setting_id=${settingId}`;
+        else location.href = page;
     }
 
-        // [수정 1] 누락된 변수 선언 추가
-        let currentSettings = {}; 
+    window.onload = async function() {
+        if (!settingId) { alert("잘못된 접근입니다."); return; }
         
-        let currentWorldSetting = ""; 
-        let currentPartIndex = 0; // DB 저장 시 사용할 Part 번호
-        let contextData = ""; 
-        let parsedParts = [];     // JSON 파싱된 데이터
+        // 초기 로딩 시에는 목록 화면을 보여줌
+        document.getElementById('part-selection-area').classList.remove('hidden');
+        document.getElementById('roadmap-result-area').classList.add('hidden');
 
-        // --- Initialization ---
-        window.onload = async function() {
-            //console.log("🚀 페이지 로드 시작. Setting ID:", settingId);
+        try {
+            await loadContextData(); 
+            await loadSettingData(settingId);
+        } catch (error) { console.error(error); }
+    };
 
-            if (!settingId) {
-                alert("잘못된 접근입니다. 설정 ID가 없습니다.");
-                // window.location.href = 'index.html'; // 필요 시 주석 해제
-                return;
-            }
-
-            try {
-                // 1. 배경 지식 로드 (순서 중요)
-                await loadContextData(); 
-                
-                // 2. Part 데이터 로드
-                await loadSettingData(settingId);
-            } catch (error) {
-                console.error("❌ 초기화 중 치명적 오류:", error);
-                alert("페이지 초기화 실패: " + error.message);
-            }
-        };
-
-         // AI Context 로드
-        async function loadContextData() {
-            //console.log("🔄 Context 데이터 로딩 중...");
-            try {
-                // API 호출
-                const [sRes, wRes, cRes] = await Promise.all([
-                    fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
-                    fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
-                    fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
-                ]);
-                
-                // [수정 2] 전역 변수에 할당 (이제 에러 안 남)
-                currentSettings = sRes; 
-
-                // 프롬프트용 데이터 구성
-                contextData = `
+    // 1. Context 로드
+    async function loadContextData() {
+        try {
+            const [sRes, wRes, cRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
+                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
+            ]);
+            currentSettings = sRes; 
+              contextData = `
                 [작품 제목]: ${sRes.title || '미정'}
                 [세계관 요약]: ${Array.isArray(wRes) ? wRes.map(w => w.title + ": " + w.description).join('\n') : '없음'}
                 [주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}
                 `;
-                //console.log("✅ Context 로드 완료");
+        } catch (e) { console.warn("Context load failed", e); }
+    }
 
-            } catch (e) { 
-                console.warn("⚠️ Context load failed (일부 데이터 누락 가능):", e); 
-            }
+    // 2. Part 목록 로드
+    async function loadSettingData(id) {
+        showLoading("Part 목록 로딩 중...");
+        try {
+            const response = await fetch(`/api/load-settings?id=${id}`);
+            if (!response.ok) throw new Error("DB 연결 실패");
+            const data = await response.json();
+            currentWorldSetting = data.worldSetting || "일반적인 판타지 세계관";
+            parseAndRenderParts(data.roadmaps);
+        } catch (error) {
+            console.error(error);
+            document.getElementById('empty-msg').style.display = 'block';
+            document.getElementById('empty-msg').innerText = "데이터를 불러오지 못했습니다: " + error.message;
+        } finally { hideLoading(); }
+    }
+
+    function parseAndRenderParts(rawData) {
+        const listContainer = document.getElementById('part-list');
+        listContainer.innerHTML = '';
+        parsedParts = [];
+
+        if (!rawData) {
+            document.getElementById('empty-msg').style.display = 'block';
+            return;
         }
 
-        // --- Functions ---
-
-        /**
-         * 1. DB에서 설정 데이터(Part 목록 포함) 불러오기
-         */
-        async function loadSettingData(id) {
-            showLoading("Part 목록 로딩 중...");
-            try {
-                //console.log(`📡 DB 조회 시작: /api/load-settings?id=${id}`);
-                const response = await fetch(`/api/load-settings?id=${id}`);
+        try {
+            let jsonData = (typeof rawData === 'string') ? JSON.parse(rawData) : rawData;
+            if (Array.isArray(jsonData)) {
+                parsedParts = jsonData.map((item, idx) => ({ ...item, partIndex: item.part || (idx+1) }));
                 
-                if (!response.ok) throw new Error(`DB 연결 실패 (Status: ${response.status})`);
-
-                const data = await response.json();
-                //console.log("📦 DB 응답 데이터:", data);
-                
-                // 데이터 매핑
-                // [중요] DB 컬럼명이 'roadmaps'인지 확인하세요.
-                const rawRoadmaps = data.roadmaps; 
-                //console.log("📜 로드된 Roadmaps 원본:", rawRoadmaps);
-
-                currentWorldSetting = data.worldSetting || "일반적인 판타지 세계관";
-
-                // JSON 파싱 및 렌더링
-                parseAndRenderParts(rawRoadmaps);
-
-            } catch (error) {
-                console.error("❌ loadSettingData 에러:", error);
+                parsedParts.forEach((part, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'part-card';
+                    card.onclick = () => selectPart(index);
+                    card.innerHTML = `
+                        <div>
+                            <span class="part-badge">Part ${part.partIndex}</span>
+                            <h3>${part.title}</h3>
+                            <p class="preview">${part.content}</p>
+                        </div>
+                        <div style="text-align: right; margin-top: 10px; font-weight: bold; color: var(--primary-color);">
+                            상세 보기 &rarr;
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            } else {
                 document.getElementById('empty-msg').style.display = 'block';
-                document.getElementById('empty-msg').innerHTML = `<p>데이터 로드 오류: ${error.message}</p>`;
-            } finally {
-                hideLoading();
             }
+        } catch (e) { 
+            console.error(e); 
+            document.getElementById('empty-msg').innerText = "데이터 파싱 오류";
+            document.getElementById('empty-msg').style.display = 'block';
         }
+    }
 
-        /**
-         * 2. JSON 데이터 파싱 및 Part 목록 렌더링
-         */
-        function parseAndRenderParts(rawData) {
-            const listContainer = document.getElementById('part-list');
-            const emptyMsg = document.getElementById('empty-msg');
-            listContainer.innerHTML = '';
-            parsedParts = [];
+    // 3. Part 선택 -> 상세 화면으로 이동 (튕김 방지 로직 적용)
+    async function selectPart(index) {
+        currentPart = parsedParts[index];
+        
+        // 🌟 [중요] 무조건 상세 화면으로 전환하고 목록은 숨김
+        document.getElementById('part-selection-area').classList.add('hidden');
+        document.getElementById('roadmap-result-area').classList.remove('hidden');
+        
+        // 컨테이너 초기화
+        document.getElementById('roadmap-container').innerHTML = '';
 
-            // 데이터가 없거나 빈 문자열인 경우
-            if (!rawData || (typeof rawData === 'string' && rawData.trim() === "")) {
-                console.warn("⚠️ roadmaps 데이터가 비어있습니다.");
-                emptyMsg.style.display = 'block';
-                emptyMsg.innerHTML = "<p>저장된 Part 줄거리가 없습니다.<br>Plan 페이지에서 먼저 내용을 생성하고 저장해주세요.</p>";
-                return;
+        // DB 조회 시작
+        showLoading(`'${currentPart.title}' 데이터 조회 중...`);
+        
+        try {
+            const response = await fetch(`/api/roadmap?setting_id=${settingId}&part_index=${currentPart.partIndex}`);
+            
+            if (!response.ok) throw new Error("데이터 조회 실패");
+            
+            const events = await response.json();
+            
+            if (events && events.length > 0) {
+                // 저장된 데이터가 있으면 렌더링
+                renderEvents(events);
+            } else {
+                // 없으면 안내 메시지 표시 (목록으로 안 튕김)
+                document.getElementById('roadmap-container').innerHTML = 
+                    `<div style="text-align:center; padding:40px; color:#666; background:#f9f9f9; border-radius:8px;">
+                        <i class="fas fa-file-invoice" style="font-size:2rem; margin-bottom:10px;"></i><br>
+                        이 Part에 저장된 사건이 없습니다.<br>
+                        위 <b>'AI 생성 요청'</b> 버튼을 눌러 사건을 기획해보세요.
+                    </div>`;
             }
-
-            try {
-                // 문자열이면 파싱, 객체면 그대로 사용
-                let jsonData = rawData;
-                if (typeof rawData === 'string') {
-                    try {
-                        jsonData = JSON.parse(rawData);
-                    } catch (e) {
-                        console.error("JSON Parse 1차 실패, 원본 사용 시도:", e);
-                        // 혹시 이중 문자열일 경우를 대비해 한 번 더 파싱 시도할 수도 있음 (선택 사항)
-                    }
-                }
-
-                //console.log("🧩 파싱된 JSON 데이터:", jsonData);
-
-                if (Array.isArray(jsonData)) {
-                    parsedParts = jsonData.map(item => ({
-                        partIndex: item.part,
-                        title: item.title || `Part ${item.part}`,
-                        content: item.content || "",
-                        range: item.range || ""
-                    }));
-
-                    if (parsedParts.length === 0) throw new Error("배열이 비어있음");
-
-                    parsedParts.forEach((part, index) => {
-                        const card = document.createElement('div');
-                        card.className = 'part-card';
-                        card.onclick = () => generateEventsForPart(index); 
-
-                        card.innerHTML = `
-                            <div>
-                                <span class="part-badge">Part ${part.partIndex}</span>
-                                <h3>${part.title}</h3>
-                                <p class="preview">${part.content}</p>
-                            </div>
-                            <div style="text-align: right; margin-top: 10px; font-weight: bold; color: var(--primary-color); font-size: 0.9rem;">
-                                상세 기획하기 &rarr;
-                            </div>
-                        `;
-                        listContainer.appendChild(card);
-                    });
-                    emptyMsg.style.display = 'none';
-                    //console.log(`✅ ${parsedParts.length}개의 Part 카드가 생성되었습니다.`);
-
-                } else {
-                    console.error("형식 불일치: 배열이 아님", jsonData);
-                    throw new Error("데이터 형식이 올바르지 않습니다 (배열 아님).");
-                }
-            } catch (e) {
-                console.error("❌ JSON Parse Error:", e);
-                emptyMsg.style.display = 'block';
-                emptyMsg.innerHTML = `<p>데이터 형식 오류<br><small>${e.message}</small></p>`;
-            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById('roadmap-container').innerHTML = 
+                `<div style="text-align:center; padding:20px; color:red;">오류 발생: ${e.message}</div>`;
+        } finally {
+            hideLoading(); // 로딩만 끔 (화면 전환 X)
         }
+    }
 
-        /**
-         * 3. 선택한 Part로 AI 사건 생성 요청
-         */
-        async function generateEventsForPart(index) {
-            const selectedPart = parsedParts[index];
-            currentPartIndex = selectedPart.partIndex || (index + 1); 
-
-            document.getElementById('part-selection-area').classList.add('hidden');
-            document.getElementById('roadmap-result-area').classList.remove('hidden');
-            document.getElementById('roadmap-container').innerHTML = ''; 
-
-            showLoading(`'${selectedPart.title}' 분석 중...<br>상세 사건을 기획하고 있습니다.`);
-
-            try {
-                // System Instruction (기존과 동일)
-                const systemPrompt = `
+    // 4. AI 생성 호출
+    async function callAiGeneration() {
+        // [수정 포인트 1] selectedPart가 아니라 currentPart를 체크해야 함
+        if (!currentPart) {
+            alert("선택된 Part가 없습니다.");
+            return;
+        }
+        
+        const btn = document.querySelector('.ai-generate-bar button');
+        btn.disabled = true; 
+        btn.innerText = "생성 중...";
+        
+        try {
+            const systemPrompt = `
                 ### [Role]
                 당신은 소설의 챕터(Part)를 분석하여 구체적인 '사건(Event)' 리스트로 기획하는 스토리보드 작가입니다.
 
@@ -526,8 +444,8 @@
                 다음 [Part 정보]를 바탕으로 2~3화 분량의 사건 리스트를 상세히 작성해줘.
 
                 [Part 정보]
-                - 제목: ${selectedPart.title}
-                - 내용: ${selectedPart.content}
+                - 제목: ${currentPart.title}
+                - 내용: ${currentPart.content}
                 `;
 
                 const response = await fetch('/api/generate-text', {
@@ -541,158 +459,218 @@
                         }
                     })
                 });
+				if (!response.ok) throw new Error("AI 호출 실패");
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            
+            if(text) parseAndRenderAiResult(text);
 
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.error || "AI 응답 실패");
-                }
+        } catch(e) { alert("AI 생성 실패: " + e.message); }
+        finally { btn.disabled = false; btn.innerText = "AI 생성 요청"; }
+    }
 
-                const data = await response.json();
-                const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    // 5. AI 결과 파싱 및 렌더링
+    function parseAndRenderAiResult(text) {
+        const container = document.getElementById('roadmap-container');
+        container.innerHTML = ''; // 기존 내용 지우고 새로 생성
 
-                if (!aiText) throw new Error("AI 응답 내용이 비어있습니다.");
-
-                renderResultCards(aiText);
-
-            } catch (error) {
-                console.error(error);
-                alert("생성 중 오류가 발생했습니다: " + error.message);
-                resetSelection();
-            } finally {
-                hideLoading();
-            }
+        const eventBlocks = text.split(/사건 \d+:/).filter(block => block.trim() !== "");
+        
+        if (eventBlocks.length === 0) {
+            container.innerHTML = `<div class="event-card"><div class="event-content">${text.replace(/\n/g, '<br>')}</div></div>`;
+            return;
         }
 
-        /**
-         * 4. AI 응답 텍스트를 카드 형태로 변환 및 저장 기능 연결
-         */
-        function renderResultCards(text) {
-            const container = document.getElementById('roadmap-container');
-            const eventBlocks = text.split(/사건 \d+:/).filter(block => block.trim() !== "");
+        const events = eventBlocks.map((block, index) => {
+            let content = block.trim();
+            let titleMatch = content.match(/\[(.*?)\]/);
+            let fullTitle = titleMatch ? titleMatch[1] : "제목 없음";
+            let rangeMatch = fullTitle.match(/\((.*?)\)/);
+            let rangeText = rangeMatch ? rangeMatch[1] : "";
+            let titleText = fullTitle.replace(/\(.*?\)/, '').trim();
+            let themeMatch = content.match(/- 핵심테마:(.*?)(?=- 사건|\n|$)/s);
+            let themeText = themeMatch ? themeMatch[1].trim() : "";
+            let summaryMatch = content.match(/- 사건 \d+ 줄거리:(.*)/s);
+            let summaryText = summaryMatch ? summaryMatch[1].trim() : content.split("줄거리:")[1]?.trim() || content;
+            
+            return {
+                event_order: index + 1,
+                title: titleText,
+                episode_range: rangeText,
+                theme: themeText,
+                content: summaryText.replace(/\*\*/g, '')
+            };
+        });
+        renderEvents(events);
+    }
 
-            if (eventBlocks.length === 0) {
-                container.innerHTML = `<div class="event-card"><div class="event-content">${text.replace(/\n/g, '<br>')}</div></div>`;
-                return;
-            }
+    // 6. 이벤트 목록 렌더링 (View & Edit 모드)
+    function renderEvents(events) {
+        const container = document.getElementById('roadmap-container');
+        // append 하지 않고 비운 뒤 렌더링 (중복 방지)
+        container.innerHTML = '';
 
-            container.innerHTML = ''; 
-
-            eventBlocks.forEach((block, index) => {
-                let content = block.trim();
-
-                // 1. 대괄호 안의 전체 타이틀 추출: [제목(1화~3화)]
-                let titleMatch = content.match(/\[(.*?)\]/);
-                let fullTitle = titleMatch ? titleMatch[1] : "제목 없음";
-                
-                // 2. 소괄호 안의 회차 정보 추출: (1화~3화)
-                let rangeMatch = fullTitle.match(/\((.*?)\)/);
-                let rangeText = rangeMatch ? rangeMatch[1] : ""; 
-                
-                // 3. 진짜 제목 추출 (회차 정보 제거)
-                let titleText = fullTitle.replace(/\(.*?\)/, '').trim(); 
-
-                // 4. 테마 및 줄거리 파싱
-                let themeMatch = content.match(/- 핵심테마:(.*?)(?=- 사건|\n|$)/s);
-                let themeText = themeMatch ? themeMatch[1].trim() : "";
-
-                let summaryMatch = content.match(/- 사건 \d+ 줄거리:(.*)/s);
-                let summaryText = summaryMatch ? summaryMatch[1].trim() : content.split("줄거리:")[1]?.trim() || content;
-                summaryText = summaryText.replace(/\*\*/g, ''); 
-
-                // 🌟 [핵심 변경] episode_range 필드 추가
-                const eventData = {
-                    setting_id: settingId,
-                    part_index: currentPartIndex,
-                    event_order: index + 1,
-                    title: titleText,
-                    episode_range: rangeText, // "1화~3화" 형태로 저장됨
-                    theme: themeText,
-                    content: summaryText
-                };
-
-                const card = document.createElement('div');
-                card.className = 'event-card';
-                card.innerHTML = `
+        events.forEach((evt, idx) => {
+            const card = document.createElement('div');
+            card.className = 'event-card';
+            const uniqueId = `evt-${Date.now()}-${idx}`;
+            
+            // View Mode HTML
+            const viewHtml = `
+                <div id="view-${uniqueId}">
                     <div class="event-header">
                         <div class="event-title-box">
-                            <span class="event-title">#${index + 1}. ${titleText}</span>
-                            ${rangeText ? `<span class="event-range">${rangeText}</span>` : ''}
+                            <span class="event-title">#${evt.event_order}. ${evt.title}</span>
+                            ${evt.episode_range ? `<span class="event-range">${evt.episode_range}</span>` : ''}
                         </div>
-                        <button class="save-btn" onclick='saveToDB(this, ${JSON.stringify(eventData).replace(/'/g, "&#39;")})'>
-                            💾 저장
-                        </button>
+                        <div class="btn-action-group">
+                            <button class="edit-btn" onclick="toggleEdit('${uniqueId}')"><i class="fas fa-edit"></i> 수정</button>
+                            <button class="save-btn ${evt.id ? 'saved' : ''}" onclick='saveToDB(this, ${JSON.stringify(evt).replace(/'/g, "&#39;")})'>
+                                ${evt.id ? '✅ 저장됨' : '💾 저장'}
+                            </button>
+                        </div>
                     </div>
-                    ${themeText ? `<div class="event-theme">💡 ${themeText}</div>` : ''}
-                    <div class="event-content">${summaryText}</div>
-                `;
-                container.appendChild(card);
+                    ${evt.theme ? `<div class="event-theme">💡 ${evt.theme}</div>` : ''}
+                    <div class="event-content">${evt.content}</div>
+                </div>
+            `;
+
+            // Edit Mode HTML
+            const editHtml = `
+                <div id="edit-${uniqueId}" class="event-edit-form">
+                    <label>제목</label>
+                    <input type="text" id="input-title-${uniqueId}" class="edit-input" value="${evt.title}">
+                    <label>회차 범위 (예: 1~3화)</label>
+                    <input type="text" id="input-range-${uniqueId}" class="edit-input" value="${evt.episode_range || ''}">
+                    <label>핵심 테마</label>
+                    <input type="text" id="input-theme-${uniqueId}" class="edit-input" value="${evt.theme || ''}">
+                    <label>줄거리</label>
+                    <textarea id="input-content-${uniqueId}" class="edit-textarea">${evt.content}</textarea>
+                    
+                    <div style="text-align:right; margin-top:10px;">
+                        <button class="save-btn" style="display:inline-flex;" onclick="confirmEdit('${uniqueId}', ${evt.event_order})">확인</button>
+                        <button class="edit-btn" onclick="toggleEdit('${uniqueId}')">취소</button>
+                    </div>
+                </div>
+            `;
+
+            card.innerHTML = viewHtml + editHtml;
+            container.appendChild(card);
+        });
+    }
+
+    // 7. 편집 토글
+    function toggleEdit(uid) {
+        const viewDiv = document.getElementById(`view-${uid}`);
+        const editDiv = document.getElementById(`edit-${uid}`);
+        
+        if (editDiv.style.display === 'block') {
+            editDiv.style.display = 'none';
+            viewDiv.style.display = 'block';
+        } else {
+            editDiv.style.display = 'block';
+            viewDiv.style.display = 'none';
+        }
+    }
+
+    // 8. 편집 확인 (화면 갱신 및 저장 버튼 활성화)
+    function confirmEdit(uid, order) {
+        const title = document.getElementById(`input-title-${uid}`).value;
+        const range = document.getElementById(`input-range-${uid}`).value;
+        const theme = document.getElementById(`input-theme-${uid}`).value;
+        const content = document.getElementById(`input-content-${uid}`).value;
+
+        // View 갱신
+        const viewDiv = document.getElementById(`view-${uid}`);
+        viewDiv.querySelector('.event-title').innerText = `#${order}. ${title}`;
+        
+        const rangeSpan = viewDiv.querySelector('.event-range');
+        if(rangeSpan) rangeSpan.innerText = range; // rangeSpan이 없으면 생성해야 하지만 간단히 처리
+
+        const themeDiv = viewDiv.querySelector('.event-theme');
+        if(themeDiv) themeDiv.innerText = `💡 ${theme}`;
+        
+        viewDiv.querySelector('.event-content').innerText = content;
+
+        // 저장 버튼 갱신 (데이터 바인딩 업데이트)
+        const saveBtn = viewDiv.querySelector('.save-btn');
+        saveBtn.innerText = "💾 저장 (수정됨)";
+        saveBtn.classList.remove('saved');
+        
+        // 새 데이터 객체 생성
+        const newData = {
+            setting_id: settingId,
+            part_index: currentPart.partIndex,
+            event_order: order,
+            title: title,
+            episode_range: range,
+            theme: theme,
+            content: content
+        };
+        
+        // 버튼 onclick 이벤트 재바인딩
+        saveBtn.onclick = () => saveToDB(saveBtn, newData);
+
+        toggleEdit(uid);
+    }
+
+    // 9. DB 저장
+    async function saveToDB(btnElement, data) {
+        if (!confirm(`'${data.title}' 내용을 저장하시겠습니까?`)) return;
+
+        // 필수 데이터 보강
+        data.setting_id = settingId;
+        data.part_index = currentPart.partIndex;
+
+        const originalText = btnElement.innerText;
+        btnElement.disabled = true;
+        btnElement.innerText = "⏳ 저장 중...";
+
+        try {
+            const response = await fetch('/api/roadmap', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
             });
-        }
 
-        /**
-         * 5. 개별 사건 DB 저장 함수
-         */
-        async function saveToDB(btnElement, data) {
-            if (!confirm(`'${data.title}' 사건을 저장하시겠습니까?`)) return;
-
-            const originalText = btnElement.innerHTML;
-            btnElement.disabled = true;
-            btnElement.innerHTML = "⏳ 저장 중...";
-
-            try {
-                const response = await fetch('/api/roadmap', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (response.ok) {
-                    btnElement.innerHTML = "✅ 저장됨";
-                    btnElement.style.backgroundColor = "#bdc3c7"; 
-                } else {
-                    const err = await response.json();
-                    alert("저장 실패: " + err.error);
-                    btnElement.disabled = false;
-                    btnElement.innerHTML = originalText;
-                }
-            } catch (error) {
-                console.error(error);
-                alert("네트워크 오류: " + error.message);
-                btnElement.disabled = false;
-                btnElement.innerHTML = originalText;
-            }
-        }
-
-        // --- UI Utilities ---
-        function resetSelection() {
-            document.getElementById('part-selection-area').classList.remove('hidden');
-            document.getElementById('roadmap-result-area').classList.add('hidden');
-            document.getElementById('roadmap-container').innerHTML = '';
-        }
-
-        function showLoading(msg) {
-            document.getElementById('loading').style.display = 'block';
-            document.getElementById('loading-text').innerText = msg;
-            document.getElementById('part-selection-area').classList.add('hidden');
-            document.getElementById('roadmap-result-area').classList.add('hidden');
-        }
-
-       function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-            
-            const resultContainer = document.getElementById('roadmap-container');
-            
-            // [수정] innerHTML 텍스트 비교 대신, 실제 자식 요소(카드)가 있는지 확인
-            if (resultContainer.children.length === 0) {
-                // 결과 카드가 없으면 -> Part 목록 화면을 보여준다
-                document.getElementById('part-selection-area').classList.remove('hidden');
-                document.getElementById('roadmap-result-area').classList.add('hidden');
+            if (response.ok) {
+                btnElement.innerText = "✅ 저장됨";
+                btnElement.classList.add('saved');
+                btnElement.disabled = false; 
             } else {
-                // 결과 카드가 있으면 -> 결과 화면을 보여준다
-                document.getElementById('roadmap-result-area').classList.remove('hidden');
-                document.getElementById('part-selection-area').classList.add('hidden');
+                const err = await response.json();
+                alert("저장 실패: " + err.error);
+                btnElement.disabled = false;
+                btnElement.innerText = originalText;
             }
+        } catch (error) {
+            console.error(error);
+            alert("오류 발생");
+            btnElement.disabled = false;
+            btnElement.innerText = originalText;
         }
-    </script>
+    }
+
+    // 10. UI 유틸리티
+    function resetSelection() {
+        document.getElementById('part-selection-area').classList.remove('hidden');
+        document.getElementById('roadmap-result-area').classList.add('hidden');
+        document.getElementById('roadmap-container').innerHTML = '';
+        currentPart = null;
+    }
+
+    function showLoading(msg) {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('loading-text').innerText = msg;
+        // 로딩 중에는 리스트만 숨김 (결과 화면에서 로딩할 때는 유지할 수도 있음)
+        // 여기서는 명확성을 위해 둘 다 숨김 처리 안 하고 오버레이 느낌으로 가거나,
+        // 아니면 그냥 텍스트만 보여줌.
+    }
+
+    // 🌟 [핵심] Hide Loading 수정: 화면 전환 로직 제거하고 로딩바만 끔
+    function hideLoading() {
+        document.getElementById('loading').style.display = 'none';
+    }
+</script>
 </body>
 </html>

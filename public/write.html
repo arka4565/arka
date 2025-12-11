@@ -236,6 +236,7 @@
         <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
         <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
         <a href="#" class="nav-item active"><i class="fas fa-pen-fancy"></i> 집필</a>
+		<a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i> 장면집필</a>
         <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
         <a href="#" class="nav-item" data-target="plan.html"><i class="fas fa-magic"></i> 기획</a>
         <a href="#" class="nav-item" data-target="roadmap.html"><i class="fas fa-magic"></i> 로드맵</a>
@@ -439,13 +440,13 @@
 	- 타이틀: 원고의 제목 작성
 
 	- 분량: 씬(Scene)당 한글 글자로 약 1000자 (공백 미포함).
-				  A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
+				  A5 기준 약 1~2페이지 (1페이지당 한글기준 공백 미포함 700자).
 
 
 
 	품질 기준
 
-	- 버추얼 유튜버와 웹소설을 즐기는 독자가 쉽게 이해하고 몰입할 수 있는 수준.
+	- 웹소설을 즐기는 독자가 쉽게 이해하고 몰입할 수 있는 수준.
 
 	- 웹소설의 고유한 특성과 매력 구현.
 
@@ -465,9 +466,10 @@
 	확정된 개요를 바탕으로 요청 분량에 정확히 맞춘 완성 원고를 작성.
 
 
-	작성 결과:
-	- 총 분량: [실제 작성된 한글 글자 수].
-	- 예상 페이지: 약 [페이지 수]페이지.
+	**씬(Scene)별 작성 결과:**
+	**- 총 분량: [실제 작성된 글자 수].**
+	**- 예상 페이지: 약 [페이지 수]페이지.**
+	
 
 	품질 체크:
 	- ✅ 분량 적정성 (±5% 이내).
@@ -770,15 +772,15 @@
                     const prevStory = globalStories.find(s => s.episode_number === currentStory.episode_number - 1);
                     if (prevStory && prevStory.content) {
                         visibleContext = getLastContextByParagraph(prevStory.content);
-                        contextForAi = `[직전 회차(${prevStory.episode_number}화)의 마지막 장면]\n${visibleContext}`;
+                        contextForAi = "";
                     } else {
-                        contextForAi = "(이전 회차 내용 없음 - 새로운 시작)";
+                        contextForAi = "";
                     }
                 }
             }
 
 			 systemInstruction += "\n\n--- [현재 글의 구체적 설정 정보 (사용자 입력)] ---\n";
-            systemInstruction += `\n\n${contextData}`;
+             systemInstruction += `\n\n${contextData}`;
 
             const payload = {
                 model: "gemini-2.5-flash",
