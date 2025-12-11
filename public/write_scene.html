@@ -714,11 +714,7 @@
         }
     }
 	
-	// 체크박스가 켜져 있고 + 내용이 없을 때만 실행
-const isAuto = document.getElementById('autoGen').checked;
-if (isAuto && currentContent.trim() === "") {
-    generateSceneAI();
-}
+
         let url = '/api/stories';
         let method = 'POST';
         
