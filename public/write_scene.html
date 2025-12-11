@@ -690,7 +690,35 @@
         const stories = await sRes.json();
         const currentEp = episodes.find(e => e.id === currentEpId);
         const existingStory = stories.find(s => s.episode_number === currentEp.episode_number);
+// 장면(Scene) 선택 함수
+    function selectScene(sceneData) {
+        currentSceneId = sceneData.id;
+        
+        // 1. 기존 데이터 화면에 표시 (제목, 본문 등)
+        document.getElementById('sceneTitle').value = sceneData.title;
+        document.getElementById('mainEditor').value = sceneData.content;
+        
+        // ... (기존 선택 로직들) ...
 
+        // 🌟 [추가됨] 자동화 로직: 내용이 비어있으면 AI 생성 자동 시작
+        const currentContent = sceneData.content || "";
+        
+        if (currentContent.trim() === "") {
+            console.log("내용이 비어있어 AI 초안 생성을 자동으로 시작합니다.");
+            
+            // 토스트 메시지나 알림으로 자동 시작됨을 알림 (선택 사항)
+            // alert("내용이 없어 AI가 초안 작성을 시작합니다!"); 
+            
+            // AI 생성 함수 호출 (버튼 클릭과 동일한 동작)
+            generateSceneAI(); 
+        }
+    }
+	
+	// 체크박스가 켜져 있고 + 내용이 없을 때만 실행
+const isAuto = document.getElementById('autoGen').checked;
+if (isAuto && currentContent.trim() === "") {
+    generateSceneAI();
+}
         let url = '/api/stories';
         let method = 'POST';
         
