@@ -16,6 +16,7 @@
             --nav-text: #ecf0f1;
             --border-color: #ddd;
             --danger-color: #e74c3c;
+            --highlight-bg: #fff3cd; /* 강조 색상 */
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -107,7 +108,7 @@
             padding: 10px;
             border-bottom: 1px solid var(--border-color);
             display: flex; justify-content: space-between; align-items: center;
-            background: #fafafa; gap: 10px;
+            background: #fafafa; gap: 10px; flex-shrink: 0;
         }
         .btn-mobile-menu {
             display: none; background: white; border: 1px solid #ddd;
@@ -132,7 +133,7 @@
         /* 2. AI 수정 도구 */
         .ai-tools {
             padding: 10px; background: #fff8f0; border-bottom: 1px solid #eee;
-            display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
+            display: flex; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; flex-shrink: 0;
         }
         .ai-btn {
             font-size: 0.85rem; padding: 6px 12px; border: 1px solid #ffcc80;
@@ -140,9 +141,27 @@
             white-space: nowrap;
         }
 
-        /* 3. 장면 생성기 (높이 수정됨) */
+        /* 🌟 [NEW] 문맥/설정 입력 패널 */
+        .context-panel {
+            background: #fdfbff;
+            border-bottom: 1px solid #eee;
+            padding: 10px 15px;
+            flex-shrink: 0;
+        }
+        .context-header {
+            font-size: 0.9rem; font-weight: bold; color: #555; margin-bottom: 5px;
+            display: flex; justify-content: space-between; cursor: pointer;
+        }
+        .context-input {
+            width: 100%; padding: 8px; border: 1px solid #d1c4e9; border-radius: 6px;
+            font-size: 0.9rem; resize: vertical; min-height: 40px; height: 40px;
+            transition: height 0.3s;
+        }
+        .context-input:focus { height: 80px; }
+
+        /* 3. 장면 생성기 */
         .scene-generator {
-            background: #fdfbff; border-bottom: 1px solid #eee; padding: 15px;
+            background: #fdfbff; border-bottom: 1px solid #eee; padding: 15px; flex-shrink: 0;
         }
         .sg-header {
             font-weight: bold; color: var(--write-color); margin-bottom: 8px;
@@ -150,14 +169,12 @@
         }
         .sg-input-group { display: flex; gap: 10px; align-items: flex-start; }
         
-        /* 🌟 [수정] 높이 150px로 확대, 최소 높이 설정 */
         .sg-textarea {
             flex: 1; padding: 12px; border: 1px solid #d1c4e9; border-radius: 6px;
-            height: 150px; min-height: 150px; 
+            height: 100px; min-height: 80px; 
             font-family: inherit; resize: vertical; font-size: 16px; 
             line-height: 1.5;
         }
-        /* 🌟 [수정] 버튼 높이 조정 (너무 길어지지 않게) */
         .btn-scene-gen {
             background: var(--write-color); color: white; border: none; padding: 0 15px;
             height: 50px; border-radius: 6px; cursor: pointer; font-weight: bold;
@@ -173,7 +190,7 @@
         /* 5. 하단 이어쓰기 패널 */
         .ai-bottom-panel {
             padding: 10px; background: #fdfbff; border-top: 1px solid #eee;
-            display: flex; gap: 10px; padding-bottom: 20px;
+            display: flex; gap: 10px; padding-bottom: 20px; flex-shrink: 0;
         }
         .ai-prompt-input {
             flex: 1; padding: 10px; border: 1px solid #d1c4e9; border-radius: 6px; font-size: 16px;
@@ -215,8 +232,7 @@
             .sidebar-backdrop.active { display: block; }
 
             .sg-input-group { flex-direction: column; }
-            /* 모바일에서도 높이 유지 */
-            .sg-textarea { width: 100%; height: 120px; } 
+            .sg-textarea { width: 100%; height: 100px; } 
             .btn-scene-gen { width: 100%; height: 45px; }
             
             .ep-title-input { font-size: 1rem; }
@@ -232,12 +248,12 @@
     </div>
     <div class="nav-links">
         <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
+		<a href="#" class="nav-item active"><i class="fas fa-pen-fancy"></i> 집필</a>    
+		<a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>        <a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i> 장면집필</a>
         <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
         <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="#" class="nav-item active"><i class="fas fa-pen-fancy"></i> 집필</a>
-		<a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i> 장면집필</a>
-        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
+        
         <a href="#" class="nav-item" data-target="plan.html"><i class="fas fa-magic"></i> 기획</a>
         <a href="#" class="nav-item" data-target="roadmap.html"><i class="fas fa-magic"></i> 로드맵</a>
         <a href="#" class="nav-item" data-target="treatment.html"><i class="fas fa-magic"></i> 트리트먼트</a>
@@ -268,17 +284,25 @@
             
             <input type="text" id="episodeTitle" class="ep-title-input" placeholder="회차 제목">
             <div class="toolbar-actions">
-				<span id="charCount" class="char-counter">0자</span>
+                <span id="charCount" class="char-counter">0자</span>
                 <span id="saveStatus" style="font-size:0.8rem; color:#888; display:none;"></span>
                 <button class="tool-btn btn-delete" onclick="deleteCurrentStory()"><i class="fas fa-trash-alt"></i></button>
                 <button class="tool-btn btn-save" onclick="saveCurrentEpisode()"><i class="fas fa-save"></i></button>
             </div>
         </div>
 
-        <div class="ai-tools" style="display:none">
+        <div class="ai-tools" style="display:none;">
             <button class="ai-btn" onclick="openAiEdit('polish')"><i class="fas fa-magic"></i> 다듬기</button>
             <button class="ai-btn" onclick="openAiEdit('expand')"><i class="fas fa-expand-alt"></i> 묘사</button>
             <button class="ai-btn" onclick="openAiEdit('fix')"><i class="fas fa-check-double"></i> 맞춤법</button>
+        </div>
+
+        <div class="context-panel">
+            <div class="context-header" onclick="document.getElementById('contextInput').focus()">
+                <span><i class="fas fa-book"></i> AI 참고 설정 및 문맥 (Context)</span>
+                <i class="fas fa-chevron-down" style="font-size:0.8rem;"></i>
+            </div>
+            <textarea id="contextInput" class="context-input" placeholder="여기에 작성한 키워드(등장인물 이름, 장소 등)와 관련된 설정을 AI가 자동으로 찾아 참고합니다."></textarea>
         </div>
 
         <div class="scene-generator">
@@ -320,77 +344,48 @@
 
     let currentStoryId = null; 
     let globalStories = []; 
-    let staticContext = "";   
+    // 🌟 RAG용 데이터 저장 변수
+    let allWorldSettings = [];
+    let allCharacters = [];
     let dynamicContext = "";  
-    let contextData = "";     
-    // 🌟 [추가] 글자 수 계산 함수
-    function updateCharCount() {
-        const text = document.getElementById('mainEditor').value;
-        const count = text.length; // 공백 포함
-        // 공백 제외: text.replace(/\s/g, '').length;
-        document.getElementById('charCount').innerText = `${count}자`;
-    }
-    // 시스템 지침 (수정 가능)
-    let systemInstruction = `
+
+    // 기본 시스템 프롬프트 (설정 제외, 규칙만 포함)
+    const baseSystemInstruction = `
+    
     ⚠+ 절대 준수 원칙 (Non-Negotiable Principles)
 
-이 프롬프트의 모든 지시는 최우선적으로 따라야 할 절대적인 규칙입니다.
+	이 프롬프트의 모든 지시는 최우선적으로 따라야 할 절대적인 규칙입니다.
 
-1. 지시의 정확한 이행: 모든 지시는 해석하거나 생략하지 말고, 명시된 그대로, 순서대로 정확하게 수행해야 합니다.
+	1. 지시의 정확한 이행: 모든 지시는 해석하거나 생략하지 말고, 명시된 그대로, 순서대로 정확하게 수행해야 합니다.
 
-2. 인용 코드 절대 미출력: 어떠한 경우에도 당신의 응답에 인용 코드를 포함해서는 안 됩니다. 첨부 파일의 내용은 참고용이며, 이를 바탕으로 완전히 새로운 문장을 자연스럽게 생성해야 합니다.
+	2. 인용 코드 절대 미출력: 어떠한 경우에도 당신의 응답에 인용 코드를 포함해서는 안 됩니다. 첨부 파일의 내용은 참고용이며, 이를 바탕으로 완전히 새로운 문장을 자연스럽게 생성해야 합니다.
 
-3. 작업흐름은 첨부한 '작업 흐름 가이드'에 있는 해당 작업의 상세 프로세스를 따릅니다.
+	3. 작업흐름은 첨부한 '작업 흐름 가이드'에 있는 해당 작업의 상세 프로세스를 따릅니다.
 
-4. AI 검출 회피 원칙: '작업 흐름 가이드'의 "## 핵심 원칙: 인간적 글쓰기 (AI 검출 회피)"을 반영합니다.
+	4. AI 검출 회피 원칙: '작업 흐름 가이드'의 "## 핵심 원칙: 인간적 글쓰기 (AI 검출 회피)"을 반영합니다.
 
 
-역할 (Context)
+	역할 (Context)
 
-	**'구성(Scene)'**
-	내가 제공하는 **'장면 구성(Scene Breakdown)'**을 바탕으로 소설 본문을 작성해야 합니다. 내가 제공하는 구성 요소(상황, 사건, 갈등, 심리, 대사/연출, 엔딩/훅)의 정의와 작성 지침은 다음과 같습니다. 이 지침을 철저히 준수하여 각 씬을 1000자 이상으로 풍성하게 서술하십시오.
+	당신은 한국의 인기 있는 웹소설 작가입니다. 독자의 몰입을 이끌어내는 필력, 생동감 넘치는 캐릭터 묘사, 그리고 '고구마'와 '사이다'를 적절히 조절하는 능력을 갖추고 있습니다. 특히 인물 간의 케미스트리(티키타카)와 장르물의 클리셰를 비트는 유머 코드, 그리고 주인공의 내면 심리를 섬세하게 묘사하는 데 탁월합니다.
 
-	1. 상황 (Situation)
 
-	정의: 씬의 시공간적 배경과 전반적인 분위기(Atmosphere)입니다.
+	전체 글에대한 배경 및 설정 (Context)
 
-	작성 지침: 오감(시각, 청각, 후각 등)을 활용하여 현장감과 몰입감을 주십시오. 날씨, 조명, 공기의 흐름 등을 묘사하여 씬의 톤 앤 매너를 확실히 잡으십시오.
+	- 집필 목표: (사용자의 설정들 또는 간단한 줄거리 스토리 등등 배경과 쓰고자 하는 글의 핵심적인 부분)
 
-	2. 사건 (Incident)
+	- 타겟 독자:
 
-	정의: 씬에서 반드시 벌어져야 하는 핵심 행동(Action)과 스토리 진행입니다.
+	- 핵심 메시지: (주제? 또는 목표?)
 
-	작성 지침: 사건의 인과 관계를 명확히 하고 서사를 전개하십시오. 캐릭터의 행동을 역동적으로 묘사하여 지루하지 않게 서술하십시오.
+	- 독창적 관점:  (독창적인 설정 또는 세계관?)
 
-	3. 갈등 (Conflict)
+	- 필수 포함 요소:  (어떤 문화? 관습? 등등 위 분리된 항목을 통합으로 해도 됨.)
 
-	정의: 인물의 내적 고민, 외적 장애물, 혹은 인물 간의 대립입니다.
+	- 분량: 한글 글자로 6000자 이상(공백 미포함).
+				  A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
 
-	작성 지침: 이야기의 긴장감(Tension)을 조성하십시오. 인물이 겪는 딜레마나 위기를 부각하여 독자가 감정을 이입하고 다음 내용을 궁금해하게 만드십시오.
-
-	4. 심리 (Psychology)
-
-	정의: 사건과 갈등을 겪는 인물의 내면 변화, 감정 상태, 동기입니다.
-
-	작성 지침: 감정을 단순 서술하지 말고, 생각의 흐름(독백), 미세한 표정 변화, 신체 반응 등을 통해 '보여주기(Show, Don't Tell)' 기법으로 입체적으로 묘사하십시오.
-
-	5. 대사/연출 (Dialogue/Direction)
-
-	정의: 핵심 대사(Key Lines)와 시각적 연출(Cinematic Direction) 포인트입니다.
-
-	작성 지침: 제시된 대사를 자연스럽게 녹여내고, 카메라 앵글이 바뀌거나 줌인되는 듯한 시각적 연출을 글에 반영하여 극적인 효과를 주십시오.
-
-	6. 엔딩/훅 (Ending/Hook)
-
-	정의: 챕터의 마지막을 장식하며 다음 화로 연결하는 고리입니다.
-
-	★중요 작성 지침 (Must Follow):
-
-	절대 복사 금지: 입력된 'Ending/Hook'의 설명 텍스트를 본문에 그대로 복사하여 붙여넣지 마십시오. (예: "기대하게 만든다" 같은 설명조 문체 금지)
-
-	서사화(Dramatize): 해당 텍스트에 담긴 작가의 의도(주제, 암시, 기대감)를 파악하여, 주인공의 **비장한 독백(Monologue)**이나 **여운이 남는 묘사(Description)**로 새롭게 창작하여 서술하십시오.
-
-	절단신공: 독자가 다음 화를 궁금해하도록 강렬한 임팩트를 주며 문단을 맺으십시오.
+	- 문단 형식: A타입 서식: 웹소설 문단 스타일을 유지하여 가독성을 높입니다.
 
 
 
@@ -416,10 +411,16 @@
 
 	장르별 어체 및 문체 특성
 
-	- 어체: 3인칭 관찰자 시점으로 서술하되 주인공만 전지적 관찰자 시점으로 서술.
-	- 문체: 대화체와 서술체의 균형 잡힌 조화, 인물의 심리 묘사와 상황 전개의 생동감.
-	- 구성: 인물-사건-배경의 유기적 결합, 갈등과 해결의 극적 구성.
-	- 특수 형식: 시청자(독자) 관련 서술은 채팅창 형식으로 최대한 채팅의 재미로 서술.
+	- 기본 시점: 소설의 본문은 철저히 **1인칭 주인공 시점('나')**으로 서술합니다. 주인공의 속마음과 감각은 구체적으로 묘사하되, 타인의 속마음은 주인공의 눈에 보이는 행동과 표정으로만 추측해서 서술합니다.
+	
+	- 시점 전환 (필수): 주인공이 없는 장소의 사건, 대중의 반응, 혹은 주변 인물들이 주인공에 대해 착각하거나 오해하는 장면을 묘사할 때는 반드시 '*' (구분선)**을 넣고 3인칭 전지적 작가 시점으로 서술 방식을 전환합니다. 해당 장면이 끝나고 다시 주인공 시점으로 돌아올 때도 구분선을 사용합니다.
+	
+	- 문체: 대화체와 서술체의 균형 잡힌 조화. 상황 전개의 생동감 중시.
+	
+	- 구성: 인물-사건-배경의 유기적 결합.
+	
+	- 특수 형식: 시청자 반응, 인터넷 댓글, 뉴스 속보 등은 [채팅창] 혹은 [뉴스] 등의 말머리를 달고 해당 형식을 살려 작성합니다.
+
 
 
 	작업 흐름 (Action)
@@ -435,18 +436,18 @@
 
 	- 언어: 한국어
 
-	- 형식: 요청된 페이지 수에 정확히 맞춘 완성된 원고를 꼭!! 택스트 문서로 제공.
+	- 형식: 요청된 페이지 수에 정확히 맞춘 완성된 원고를 꼭!! 마크다운 택스트 문서로 제공.
 
 	- 타이틀: 원고의 제목 작성
-
-	- 분량: 씬(Scene)당 한글 글자로 약 1000자 (공백 미포함).
-				  A5 기준 약 1~2페이지 (1페이지당 한글기준 공백 미포함 700자).
+	
+	- 분량: 한글 글자로 6000자 이상(공백 미포함).
+				  A5 기준 약 10~12페이지 (1페이지당 한글기준 공백 미포함 700자).
 
 
 
 	품질 기준
 
-	- 웹소설을 즐기는 독자가 쉽게 이해하고 몰입할 수 있는 수준.
+	- 버추얼 유튜버와 웹소설을 즐기는 독자가 쉽게 이해하고 몰입할 수 있는 수준.
 
 	- 웹소설의 고유한 특성과 매력 구현.
 
@@ -466,10 +467,9 @@
 	확정된 개요를 바탕으로 요청 분량에 정확히 맞춘 완성 원고를 작성.
 
 
-	**씬(Scene)별 작성 결과:**
-	**- 총 분량: [실제 작성된 글자 수].**
-	**- 예상 페이지: 약 [페이지 수]페이지.**
-	
+	작성 결과:
+	- 총 분량: [실제 작성된 한글 글자 수].
+	- 예상 페이지: 약 [페이지 수]페이지.
 
 	품질 체크:
 	- ✅ 분량 적정성 (±5% 이내).
@@ -531,6 +531,12 @@
 	- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.
     `;
 
+    function updateCharCount() {
+        const text = document.getElementById('mainEditor').value;
+        const count = text.replace(/\s/g, '').length; // 공백 제외
+        document.getElementById('charCount').innerText = `${count}자 (공백제외)`;
+    }
+
     async function init() {
         if (!settingId) {
             alert("잘못된 접근입니다.");
@@ -549,7 +555,6 @@
         });
     }
 
-    // 🌟 모바일 사이드바 토글
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.querySelector('.sidebar-backdrop');
@@ -557,27 +562,58 @@
         backdrop.classList.toggle('active');
     }
 
+    // 🌟 [수정] 설정 데이터를 JSON 객체로 저장
     async function loadContextData() {
         try {
             const [wRes, cRes] = await Promise.all([
                 fetch(`/api/worldsettings?setting_id=${settingId}`),
                 fetch(`/api/characters?setting_id=${settingId}`)
             ]);
-            const world = await wRes.json();
-            const chars = await cRes.json();
-
-            const worldText = world.map(s => `=== ${s.title} ===\n${s.description}`).join('\n\n');
-            const charsText = chars.map(c => `=== ${c.name} (${c.role}) ===\n${c.description}`).join('\n\n');
-             
-            staticContext = `[세계관]: ${worldText}\n[등장인물]: ${charsText}`;
-            contextData = staticContext;
+            allWorldSettings = await wRes.json();
+            allCharacters = await cRes.json();
         } catch (e) { console.warn("Context load failed", e); }
+    }
+
+    // 🌟 [NEW] 관련 문맥 추출 함수 (RAG)
+    function getRelevantContext(userInput) {
+        if (!userInput || userInput.trim() === "") return "";
+        
+        // 검색 대상 텍스트 = 사용자 입력 내용
+        const searchText = userInput;
+
+        // 1. 세계관 필터링
+        let relevantWorld = allWorldSettings.filter(w => {
+            if (searchText.includes(w.title)) return true;
+            if (w.keywords) {
+                const keywords = w.keywords.split(',').map(k => k.trim());
+                return keywords.some(k => k && searchText.includes(k));
+            }
+            return false;
+        });
+
+        // 2. 캐릭터 필터링
+        let relevantChars = allCharacters.filter(c => {
+            return searchText.includes(c.name);
+        });
+
+        // 3. 텍스트 조합
+        let context = "";
+        if (relevantWorld.length > 0) {
+            context += "[관련 세계관 정보]\n";
+            context += relevantWorld.map(w => `📌 ${w.title}: ${w.description}`).join('\n\n');
+            context += "\n\n";
+        }
+        if (relevantChars.length > 0) {
+            context += "[등장인물 정보 (관련됨)]\n";
+            context += relevantChars.map(c => `👤 ${c.name} (${c.role})\n- 특징: ${c.description}`).join('\n\n');
+        }
+
+        return context;
     }
 
     async function loadPreviousStories(epNum) {
         if (!epNum || epNum <= 1) {
             dynamicContext = "";
-            contextData = staticContext;
             return;
         }
         try {
@@ -585,12 +621,11 @@
             if(res.ok) {
                 const prevStories = await res.json();
                 if (prevStories.length > 0) {
-                    const summary = prevStories.map(s => `[${s.episode_number}화 전체 내용]:\n${s.content}\n`).join('\n================\n');
-                    dynamicContext = `\n[이전 이야기 흐름]:\n${summary}`;
+                    const summary = prevStories.map(s => `[${s.episode_number}화 요약]:\n${s.content}...`).join('\n');
+                    dynamicContext = `\n[이전 이야기 흐름 (참고용)]:\n${summary}`;
                 } else { dynamicContext = ""; }
             }
         } catch (e) { dynamicContext = ""; }
-        contextData = staticContext + dynamicContext;
     }
 
     async function loadStoryList(targetId = null) {
@@ -623,8 +658,6 @@
             if (targetId) {
                 const target = globalStories.find(s => s.id === targetId);
                 if (target) selectStory(target);
-            } else if (!currentStoryId && globalStories.length > 0) {
-                // 모바일 UX: 자동 선택 안 함
             }
         } catch (e) { console.error(e); }
     }
@@ -634,16 +667,13 @@
         document.getElementById('episodeTitle').value = story.title;
         document.getElementById('mainEditor').value = story.content || ''; 
         document.getElementById('mainEditor').disabled = false;
-        // 🌟 글자 수 업데이트
         updateCharCount();
         const listEl = document.getElementById('episodeList');
         Array.from(listEl.children).forEach(li => li.classList.remove('active'));
         const idx = globalStories.findIndex(s => s.id === story.id);
         if (listEl.children[idx]) listEl.children[idx].classList.add('active');
 
-        // 모바일: 선택 시 사이드바 닫기
         if (window.innerWidth <= 900) toggleSidebar();
-
         loadPreviousStories(story.episode_number);
     }
 
@@ -652,10 +682,9 @@
         document.getElementById('episodeTitle').value = '';
         document.getElementById('mainEditor').value = '';
         document.getElementById('mainEditor').disabled = disable;
-		updateCharCount(); // 0자로 초기화
+        updateCharCount();
     }
 
-    // 새 회차 생성
     async function createNewEpisode() {
         let maxNum = 0;
         if (globalStories.length > 0) maxNum = Math.max(...globalStories.map(s => s.episode_number));
@@ -681,13 +710,11 @@
                 const result = await res.json();
                 await loadStoryList(result.id);
                 loadPreviousStories(nextNum);
-                // 모바일에서 새 회차 만들면 사이드바 닫기
                 if (window.innerWidth <= 900) toggleSidebar();
             } else { alert("생성 실패"); }
         } catch (e) { alert("오류 발생"); }
     }
 
-    // 저장
     async function saveCurrentEpisode() {
         if (!currentStoryId) return alert("저장할 회차가 없습니다.");
         const title = document.getElementById('episodeTitle').value;
@@ -705,12 +732,11 @@
             });
             if (res.ok) {
                 alert("저장되었습니다.");
-                loadStoryList(); // 제목 변경 반영
+                loadStoryList();
             } else { alert("저장 실패"); }
         } catch (e) { alert("오류"); }
     }
 
-    // 삭제
     async function deleteCurrentStory() {
         if (!currentStoryId) return alert("삭제할 회차를 선택하세요.");
         if (!confirm("정말로 삭제하시겠습니까?")) return;
@@ -726,9 +752,6 @@
         } catch (e) { alert("오류 발생"); }
     }
 
-    // --- AI 기능 ---
-
-    // 문맥 자르기 헬퍼 함수
     function getLastContextByParagraph(text, minLength = 600) {
         if (!text || text.trim() === "") return "";
         if (text.length <= minLength) return text;
@@ -738,55 +761,68 @@
         return breakIndex !== -1 ? chunk.slice(breakIndex).trim() : text.slice(-minLength);
     }
 
-    // 장면 생성기
+    // 🌟 [수정] 장면 생성 함수 (RAG 적용)
     async function generateScene() {
         if (!currentStoryId) return alert("회차를 먼저 선택해주세요.");
         
         const promptInput = document.getElementById('scenePrompt');
         const userInstruction = promptInput.value.trim();
+        // 🌟 사용자 입력 참고 설정
+        const contextInput = document.getElementById('contextInput').value.trim();
+
         if (!userInstruction) return alert("내용을 입력해주세요.");
 
         const btn = document.querySelector('.btn-scene-gen');
         const editor = document.getElementById('mainEditor');
         const originalBtnHTML = btn.innerHTML;
 
-        if (editor.value.trim().length > 50) {
-            if (!confirm("현재 내용을 덮어쓰시겠습니까?")) return;
-        }
-
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>...';
 
         try {
-            // 문맥 준비
-            let contextForAi = "";
+            // 1. 현재 작성 중인 내용 파악
             let visibleContext = "";
+            let textForAiContext = "";
             const currentEditorContent = editor.value;
 
             if (currentEditorContent.trim().length > 0) {
                 visibleContext = currentEditorContent; 
-                contextForAi = "[현재 작성 중인 원고의 마지막 부분]\n" + getLastContextByParagraph(currentEditorContent);
+                textForAiContext = "[현재 작성 중인 원고의 마지막 부분]\n" + getLastContextByParagraph(currentEditorContent);
             } else {
+                // 이전 회차 내용 참고
                 const currentStory = globalStories.find(s => s.id === currentStoryId);
                 if (currentStory) {
                     const prevStory = globalStories.find(s => s.episode_number === currentStory.episode_number - 1);
                     if (prevStory && prevStory.content) {
-                        visibleContext = getLastContextByParagraph(prevStory.content);
-                        contextForAi = "";
-                    } else {
-                        contextForAi = "";
+                        visibleContext = "";
+                        textForAiContext = "[직전 회차 마지막 부분]\n" + getLastContextByParagraph(prevStory.content);
                     }
                 }
             }
 
-			 systemInstruction += "\n\n--- [현재 글의 구체적 설정 정보 (사용자 입력)] ---\n";
-             systemInstruction += `\n\n${contextData}`;
+            // 🌟 2. 관련 설정 추출 (지시문 + 참고설정 + 본문일부 조합해서 검색)
+            const searchSource = `${userInstruction} ${contextInput} ${textForAiContext}`;
+            const optimizedContext = getRelevantContext(searchSource);
 
+            // 3. 시스템 프롬프트 조립
+            let fullSystemInstruction = baseSystemInstruction;
+            fullSystemInstruction += `\n\n--- [참고할 세계관 및 캐릭터 설정] ---\n${optimizedContext}`;
+            
+            // 사용자가 직접 입력한 '참고 설정'도 명시적으로 포함
+            if(contextInput) {
+                fullSystemInstruction += `\n\n[사용자 추가 참고 메모]\n${contextInput}`;
+            }
+
+            if(dynamicContext) fullSystemInstruction += dynamicContext; // 이전 줄거리 요약
+
+            // 4. 요청
             const payload = {
                 model: "gemini-2.5-flash",
                 payload: {
-				  contents: [{ parts: [{ text: userInstruction }] }],
-				  systemInstruction: { parts: [{ text: systemInstruction }] },
+                  contents: [{ parts: [{ 
+                      text: `${textForAiContext}\n\n[장면 묘사 요청]\n${userInstruction}\n\n위 흐름에 이어 자연스럽게 서술해.` 
+                  }] }],
+                  systemInstruction: { parts: [{ text: fullSystemInstruction }] },
                 }
             };
             
@@ -802,22 +838,24 @@
                 const separator = visibleContext.trim().length > 0 ? "\n\n" : "";
                 editor.value = visibleContext + separator + newScene;
                 editor.scrollTop = editor.scrollHeight;
-				updateCharCount(); // 글자수 갱신
+                updateCharCount();
             } else { alert("AI 응답 없음"); }
 
-        } catch (e) { alert("오류 발생"); } 
+        } catch (e) { alert("오류 발생: " + e.message); } 
         finally {
             btn.disabled = false;
             btn.innerHTML = originalBtnHTML;
         }
     }
 
-    // 이어쓰기
+    // 🌟 [수정] 이어쓰기 함수 (RAG 적용)
     async function generateNext() {
         if (!currentStoryId) return alert("회차를 선택하세요.");
         
         const promptInput = document.getElementById('nextPrompt');
         const userInstruction = promptInput.value;
+        const contextInput = document.getElementById('contextInput').value.trim(); // 🌟
+        
         const editor = document.getElementById('mainEditor');
         const currentText = editor.value;
 
@@ -825,16 +863,23 @@
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>...';
 
-        const currentSystemInstruction = systemInstruction + `\n[배경지식]\n${contextData}`;
-
         try {
+            // 1. 관련 설정 추출 (본문 마지막 1000자 + 지시어 + 참고설정)
+            const searchSource = `${currentText.slice(-1000)} ${userInstruction} ${contextInput}`;
+            const optimizedContext = getRelevantContext(searchSource);
+
+            // 2. 시스템 프롬프트 조립
+            let fullSystemInstruction = baseSystemInstruction;
+            fullSystemInstruction += `\n\n--- [참고할 설정] ---\n${optimizedContext}`;
+            if(contextInput) fullSystemInstruction += `\n[사용자 메모]: ${contextInput}`;
+
             const payload = {
                 model: "gemini-2.5-flash",
                 payload: {
-                    systemInstruction: { parts: [{ text: currentSystemInstruction }] },
+                    systemInstruction: { parts: [{ text: fullSystemInstruction }] },
                     contents: [{
                         parts: [{
-                            text: `[현재 본문] ...${currentText.slice(-1000)}\n[요청] 다음 장면을 이어 써줘. 지시: ${userInstruction || '자연스럽게'}`
+                            text: `[현재 본문] ...${currentText.slice(-1500)}\n[요청] 다음 장면을 이어 써줘. 지시: ${userInstruction || '자연스럽게 이어지도록'}`
                         }]
                     }]
                 }
@@ -852,7 +897,7 @@
                 editor.value += "\n\n" + newContent;
                 editor.scrollTop = editor.scrollHeight;
                 promptInput.value = ''; 
-				updateCharCount();
+                updateCharCount();
             } else { alert("AI 응답 없음"); }
         } catch (e) { alert("생성 실패"); } 
         finally {
@@ -861,7 +906,6 @@
         }
     }
 
-    // 수정 도구
     async function openAiEdit(mode) {
         const editor = document.getElementById('mainEditor');
         const start = editor.selectionStart;
@@ -915,7 +959,7 @@
         const editor = document.getElementById('mainEditor');
         editor.value = editor.value.substring(0, start) + newText + editor.value.substring(end);
         updateCharCount();
-		closeAiModal();
+        closeAiModal();
     }
 
     init();

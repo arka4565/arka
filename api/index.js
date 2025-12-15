@@ -908,7 +908,7 @@ app.post('/api/generate-text', async (req, res) => {
  * POST /api/roadmap
  */
 app.post('/api/roadmap', (req, res) => {
-    // episode_range 추가
+    // episode_range 파라미터 확인
     const { setting_id, part_index, event_order, title, episode_range, theme, content } = req.body;
 
     if (!setting_id || !title) {
@@ -919,12 +919,22 @@ app.post('/api/roadmap', (req, res) => {
         INSERT INTO roadmap (setting_id, part_index, event_order, title, episode_range, theme, content)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE
-        setting_id = VALUES(setting_id),
-        event_order = VALUES(event_order)
+        title = VALUES(title),
+        episode_range = VALUES(episode_range),
+        theme = VALUES(theme),
+        content = VALUES(content)
     `;
 
-    // 파라미터 순서 주의: episode_range 추가됨
-    db.query(sql, [setting_id, part_index || 0, event_order || 0, title, episode_range || '', theme, content], (err, result) => {
+    // 🌟 [수정 핵심] event_order 기본값 1, episode_range 매핑 확인
+    db.query(sql, [
+        setting_id, 
+        part_index || 0, 
+        event_order || 1,      // 0 대신 1 사용
+        title, 
+        episode_range || '',   // 빈 값이면 빈 문자열
+        theme, 
+        content
+    ], (err, result) => {
         if (err) {
             console.error('roadmap 저장/수정 실패:', err);
             return res.status(500).json({ error: err.message });
@@ -972,7 +982,160 @@ app.delete('/api/roadmap/:id', (req, res) => {
     });
 });
 
+/**
+ * 4. 사건(Part) 대량 저장 (AI 생성 결과 저장용)
+ * POST /api/roadmap/bulk
+ */
+app.post('/api/roadmap/bulk', (req, res) => {
+    const { setting_id, roadmaps } = req.body; 
 
+    if (!setting_id || !Array.isArray(roadmaps) || roadmaps.length === 0) {
+        return res.status(400).json({ message: '데이터 형식이 올바르지 않습니다.' });
+    }
+
+    const sql = `
+        INSERT INTO roadmap (setting_id, part_index, event_order, title, episode_range, theme, content)
+        VALUES ?
+        ON DUPLICATE KEY UPDATE
+        title = VALUES(title),
+        episode_range = VALUES(episode_range),
+        theme = VALUES(theme),
+        content = VALUES(content)
+    `;
+
+    // 🌟 [수정 핵심] item.range를 episode_range로 매핑 & event_order를 1로 설정
+    const values = roadmaps.map(item => [
+        setting_id,
+        item.part,              // part_index
+        item.event_order || 1,  // 🌟 event_order: 없으면 1로 저장 (0이 아님)
+        item.title,
+        item.range,             // 🌟 프론트엔드에서 보낸 key('range')를 DB 컬럼('episode_range')에 매핑
+        item.theme,
+        item.content
+    ]);
+
+    db.query(sql, [values], (err, result) => {
+        if (err) {
+            console.error('Roadmap Bulk Insert Error:', err);
+            return res.status(500).json({ error: err.message });
+        }
+        res.status(200).json({ message: `${result.affectedRows}개의 Part가 저장되었습니다.` });
+    });
+});
+
+/**
+ * 1. 기획(Plan) 목록 조회
+ * GET /api/plans?setting_id={id}
+ */
+router.get('/plans', (req, res) => {
+    const settingId = req.query.setting_id;
+    if (!settingId) return res.status(400).json({ error: 'setting_id is required' });
+
+    // part_index 순서대로 정렬하여 가져옴
+    const sql = `
+        SELECT id, setting_id, part_index, title, theme, content, episode_range 
+        FROM plan 
+        WHERE setting_id = ? 
+        ORDER BY part_index ASC
+    `;
+
+    db.query(sql, [settingId], (err, results) => {
+        if (err) {
+            console.error('DB Error /api/plans (GET):', err);
+            return res.status(500).json({ error: '기획 데이터 로드 실패' });
+        }
+        res.status(200).json(results);
+    });
+});
+
+/**
+ * 2. 기획(Plan) 전체 저장 (Bulk Save)
+ * POST /api/plans/bulk
+ * - 기존 해당 설정의 Plan을 모두 지우고 새로 덮어쓰는 방식 (트랜잭션 처리)
+ */
+app.post('/api/plans/bulk', (req, res) => {
+    const { setting_id, plans } = req.body;
+
+    if (!setting_id || !Array.isArray(plans)) {
+        return res.status(400).json({ message: '유효하지 않은 데이터 형식입니다.' });
+    }
+
+    db.getConnection((err, connection) => {
+        if (err) return res.status(500).json({ error: 'Database connection failed' });
+
+        connection.beginTransaction(err => {
+            if (err) {
+                connection.release();
+                return res.status(500).json({ error: 'Transaction start failed' });
+            }
+
+            // 1. 기존 Plan 데이터 삭제
+            const deleteSql = 'DELETE FROM plan WHERE setting_id = ?';
+            connection.query(deleteSql, [setting_id], (err, result) => {
+                if (err) {
+                    return connection.rollback(() => {
+                        connection.release();
+                        console.error('Delete plan failed:', err);
+                        res.status(500).json({ error: 'Failed to delete old plans' });
+                    });
+                }
+
+                // plans 배열이 비어있으면(모두 삭제된 경우) 여기서 커밋
+                if (plans.length === 0) {
+                    return connection.commit(err => {
+                        if (err) {
+                            return connection.rollback(() => {
+                                connection.release();
+                                res.status(500).json({ error: 'Commit failed' });
+                            });
+                        }
+                        connection.release();
+                        res.json({ message: 'Plan cleared successfully.' });
+                    });
+                }
+
+                // 2. 새로운 Plan 데이터 일괄 삽입
+                const insertSql = `
+                    INSERT INTO plan (setting_id, part_index, title, theme, content, episode_range)
+                    VALUES ?
+                `;
+
+                // 프론트엔드 데이터(plans)를 DB 컬럼 순서에 맞게 배열로 변환
+                const values = plans.map(p => [
+                    setting_id,
+                    p.part,          // part_index
+                    p.title,
+                    p.theme,
+                    p.content,
+                    p.range          // episode_range
+                ]);
+
+                connection.query(insertSql, [values], (err, result) => {
+                    if (err) {
+                        return connection.rollback(() => {
+                            connection.release();
+                            console.error('Insert plan failed:', err);
+                            res.status(500).json({ error: 'Failed to insert new plans' });
+                        });
+                    }
+
+                    // 3. 트랜잭션 커밋
+                    connection.commit(err => {
+                        if (err) {
+                            return connection.rollback(() => {
+                                connection.release();
+                                res.status(500).json({ error: 'Transaction commit failed' });
+                            });
+                        }
+                        connection.release();
+                        console.log(`✅ Plan saved. setting_id: ${setting_id}, count: ${plans.length}`);
+                        res.json({ message: 'Plan saved successfully' });
+                    });
+                });
+            });
+        });
+    });
+});
 
 // 🌟🌟🌟 [END NEW] Gemini API 프록시 엔드포인트 🌟🌟🌟
 

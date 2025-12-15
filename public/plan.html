@@ -233,7 +233,84 @@
             border-radius: 12px;
             border: 2px dashed #eee;
         }
+/* --- 모달(레이어 팝업) 스타일 --- */
+.modal-overlay {
+    display: none; /* 기본적으로 숨김 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+}
+.modal-window {
+    background: white;
+    width: 90%;
+    max-width: 800px;
+    height: 85vh; /* 화면 높이의 85% */
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+}
+.modal-title { font-size: 1.2rem; font-weight: bold; color: #333; }
+.modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f4f6f8;
+}
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    background: white;
+}
+.btn-secondary {
+    background: #95a5a6;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-secondary:hover { background: #7f8c8d; }
+.btn-primary {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.btn-primary:hover { background: #2980b9; }
 
+/* 미리보기 카드 스타일 (약간 축소형) */
+.preview-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+.preview-title { font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+.preview-content { font-size: 0.9rem; color: #555; white-space: pre-wrap; line-height: 1.5; }
         @media (max-width: 768px) {
             .container { padding: 15px; }
             .part-header { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -249,12 +326,12 @@
     </div>
     <div class="nav-links">
         <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
+        <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-magic"></i> 상세편집</a>
+        <a href="javascript:void(0)" onclick="movePage('write_scene.html')" class="nav-item"><i class="fas fa-layer-group"></i>장면집필</a>
         <a href="javascript:void(0)" onclick="movePage('world.html')" class="nav-item"><i class="fas fa-globe"></i> 세계관</a>
         <a href="javascript:void(0)" onclick="movePage('characters.html')" class="nav-item"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="javascript:void(0)" onclick="movePage('write_scene.html')" class="nav-item"><i class="fas fa-layer-group"></i>장면집필</a>
-        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-magic"></i> 상세편집</a>
         <a href="javascript:void(0)" onclick="movePage('plan.html')" class="nav-item active"><i class="fas fa-layer-group"></i> 기획</a>
         <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item "><i class="fas fa-map-signs"></i> 로드맵</a>
         <a href="javascript:void(0)" onclick="movePage('treatment.html')" class="nav-item "><i class="fas fa-file-alt"></i> 트리트먼트</a>
@@ -301,6 +378,7 @@
 
     let contextData = ""; 
     let roadmapData = []; // [{ part: 1, title: "", range: "", content: "" }, ...]
+	let tempRoadmapData = []; //[추가] 임시 저장용 변수
     let currentSettings = {};
 
     window.onload = init;
@@ -336,19 +414,30 @@
         } catch (e) { console.warn("Context fail", e); }
     }
 
-    // 2. 저장된 로드맵 불러오기
+    // 2. 🌟 [수정] 저장된 로드맵(Plan) 불러오기 (DB Table: plan)
     async function loadRoadmapData() {
-        if (currentSettings.roadmaps) {
-            try {
-                // DB에는 JSON 문자열로 저장되어 있으므로 파싱
-                let data = currentSettings.roadmaps;
-                if (typeof data === 'string') data = JSON.parse(data);
+        try {
+            const res = await fetch(`/api/plans?setting_id=${settingId}`);
+            if (res.ok) {
+                const data = await res.json();
                 
+                // DB 필드명(part_index, episode_range)을 UI용 객체(part, range)로 변환
                 if (Array.isArray(data)) {
-                    roadmapData = data;
+                    roadmapData = data.map(item => ({
+                        id: item.id,            // DB PK (필요시 사용)
+                        part: item.part_index,  // DB: part_index -> JS: part
+                        title: item.title,
+                        theme: item.theme,
+                        content: item.content,
+                        range: item.episode_range // DB: episode_range -> JS: range
+                    }));
                     renderRoadmap();
                 }
-            } catch (e) { console.error("JSON parse error", e); }
+            } else {
+                console.warn("플랜 데이터를 불러오지 못했습니다.");
+            }
+        } catch (e) { 
+            console.error("Load Plan Error", e); 
         }
     }
 
@@ -358,7 +447,6 @@
         const total = document.getElementById('totalEpisodes').value || 200;
         
         if (!prompt) return alert("요청 내용을 입력하세요.");
-        if (roadmapData.length > 0 && !confirm("기존 내용이 삭제됩니다. 계속하시겠습니까?")) return;
 
         const btn = document.getElementById('btnGenerate');
         const orgText = btn.innerHTML;
@@ -400,10 +488,9 @@
             if (text) {
                 // JSON 파싱 (코드블럭 제거)
                 const jsonStr = text.replace(/```json|```/g, '').trim();
-                roadmapData = JSON.parse(jsonStr);
-                renderRoadmap();
-                // 자동 저장
-                saveRoadmap(true); 
+				 // 🌟 [변경] 바로 roadmapData에 넣지 않고 tempRoadmapData에 저장 후 모달 오픈
+                tempRoadmapData = JSON.parse(jsonStr);
+                openPreviewModal();
             }
 
         } catch (e) {
@@ -475,6 +562,7 @@
         // 전체 저장 버튼 보이기
         document.getElementById('btnSaveMap').style.display = 'inline-flex';
     }
+	
 
     // 🌟 [수정 기능 1] 편집 모드 활성화
     function enableEdit(index) {
@@ -505,7 +593,7 @@
         renderRoadmap();
     }
 
-    // 5. DB 전체 저장
+    // 5. 🌟 [수정] DB 전체 저장 (Plan 테이블로 저장)
     async function saveRoadmap(silent = false) {
         if (!settingId) return;
         
@@ -516,21 +604,21 @@
         }
 
         try {
-            // DB에 JSON 문자열로 저장 (settings 테이블의 roadmaps 컬럼 업데이트)
-            // 참고: 기존 API 구조상 /api/settings/update 혹은 별도 저장이 필요함.
-            // 여기서는 임의로 기존 로직에 맞춰 처리 (settings 업데이트 가정)
-            
-            const response = await fetch('/api/save-roadmap-data', { // 백엔드에 이 API가 있어야 함. 없으면 settings update 사용
+            // 변경된 백엔드 API 호출 (/api/plans/bulk)
+            // roadmapData 배열 전체를 보냄 (객체 구조는 JS 기준: part, range, title...)
+            const response = await fetch('/api/plans/bulk', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id: settingId,
-                    roadmaps: JSON.stringify(roadmapData) // 배열을 문자열로 변환하여 저장
+                    setting_id: settingId,
+                    plans: roadmapData 
                 })
             });
 
             if (response.ok) {
                 if(!silent) alert("저장되었습니다.");
+                // 저장 후 ID 등의 동기화를 위해 다시 로드하는 것도 좋은 방법임
+                // await loadRoadmapData(); 
             } else {
                 throw new Error("저장 실패");
             }
@@ -544,7 +632,59 @@
             }
         }
     }
-</script>
+	
+	function openPreviewModal() {
+        const listArea = document.getElementById('previewListArea');
+        listArea.innerHTML = '';
+        
+        if(!tempRoadmapData || tempRoadmapData.length === 0) return;
 
+        tempRoadmapData.forEach(item => {
+             const div = document.createElement('div');
+             div.className = 'preview-card';
+             div.innerHTML = `
+                <div class="preview-title">Part ${item.part}. ${item.title} (${item.range})</div>
+                <div style="font-size:0.85rem; color:#d35400; margin-bottom:5px;">💡 ${item.theme}</div>
+                <div class="preview-content">${item.content}</div>
+             `;
+             listArea.appendChild(div);
+        });
+
+        document.getElementById('previewModal').style.display = 'flex';
+    }
+
+    function closePreviewModal() {
+        document.getElementById('previewModal').style.display = 'none';
+    }
+
+    function applyPreview() {
+        // AI가 생성한 데이터로 현재 데이터를 교체
+        roadmapData = JSON.parse(JSON.stringify(tempRoadmapData));
+        renderRoadmap();
+        closePreviewModal();
+        
+        // (선택사항) 적용 즉시 자동 저장하려면 아래 주석 해제
+        // saveRoadmap(true);
+    }
+</script>
+<div id="previewModal" class="modal-overlay">
+    <div class="modal-window">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-magic"></i> AI 구조 생성 결과 미리보기</div>
+            <button onclick="closePreviewModal()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="previewListArea">
+            </div>
+        <div class="modal-footer">
+            <span style="margin-right:auto; font-size:0.9rem; color:#e74c3c;">
+                <i class="fas fa-exclamation-triangle"></i> 적용 시 기존 내용은 삭제됩니다.
+            </span>
+            <button class="btn-secondary" onclick="closePreviewModal()">취소</button>
+            <button class="btn-primary" onclick="applyPreview()">현재 구조로 교체(적용)</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

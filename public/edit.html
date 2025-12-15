@@ -141,12 +141,12 @@
     </div>
     <div class="nav-links">
         <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
+		  <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item active"><i class="fas fa-magic"></i> 상세편집</a>
+        <a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i>장면집필</a>
         <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
         <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i>장면집필</a>
-        <a href="#" class="nav-item active"><i class="fas fa-magic"></i> 상세편집</a>
         <a href="#" class="nav-item" data-target="plan.html"><i class="fas fa-magic"></i> 기획</a>
         <a href="#" class="nav-item" data-target="roadmap.html"><i class="fas fa-map-signs"></i> 로드맵</a>
         <a href="#" class="nav-item" data-target="treatment.html"><i class="fas fa-file-alt"></i> 트리트먼트</a>
@@ -648,30 +648,48 @@
     }
 	
 	// 🌟 [NEW] 설정집 다운로드 기능
+    // 🌟 [수정됨] 설정집 다운로드 기능 (세계관/캐릭터 테이블 상세 데이터 포함)
     async function downloadSettingsTxt() {
         try {
-            const [sRes] = await Promise.all([
-                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json())
+            // 1. 기본설정, 세계관 목록, 캐릭터 목록 3가지를 동시에 조회합니다.
+            const [sRes, wRes, cRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),      // 기본 정보 (제목, 줄거리 등)
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()), // 세계관 테이블
+                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())     // 캐릭터 테이블
             ]);
 
             let text = `[ 제목 ] ${sRes.title}\n\n`;
-            text += `====================================\n`;
-            text += `[ 작품 소개 (로그라인) ]\n`;
-            text += `====================================\n`;
-            text += `${sRes.plotDetails || '내용 없음'}\n\n`;
 
+            // 2. 세계관 (world_settings 테이블 반복 출력)
             text += `====================================\n`;
             text += `[ 세계관 설정 ]\n`;
             text += `====================================\n`;
-            text += `${sRes.worldSetting || '내용 없음'}\n\n`;
             
+            if (wRes && wRes.length > 0) {
+                wRes.forEach(item => {
+                    text += `■ ${item.title}\n`;
+                    if (item.keywords) text += `   - 키워드: ${item.keywords}\n`;
+                    text += `   ${item.description || '내용 없음'}\n\n`;
+                });
+            } else {
+                text += `(등록된 세계관 설정이 없습니다.)\n\n`;
+            }
+            
+            // 3. 등장인물 (characters 테이블 반복 출력)
             text += `====================================\n`;
             text += `[ 등장인물 ]\n`;
             text += `====================================\n`;
-			text += `${sRes.characterDetails || '내용 없음'}\n\n`;
-			
-          
 
+            if (cRes && cRes.length > 0) {
+                cRes.forEach(char => {
+                    text += `■ ${char.name} [${char.role || '역할 미정'}]\n`;
+                    text += `   ${char.description || '내용 없음'}\n\n`;
+                });
+            } else {
+                text += `(등록된 등장인물이 없습니다.)\n\n`;
+            }
+            
+            // 4. 파일 생성 및 다운로드
             const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);

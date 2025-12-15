@@ -212,13 +212,13 @@
         <a href="javascript:void(0)" onclick="location.href='index.html'" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
     </div>
     <div class="nav-links">
-        <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>
+        <a href="javascript:void(0)" onclick="movePage('settings.html')" class="nav-item"><i class="fas fa-cog"></i> 설정</a>		
+        <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-magic"></i> 상세편집</a>
+        <a href="javascript:void(0)" onclick="movePage('write_scene.html')" class="nav-item"><i class="fas fa-layer-group"></i>장면집필</a>
         <a href="javascript:void(0)" onclick="movePage('world.html')" class="nav-item"><i class="fas fa-globe"></i> 세계관</a>
         <a href="javascript:void(0)" onclick="movePage('characters.html')" class="nav-item"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="javascript:void(0)" onclick="movePage('plot.html')" class="nav-item"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="javascript:void(0)" onclick="movePage('write.html')" class="nav-item"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="javascript:void(0)" onclick="movePage('write_scene.html')" class="nav-item"><i class="fas fa-layer-group"></i>장면집필</a>
-        <a href="javascript:void(0)" onclick="movePage('edit.html')" class="nav-item"><i class="fas fa-magic"></i> 상세편집</a>
         <a href="javascript:void(0)" onclick="movePage('plan.html')" class="nav-item"><i class="fas fa-layer-group"></i> 기획</a>
         <a href="javascript:void(0)" onclick="movePage('roadmap.html')" class="nav-item active"><i class="fas fa-map-signs"></i> 로드맵</a>
         <a href="javascript:void(0)" onclick="movePage('treatment.html')" class="nav-item "><i class="fas fa-file-alt"></i> 트리트먼트</a>
@@ -237,10 +237,10 @@
     </div>
 
     <div id="part-selection-area">
-        <div class="section-header">작업할 Part 선택</div>
+        <div class="section-header">작업할 Part 선택 (Plan List)</div>
         <div id="part-list" class="part-grid"></div>
         <div id="empty-msg" style="text-align: center; color: #999; display: none; padding: 30px;">
-            <p>⚠️ 저장된 Part 정보가 없습니다. [기획] 페이지에서 먼저 구조를 설계해주세요.</p>
+            <p>⚠️ 저장된 기획(Plan)이 없습니다. [기획] 페이지에서 먼저 구조를 설계해주세요.</p>
         </div>
     </div>
 
@@ -250,8 +250,17 @@
             <button class="btn-outline" onclick="resetSelection()">🔄 Part 목록으로</button>
         </div>
 
+        <div id="current-part-display" style="background:#f1f3f5; padding:20px; border-radius:12px; margin-bottom:25px; border-left:5px solid var(--primary-color);">
+            <h3 id="cp-title" style="margin:0 0 10px 0; color:#2c3e50;">Part Title</h3>
+            <div style="margin-bottom:10px;">
+                <span id="cp-range" style="background:#2c3e50; color:#fff; padding:4px 10px; border-radius:15px; font-size:0.85rem;">Range</span>
+                <span id="cp-theme" style="margin-left:10px; font-weight:bold; color:#d35400;"></span>
+            </div>
+            <p id="cp-content" style="margin:0; color:#495057; line-height:1.6; white-space: pre-wrap;">Content...</p>
+        </div>
+
         <div class="ai-generate-bar">
-            <span><i class="fas fa-magic"></i> AI에게 사건 구성을 요청하시겠습니까?</span>
+            <span><i class="fas fa-magic"></i> 선택한 Part 내용을 바탕으로 사건을 생성할까요?</span>
             <button class="save-btn" style="background:#4a90e2;" onclick="callAiGeneration()">
                 AI 생성 요청
             </button>
@@ -266,10 +275,9 @@
     const settingId = urlParams.get('setting_id') || urlParams.get('id');
     
     let currentSettings = {}; 
-    let currentWorldSetting = ""; 
-    let currentPart = null; // 선택된 Part 객체
+    let parsedParts = []; // Plan 테이블에서 불러온 데이터 리스트
+    let currentPart = null; // 사용자가 선택한 특정 Plan 객체
     let contextData = ""; 
-    let parsedParts = [];     
 
     function movePage(page) {
         if (settingId) location.href = `${page}?setting_id=${settingId}`;
@@ -279,17 +287,15 @@
     window.onload = async function() {
         if (!settingId) { alert("잘못된 접근입니다."); return; }
         
-        // 초기 로딩 시에는 목록 화면을 보여줌
         document.getElementById('part-selection-area').classList.remove('hidden');
         document.getElementById('roadmap-result-area').classList.add('hidden');
 
         try {
             await loadContextData(); 
-            await loadSettingData(settingId);
+            await loadPlansData(settingId);
         } catch (error) { console.error(error); }
     };
 
-    // 1. Context 로드
     async function loadContextData() {
         try {
             const [sRes, wRes, cRes] = await Promise.all([
@@ -298,197 +304,145 @@
                 fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
             ]);
             currentSettings = sRes; 
-              contextData = `
+            contextData = `
                 [작품 제목]: ${sRes.title || '미정'}
                 [세계관 요약]: ${Array.isArray(wRes) ? wRes.map(w => w.title + ": " + w.description).join('\n') : '없음'}
                 [주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}
-                `;
+            `;
         } catch (e) { console.warn("Context load failed", e); }
     }
 
-    // 2. Part 목록 로드
-    async function loadSettingData(id) {
-        showLoading("Part 목록 로딩 중...");
+    async function loadPlansData(id) {
+        showLoading("기획(Plan) 목록 불러오는 중...");
         try {
-            const response = await fetch(`/api/load-settings?id=${id}`);
-            if (!response.ok) throw new Error("DB 연결 실패");
-            const data = await response.json();
-            currentWorldSetting = data.worldSetting || "일반적인 판타지 세계관";
-            parseAndRenderParts(data.roadmaps);
-        } catch (error) {
-            console.error(error);
-            document.getElementById('empty-msg').style.display = 'block';
-            document.getElementById('empty-msg').innerText = "데이터를 불러오지 못했습니다: " + error.message;
-        } finally { hideLoading(); }
-    }
-
-    function parseAndRenderParts(rawData) {
-        const listContainer = document.getElementById('part-list');
-        listContainer.innerHTML = '';
-        parsedParts = [];
-
-        if (!rawData) {
-            document.getElementById('empty-msg').style.display = 'block';
-            return;
-        }
-
-        try {
-            let jsonData = (typeof rawData === 'string') ? JSON.parse(rawData) : rawData;
-            if (Array.isArray(jsonData)) {
-                parsedParts = jsonData.map((item, idx) => ({ ...item, partIndex: item.part || (idx+1) }));
-                
-                parsedParts.forEach((part, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'part-card';
-                    card.onclick = () => selectPart(index);
-                    card.innerHTML = `
-                        <div>
-                            <span class="part-badge">Part ${part.partIndex}</span>
-                            <h3>${part.title}</h3>
-                            <p class="preview">${part.content}</p>
-                        </div>
-                        <div style="text-align: right; margin-top: 10px; font-weight: bold; color: var(--primary-color);">
-                            상세 보기 &rarr;
-                        </div>
-                    `;
-                    listContainer.appendChild(card);
-                });
+            const response = await fetch(`/api/plans?setting_id=${id}`);
+            if (!response.ok) throw new Error("Plan 데이터 로드 실패");
+            
+            const plans = await response.json();
+            
+            if (Array.isArray(plans) && plans.length > 0) {
+                parsedParts = plans.map(p => ({
+                    partIndex: p.part_index,
+                    title: p.title,
+                    content: p.content,
+                    range: p.episode_range,
+                    theme: p.theme
+                }));
+                renderPartList(parsedParts);
             } else {
                 document.getElementById('empty-msg').style.display = 'block';
             }
-        } catch (e) { 
-            console.error(e); 
-            document.getElementById('empty-msg').innerText = "데이터 파싱 오류";
+        } catch (error) {
+            console.error(error);
+            document.getElementById('empty-msg').innerText = "데이터 로드 실패: " + error.message;
             document.getElementById('empty-msg').style.display = 'block';
-        }
+        } finally { hideLoading(); }
     }
 
-    // 3. Part 선택 -> 상세 화면으로 이동 (튕김 방지 로직 적용)
+    function renderPartList(parts) {
+        const listContainer = document.getElementById('part-list');
+        listContainer.innerHTML = '';
+
+        parts.forEach((part, index) => {
+            const card = document.createElement('div');
+            card.className = 'part-card';
+            card.onclick = () => selectPart(index);
+            card.innerHTML = `
+                <div>
+                    <span class="part-badge">Part ${part.partIndex}</span>
+                    <h3>${part.title}</h3>
+                    <p class="preview">${part.content}</p>
+                    <small style="color:#666; display:block; margin-top:5px;">📅 ${part.range}</small>
+                </div>
+                <div style="text-align: right; margin-top: 10px; font-weight: bold; color: var(--primary-color);">
+                    상세 사건 기획 &rarr;
+                </div>
+            `;
+            listContainer.appendChild(card);
+        });
+    }
+
     async function selectPart(index) {
         currentPart = parsedParts[index];
         
-        // 🌟 [중요] 무조건 상세 화면으로 전환하고 목록은 숨김
+        // 1. 화면 전환
         document.getElementById('part-selection-area').classList.add('hidden');
         document.getElementById('roadmap-result-area').classList.remove('hidden');
         
-        // 컨테이너 초기화
-        document.getElementById('roadmap-container').innerHTML = '';
+        // 🌟 [추가] 선택된 Part 정보 렌더링
+        document.getElementById('cp-title').innerText = `Part ${currentPart.partIndex}. ${currentPart.title}`;
+        document.getElementById('cp-range').innerText = currentPart.range;
+        document.getElementById('cp-theme').innerText = currentPart.theme ? `💡 ${currentPart.theme}` : '';
+        document.getElementById('cp-content').innerText = currentPart.content;
 
-        // DB 조회 시작
-        showLoading(`'${currentPart.title}' 데이터 조회 중...`);
+        // 2. 컨테이너 초기화
+        const container = document.getElementById('roadmap-container');
+        container.innerHTML = '';
+
+        // 3. 해당 Part의 상세 사건 조회
+        showLoading(`'${currentPart.title}' 상세 사건 조회 중...`);
         
         try {
             const response = await fetch(`/api/roadmap?setting_id=${settingId}&part_index=${currentPart.partIndex}`);
-            
             if (!response.ok) throw new Error("데이터 조회 실패");
             
             const events = await response.json();
             
             if (events && events.length > 0) {
-                // 저장된 데이터가 있으면 렌더링
                 renderEvents(events);
             } else {
-                // 없으면 안내 메시지 표시 (목록으로 안 튕김)
-                document.getElementById('roadmap-container').innerHTML = 
+                container.innerHTML = 
                     `<div style="text-align:center; padding:40px; color:#666; background:#f9f9f9; border-radius:8px;">
                         <i class="fas fa-file-invoice" style="font-size:2rem; margin-bottom:10px;"></i><br>
-                        이 Part에 저장된 사건이 없습니다.<br>
+                        이 Part에 저장된 상세 사건이 없습니다.<br>
                         위 <b>'AI 생성 요청'</b> 버튼을 눌러 사건을 기획해보세요.
                     </div>`;
             }
         } catch (e) {
             console.error(e);
-            document.getElementById('roadmap-container').innerHTML = 
-                `<div style="text-align:center; padding:20px; color:red;">오류 발생: ${e.message}</div>`;
+            container.innerHTML = `<div style="text-align:center; padding:20px; color:red;">오류: ${e.message}</div>`;
         } finally {
-            hideLoading(); // 로딩만 끔 (화면 전환 X)
+            hideLoading();
         }
     }
 
-    // 4. AI 생성 호출
     async function callAiGeneration() {
-        // [수정 포인트 1] selectedPart가 아니라 currentPart를 체크해야 함
-        if (!currentPart) {
-            alert("선택된 Part가 없습니다.");
-            return;
-        }
+        if (!currentPart) return alert("선택된 Part가 없습니다.");
         
         const btn = document.querySelector('.ai-generate-bar button');
+        const orgText = btn.innerText;
         btn.disabled = true; 
-        btn.innerText = "생성 중...";
+        btn.innerText = "⏳ 생성 중...";
         
         try {
-			// 🌟 1. 앞뒤 Part 정보 가져오기 (Context Awareness)
             let prevPartContext = "이전 Part 정보 없음 (이야기의 시작)";
             let nextPartContext = "다음 Part 정보 없음 (이야기의 결말)";
-			// 전체 목록에서 현재 Part의 인덱스 찾기
+            
             const currentIndex = parsedParts.findIndex(p => p.partIndex === currentPart.partIndex);
             
-            if (currentIndex > 0) {
-                // (1) 이전 Part 찾기
-				if (currentPart.partIndex > 1) {
+            if (currentPart.partIndex > 1) {
                 const prevIndex = currentPart.partIndex - 1;
-                
-                // (1) 이전 Part의 모든 사건 가져오기
                 const res = await fetch(`/api/roadmap?setting_id=${settingId}&part_index=${prevIndex}`);
-               
                 if (res.ok) {
                     const prevEvents = await res.json();
-                     //console.log(prevEvents);
                     if (prevEvents && prevEvents.length > 0) {
-                        // (2) event_order 내림차순 정렬 (마지막 사건이 0번으로 오게)
                         prevEvents.sort((a, b) => b.event_order - a.event_order);
-                        
-                        // (3) 상위 3개만 추출 (Last 3)
-                        const last3Events = prevEvents.slice(0, 3);
-                        
-                        // (4) AI에게는 시간 순서대로(오름차순) 보여주기 위해 다시 정렬
-                        last3Events.sort((a, b) => a.event_order - b.event_order);
-                        
-                        // (5) 텍스트 변환
-                        const eventTexts = last3Events.map(e => 
-                            `   - ${e.content}`
-                        ).join('\n');
-
-                        prevPartContext = `
-                        [이전 챕터]
-                        ${eventTexts}
-                        
-                        ※ 연결 지침: 위 사건들의 결과와 감정선이 현재 챕터의 도입부로 자연스럽게 이어져야 합니다.
-                        `;
+                        const last3Events = prevEvents.slice(0, 3).sort((a, b) => a.event_order - b.event_order);
+                        const eventTexts = last3Events.map(e => `- ${e.content}`).join('\n');
+                        prevPartContext = `[이전 챕터 마지막 사건들]\n${eventTexts}\n※ 연결: 위 사건의 결과/감정이 현재 챕터 도입부로 이어져야 함.`;
                     }
                 }
             }
                
-
-                // (2) 다음 Part 찾기
-				if (currentIndex < parsedParts.length - 1 && parsedParts[currentIndex + 1]) {
-						const nextPart = parsedParts[currentIndex + 1];
-						
-						
-						nextPartContext = `
-						[다음 챕터]
-						- ${nextPart.content}
-						
-						※ 연결성 지침: 이 Part의 후반부 사건들은 위 '다음 챕터'의 사건이 시작될 수 있는 계기나 분위기를 조성해야 합니다. 분위기를 조성하는 것이지 이번 Part의 사건에 '다음 챕터'의 내용이 들어가면 안됩니다.
-						`;
-				  
-				}
-			
-				if (currentIndex < parsedParts.length - 2 && parsedParts[currentIndex + 2]) {	
-				    const nextPart = parsedParts[currentIndex + 1];
-                    const nextPart2 = parsedParts[currentIndex + 2];
-					
-                    nextPartContext = `
-                    [다음 챕터]
-					 - ${nextPart.content}
-                     - ${nextPart2.content}
-                    
-                    ※ 연결성 지침: 이 Part의 후반부 사건들은 위 '다음 챕터'의 사건이 시작될 수 있는 계기나 분위기를 조성해야 합니다. 분위기를 조성하는 것이지 이번 Part의 사건에 '다음 챕터'의 내용이 들어가면 안됩니다.
-                    `;
+            if (currentIndex < parsedParts.length - 1) {
+                const nextPart = parsedParts[currentIndex + 1];
+                let nextContent = `- ${nextPart.content}`;
+                if (parsedParts[currentIndex + 2]) {
+                    nextContent += `\n- ${parsedParts[currentIndex + 2].content}`;
                 }
+                nextPartContext = `[다음 챕터 예고]\n${nextContent}\n※ 지침: 이 Part의 후반부는 위 '다음 챕터' 사건의 계기가 되거나 분위기를 조성해야 함.`;
             }
-			
+            
             const systemPrompt = `
                 ### [Role]
                 당신은 소설의 챕터(Part)를 분석하여 구체적인 '사건(Event)' 리스트로 기획하는 스토리보드 작가입니다.
@@ -496,80 +450,74 @@
                 ### [작품 정보]
                 ${contextData}
 
-                ### [Coverage & Scope Rules] (매우 중요!)
-                1. 사용자가 제시한 Part의 범위(예: 1화~25화)를 **처음부터 끝까지 빠짐없이** 채워야 합니다.
-                2. 각 사건은 **2~3화 분량**으로 배분하십시오.
-                3. **계산 예시:** 만약 Part가 25화 분량이라면, 2~3화씩 나누었을 때 **총 8개에서 12개의 사건**이 나와야 합니다.
-                4. **마지막 사건**의 끝 회차는 반드시 Part의 **마지막 회차와 일치**해야 합니다.
+                ### [규칙]
+                1. Part 범위(${currentPart.range})를 처음부터 끝까지 채우는 사건들을 만드세요.
+                2. 각 사건은 **2~3화 분량**으로 배분하세요.
+                3. 마지막 사건은 Part의 끝 회차와 일치해야 합니다.
 
-				[Output Format] (Strictly JSON)
-				반드시 아래와 같은 **JSON 배열 포맷**으로만 응답해야 합니다. 다른 설명이나 마크다운 텍스트를 포함하지 마십시오.
+                ### [출력 형식 (JSON Only)]
+                반드시 아래 JSON 배열 포맷으로만 응답하세요. 마크다운 없이 순수 JSON만 출력하세요.
+                [
+                  {
+                    "title": "사건 제목",
+                    "range": "X화~Y화",
+                    "theme": "핵심 감정/키워드",
+                    "content": "상세 줄거리 (200자 이상)"
+                  }
+                ]
+            `;
 
-				[
-				  {
-					"title": "사건 제목",
-					"range": "X화~Y화",
-					"theme": "핵심 테마 (감정/키워드)",
-					"content": "상세 줄거리 (400자 이상)"
-				  },
-				  ...
-				]
-                `;
+            const userPrompt = `
+                다음 [현재 Part 정보]를 바탕으로 상세 사건 리스트를 작성해줘.
 
-                // User Prompt
-                const userPrompt = `
-                다음 [Part 정보]를 바탕으로 2~3화 분량의 사건 리스트를 상세히 작성해줘.
-
-                [Part 정보]
+                [현재 Part 정보]
                 - 제목: ${currentPart.title}
                 - 회차 범위: ${currentPart.range}
-                - 내용: ${currentPart.content}
-				위 내용을 바탕으로 **${currentPart.range}** 사이의 상세 사건 리스트를 JSON으로 작성해줘.
-				절대로 1화부터 시작하지 말고, **${currentPart.range}**에 맞는 회차 번호를 매겨야 해.
-				
-				[Context Flow]
-				1. ${prevPartContext}
-				2. ${nextPartContext}
-				
-				위 [Context Flow]를 참고하여 앞뒤 내용이 매끄럽게 연결되도록 사건을 구성해야 해.
-                `;
-				console.log(systemPrompt)
-				console.log(userPrompt)
-                const response = await fetch('/api/generate-text', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        model: "gemini-2.5-flash", // 모델명 확인 (2.5는 아직 없거나 pro일 수 있음)
-                        payload: {
-                            contents: [{ parts: [{ text: userPrompt }] }],
-                            systemInstruction: { parts: [{ text: systemPrompt }] }
-                        }
-                    })
-                });
-				if (!response.ok) throw new Error("AI 호출 실패");
+                - 줄거리: ${currentPart.content}
+                
+                [Context Flow]
+                1. ${prevPartContext}
+                2. ${nextPartContext}
+                
+                위 흐름을 고려하여 자연스럽게 연결되는 사건들을 기획해줘.
+            `;
+
+            const response = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-2.5-flash", 
+                    payload: {
+                        contents: [{ parts: [{ text: userPrompt }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    }
+                })
+            });
+
+            if (!response.ok) throw new Error("AI 호출 실패");
             const data = await response.json();
             const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
             
             if(text) parseAndRenderAiResult(text);
 
-        } catch(e) { alert("AI 생성 실패: " + e.message); }
-        finally { btn.disabled = false; btn.innerText = "AI 생성 요청"; }
+        } catch(e) { 
+            alert("AI 생성 실패: " + e.message); 
+            console.error(e);
+        } finally { 
+            btn.disabled = false; 
+            btn.innerText = orgText; 
+        }
     }
 
-    // 5. AI 결과 파싱 및 렌더링 (JSON 방식)
     function parseAndRenderAiResult(text) {
         const container = document.getElementById('roadmap-container');
         container.innerHTML = ''; 
 
         try {
-            // 1. 마크다운 코드블럭(```json ... ```) 제거
             let cleanJson = text.replace(/```json|```/g, '').trim();
-            
-            // 2. JSON 파싱
             const eventsData = JSON.parse(cleanJson);
 
-            // 3. 배열인지 확인 후 변환
-            if (!Array.isArray(eventsData)) throw new Error("데이터 형식이 배열이 아닙니다.");
+            if (!Array.isArray(eventsData)) throw new Error("JSON 형식이 배열이 아닙니다.");
 
             const events = eventsData.map((item, index) => {
                 return {
@@ -581,23 +529,17 @@
                 };
             });
 
-            // 4. 렌더링 함수 호출
             renderEvents(events);
 
         } catch (e) {
-            console.error("JSON 파싱 오류:", e);
-            console.log("원본 텍스트:", text);
-            alert("AI 데이터 처리 중 오류가 발생했습니다. (JSON Parsing Error)");
-            
-            // (선택사항) 파싱 실패 시 원본 텍스트라도 보여주기
-            container.innerHTML = `<div class="event-card"><div class="event-content" style="color:red;">데이터 파싱 실패.<br>원본 내용:<br>${text}</div></div>`;
+            console.error("Parsing Error:", e, text);
+            alert("데이터 파싱 중 오류가 발생했습니다.");
+            container.innerHTML = `<div class="event-card"><div class="event-content" style="color:red;">파싱 실패. 원본 데이터:<br>${text}</div></div>`;
         }
     }
 
-    // 6. 이벤트 목록 렌더링 (View & Edit 모드)
     function renderEvents(events) {
         const container = document.getElementById('roadmap-container');
-        // append 하지 않고 비운 뒤 렌더링 (중복 방지)
         container.innerHTML = '';
 
         events.forEach((evt, idx) => {
@@ -605,7 +547,6 @@
             card.className = 'event-card';
             const uniqueId = `evt-${Date.now()}-${idx}`;
             
-            // View Mode HTML
             const viewHtml = `
                 <div id="view-${uniqueId}">
                     <div class="event-header">
@@ -625,7 +566,6 @@
                 </div>
             `;
 
-            // Edit Mode HTML
             const editHtml = `
                 <div id="edit-${uniqueId}" class="event-edit-form">
                     <label>제목</label>
@@ -649,7 +589,6 @@
         });
     }
 
-    // 7. 편집 토글
     function toggleEdit(uid) {
         const viewDiv = document.getElementById(`view-${uid}`);
         const editDiv = document.getElementById(`edit-${uid}`);
@@ -663,31 +602,37 @@
         }
     }
 
-    // 8. 편집 확인 (화면 갱신 및 저장 버튼 활성화)
     function confirmEdit(uid, order) {
         const title = document.getElementById(`input-title-${uid}`).value;
         const range = document.getElementById(`input-range-${uid}`).value;
         const theme = document.getElementById(`input-theme-${uid}`).value;
         const content = document.getElementById(`input-content-${uid}`).value;
 
-        // View 갱신
         const viewDiv = document.getElementById(`view-${uid}`);
         viewDiv.querySelector('.event-title').innerText = `#${order}. ${title}`;
         
-        const rangeSpan = viewDiv.querySelector('.event-range');
-        if(rangeSpan) rangeSpan.innerText = range; // rangeSpan이 없으면 생성해야 하지만 간단히 처리
+        let rangeSpan = viewDiv.querySelector('.event-range');
+        if(!rangeSpan) {
+            rangeSpan = document.createElement('span');
+            rangeSpan.className = 'event-range';
+            viewDiv.querySelector('.event-title-box').appendChild(rangeSpan);
+        }
+        rangeSpan.innerText = range;
 
-        const themeDiv = viewDiv.querySelector('.event-theme');
+        let themeDiv = viewDiv.querySelector('.event-theme');
+        if(!themeDiv && theme) {
+            themeDiv = document.createElement('div');
+            themeDiv.className = 'event-theme';
+            viewDiv.insertBefore(themeDiv, viewDiv.querySelector('.event-content'));
+        }
         if(themeDiv) themeDiv.innerText = `💡 ${theme}`;
         
         viewDiv.querySelector('.event-content').innerText = content;
 
-        // 저장 버튼 갱신 (데이터 바인딩 업데이트)
         const saveBtn = viewDiv.querySelector('.save-btn');
         saveBtn.innerText = "💾 저장 (수정됨)";
         saveBtn.classList.remove('saved');
         
-        // 새 데이터 객체 생성
         const newData = {
             setting_id: settingId,
             part_index: currentPart.partIndex,
@@ -698,17 +643,13 @@
             content: content
         };
         
-        // 버튼 onclick 이벤트 재바인딩
         saveBtn.onclick = () => saveToDB(saveBtn, newData);
-
         toggleEdit(uid);
     }
 
-    // 9. DB 저장
     async function saveToDB(btnElement, data) {
         if (!confirm(`'${data.title}' 내용을 저장하시겠습니까?`)) return;
 
-        // 필수 데이터 보강
         data.setting_id = settingId;
         data.part_index = currentPart.partIndex;
 
@@ -741,7 +682,6 @@
         }
     }
 
-    // 10. UI 유틸리티
     function resetSelection() {
         document.getElementById('part-selection-area').classList.remove('hidden');
         document.getElementById('roadmap-result-area').classList.add('hidden');
@@ -752,12 +692,8 @@
     function showLoading(msg) {
         document.getElementById('loading').style.display = 'block';
         document.getElementById('loading-text').innerText = msg;
-        // 로딩 중에는 리스트만 숨김 (결과 화면에서 로딩할 때는 유지할 수도 있음)
-        // 여기서는 명확성을 위해 둘 다 숨김 처리 안 하고 오버레이 느낌으로 가거나,
-        // 아니면 그냥 텍스트만 보여줌.
     }
 
-    // 🌟 [핵심] Hide Loading 수정: 화면 전환 로직 제거하고 로딩바만 끔
     function hideLoading() {
         document.getElementById('loading').style.display = 'none';
     }

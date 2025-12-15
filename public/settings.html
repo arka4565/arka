@@ -70,6 +70,7 @@
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #444; }
         .form-group label small { font-weight: normal; color: #888; margin-left: 5px; }
+        .info-text { font-size: 0.85rem; color: #666; margin-bottom: 5px; }
         
         .form-input, .form-textarea {
             width: 100%;
@@ -123,12 +124,12 @@
     </div>
     <div class="nav-links">
         <a href="#" class="nav-item active"><i class="fas fa-cog"></i> 설정</a>
+        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
+        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
+        <a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i> 장면집필</a>
         <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
         <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i> 장면집필</a>
-        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
         <a href="#" class="nav-item" data-target="plan.html"><i class="fas fa-magic"></i> 기획</a>
         <a href="#" class="nav-item" data-target="roadmap.html"><i class="fas fa-magic"></i> 로드맵</a>
         <a href="#" class="nav-item" data-target="treatment.html"><i class="fas fa-magic"></i> 트리트먼트</a>
@@ -144,24 +145,19 @@
     </div>
 
     <div class="form-group">
-        <label>
-            작품 줄거리 (플롯 전체 요약) 
-        </label>
-        <textarea id="plotDetails" class="form-textarea" placeholder="플롯 탭에서 회차를 등록하면 여기에 표시됩니다."></textarea>
-    </div>
-
-    <div class="form-group">
         <label>등장인물 설정 (Character Details)</label>
-        <textarea id="characterDetails" class="form-textarea" placeholder="주요 등장인물의 이름, 성격, 관계 등을 자유롭게 서술하세요."></textarea>
+        <div class="info-text">※ '캐릭터' 탭에 등록된 내용이 자동으로 표시됩니다.</div>
+        <textarea id="characterDetails" class="form-textarea " placeholder="캐릭터 탭에서 등장인물을 추가하면 여기에 표시됩니다."></textarea>
     </div>
 
     <div class="form-group">
-        <label>메모 / 기타 설정 (World Setting)</label>
-        <textarea id="worldSetting" class="form-textarea" style="height: 100px;" placeholder="장르, 타겟 독자층 등 기억해야 할 메모를 적어두세요."></textarea>
+        <label>세계관 설정 (World Settings)</label>
+        <div class="info-text">※ '세계관' 탭에 등록된 내용이 자동으로 표시됩니다.</div>
+        <textarea id="worldSetting" class="form-textarea "  placeholder="세계관 탭에서 설정을 추가하면 여기에 표시됩니다."></textarea>
     </div>
 
     <button class="btn-save" onclick="saveSettings()">
-        <i class="fas fa-save"></i> 저장하기
+        <i class="fas fa-save"></i> 제목 저장하기
     </button>
 </div>
 
@@ -186,44 +182,46 @@
         });
     }
 
-    // 데이터 불러오기
+    // 데이터 불러오기 (캐릭터, 세계관 테이블 조인 효과)
     async function loadData() {
         try {
-            // 🌟 [수정됨] 설정(settings)과 에피소드(episodes) 동시 호출
-            const [settingsRes, episodesRes] = await Promise.all([
+            // 3가지 정보를 동시에 호출합니다: 기본설정, 캐릭터목록, 세계관목록
+            const [settingsRes, charRes, worldRes] = await Promise.all([
                 fetch(`/api/load-settings?id=${settingId}`),
-                fetch(`/api/episodes?setting_id=${settingId}`) // 에피소드 리스트 호출
+                fetch(`/api/characters?setting_id=${settingId}`),
+                fetch(`/api/worldsettings?setting_id=${settingId}`)
             ]);
 
             if (!settingsRes.ok) throw new Error("설정 로드 실패");
-            
             const settings = await settingsRes.json();
             
-            // 1. 기본 설정 바인딩
+            // 1. 기본 제목 바인딩
             document.getElementById('title').value = settings.title || '';
-            document.getElementById('characterDetails').value = settings.characterDetails || '';
-            document.getElementById('worldSetting').value = settings.worldSetting || '';
 
-            // 2. 🌟 에피소드 목록을 '줄거리' 칸에 표시
-            if (episodesRes.ok) {
-                const episodes = await episodesRes.json();
-                
-                if (episodes.length === 0) {
-                    document.getElementById('plotDetails').value = "(아직 등록된 회차가 없습니다. '플롯' 탭에서 에피소드를 추가해주세요.)";
+            // 2. 캐릭터 데이터 포맷팅 및 바인딩
+            if (charRes.ok) {
+                const characters = await charRes.json();
+                if (characters.length > 0) {
+                    const charText = characters.map(c => 
+                        `[${c.name}] ${c.role || ''}\n- 설명: ${c.description || '내용 없음'}`
+                    ).join('\n\n');
+                    document.getElementById('characterDetails').value = charText;
                 } else {
-                    // 회차 순서 정렬
-                    episodes.sort((a, b) => a.episode_number - b.episode_number);
-                    
-                    // 텍스트로 변환 (예: 1화. 제목 - 내용요약)
-                    const plotSummary = episodes.map(ep => {
-                        const contentSnippet = ep.content ? ep.content : '내용 없음';
-                        return `[제 ${ep.episode_number}화] ${ep.title}\n - ${contentSnippet}`;
-                    }).join('\n\n');
-                    
-                    document.getElementById('plotDetails').value = plotSummary;
+                    document.getElementById('characterDetails').value = "(등록된 등장인물이 없습니다. '캐릭터' 탭에서 추가해주세요.)";
                 }
-            } else {
-                document.getElementById('plotDetails').value = "플롯 정보를 불러오지 못했습니다.";
+            }
+
+            // 3. 세계관 데이터 포맷팅 및 바인딩
+            if (worldRes.ok) {
+                const worlds = await worldRes.json();
+                if (worlds.length > 0) {
+                    const worldText = worlds.map(w => 
+                        `[${w.title}]\n- 설명: ${w.description || '내용 없음'}\n- 키워드: ${w.keywords || ''}`
+                    ).join('\n\n');
+                    document.getElementById('worldSetting').value = worldText;
+                } else {
+                    document.getElementById('worldSetting').value = "(등록된 세계관 설정이 없습니다. '세계관' 탭에서 추가해주세요.)";
+                }
             }
 
             // 기존 데이터 보존용
@@ -235,31 +233,31 @@
         }
     }
 
-    // 데이터 저장하기
+    // 데이터 저장하기 (제목 및 현황 스냅샷 업데이트)
     async function saveSettings() {
         const title = document.getElementById('title').value;
-        const plotDetails = document.getElementById('plotDetails').value;
-        const worldSetting = document.getElementById('worldSetting').value;
-        const characterDetails = document.getElementById('characterDetails').value;
+        const worldSettingText = document.getElementById('worldSetting').value;
+        const characterDetailsText = document.getElementById('characterDetails').value;
         
-        // 🌟 [주의] plotDetails는 episodes 테이블에서 가져온 읽기 전용이므로 저장 대상에서 제외하거나,
-        // settings 테이블의 해당 컬럼을 사용하지 않게 됩니다.
-        // 다만 DB 구조상 plotDetails 컬럼이 있다면 현재 보여지는 텍스트를 스냅샷으로 저장할 수도 있습니다.
-        // 여기서는 혼란을 막기 위해 화면의 plotDetails 값은 저장하지 않고, 기존 값을 유지하거나 무시합니다.
-
         if (!title.trim()) {
             alert("제목은 필수입니다.");
             return;
         }
 
+        // 주의: 여기서 worldSetting, characterDetails를 보내면
+        // DB의 settings 테이블에 현재 보이는 텍스트(스냅샷)가 저장됩니다.
+        // 이는 AI가 참조할 때 유용하므로 유지하는 것이 좋습니다.
+        
         const payload = {
             id: settingId,
             title: title,
-            worldSetting: worldSetting,
-            characterDetails: characterDetails, 
             
-            // plotDetails: ... (제외: episodes 테이블이 원본이므로)
-            plotDetails: plotDetails, // 기존 값 유지 (또는 공백)
+            // 읽기 전용으로 불러온 텍스트를 그대로 저장 (AI 참조용 스냅샷 역할)
+            worldSetting: worldSettingText, 
+            characterDetails: characterDetailsText, 
+            
+            // 줄거리(plotDetails)는 화면에서 삭제했으므로 기존 값 유지 또는 빈 값
+            plotDetails: window.currentData?.plotDetails || '', 
 
             previousContent: window.currentData?.previousContent || '',
             episode_number: window.currentData?.episode_number || 1,
