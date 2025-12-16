@@ -6,6 +6,7 @@
     <title>편집 및 관리 - AI Novel Studio</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* ... 기존 CSS 유지 ... */
         :root {
             --primary-color: #4a90e2;
             --edit-color: #8e44ad;
@@ -26,41 +27,23 @@
             margin: 0;
             padding: 0;
             color: var(--text-color);
-            height: 100dvh; /* 모바일 대응 */
+            height: 100dvh;
             display: flex;
             flex-direction: column;
             overflow: hidden;
         }
 
-        /* 네비게이션 */
-        .navbar {
-            background-color: var(--nav-bg);
-            color: var(--nav-text);
-            padding: 10px 15px;
-            display: flex; align-items: center; justify-content: space-between;
-            flex-shrink: 0; z-index: 1001;
-        }
+        /* ... 네비게이션 및 레이아웃 CSS 생략 (기존과 동일) ... */
+        .navbar { background-color: var(--nav-bg); color: var(--nav-text); padding: 10px 15px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 1001; }
         .nav-left { display: flex; align-items: center; gap: 15px; }
         .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
         .nav-links { display: flex; gap: 5px; overflow-x: auto; }
-        .nav-item {
-            color: #bdc3c7; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
-        }
+        .nav-item { color: #bdc3c7; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s; }
         .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
         .nav-item.active { color: white; background: var(--edit-color); font-weight: bold; }
-
-        /* 레이아웃 */
         .workspace-container { display: flex; flex: 1; overflow: hidden; position: relative; }
-
-        /* 사이드바 */
-        .sidebar {
-            width: 260px; background: #fff; border-right: 1px solid var(--border-color);
-            display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000;
-        }
-        .sidebar-header {
-            padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; color: var(--edit-color); background: #fdfbff;
-            display: flex; justify-content: space-between; align-items: center;
-        }
+        .sidebar { width: 260px; background: #fff; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 1000; }
+        .sidebar-header { padding: 15px; border-bottom: 1px solid #eee; font-weight: bold; color: var(--edit-color); background: #fdfbff; display: flex; justify-content: space-between; align-items: center; }
         .btn-close-sidebar { display: none; background:none; border:none; font-size:1.2rem; cursor:pointer; color:#666; }
         .story-list { flex: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; padding-bottom: 50px; }
         .story-item { padding: 12px 15px; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s; }
@@ -68,50 +51,43 @@
         .story-item.active { background: #f3e5f5; border-left: 4px solid var(--edit-color); font-weight: bold; }
         .story-meta { font-size: 0.8rem; color: #888; margin-top: 4px; }
         .sidebar-backdrop { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
-
-        /* 메인 영역 */
         .main-area { flex: 1; display: flex; flex-direction: column; background: #f8f9fa; position: relative; width: 100%; }
         .top-tabs { display: flex; background: white; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
-        .top-tab-btn {
-            flex: 1; padding: 12px; border: none; background: none; font-size: 0.95rem; cursor: pointer;
-            color: #777; border-bottom: 3px solid transparent; white-space: nowrap;
-        }
+        .top-tab-btn { flex: 1; padding: 12px; border: none; background: none; font-size: 0.95rem; cursor: pointer; color: #777; border-bottom: 3px solid transparent; white-space: nowrap; }
         .top-tab-btn.active { color: var(--edit-color); border-bottom-color: var(--edit-color); font-weight: bold; }
         .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
         .tab-content.active { display: flex; }
-
-        /* 탭 1: 에디터 */
         .editor-container { flex: 1; display: flex; flex-direction: column; padding: 15px; gap: 15px; overflow-y: auto; padding-bottom: 80px; }
         .edit-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; gap: 10px; flex: 1; overflow: hidden; }
         .btn-mobile-menu { display: none; background: white; border: 1px solid #ddd; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #555; }
         .story-title { font-size: 1.1rem; font-weight: bold; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        /* 텍스트 에디터 스타일 */
         .text-editor { flex: 1; width: 100%; padding: 15px; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem; line-height: 1.8; resize: none; background: white; font-family: 'Pretendard', sans-serif; min-height: 200px; }
         .text-editor:focus { outline: 2px solid var(--edit-color); border-color: transparent; }
         
-        /* AI 패널 */
-        .ai-revision-panel { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e1bee7; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0; margin-bottom: 20px; }
-        .panel-title { color: var(--edit-color); font-weight: bold; margin-bottom: 10px; font-size: 0.9rem; }
-        .ai-input-group { display: flex; gap: 8px; flex-direction: column; }
-        .ai-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; }
-        .btn-ai-action { background: var(--edit-color); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        /* AI 패널 스타일 수정됨 */
+        .ai-revision-panel { background: #fff; padding: 15px; border-radius: 8px; border: 1px solid #e1bee7; box-shadow: 0 2px 5px rgba(0,0,0,0.05); flex-shrink: 0; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; }
+        
+        .panel-row { display: flex; flex-direction: column; gap: 5px; }
+        .panel-label { color: var(--edit-color); font-weight: bold; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center; }
+        .panel-label button { font-size: 0.8rem; padding: 2px 8px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; color: #555; }
+        .panel-label button:hover { background: #f0f0f0; color: var(--edit-color); }
+        
+        .ai-input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-family: 'Pretendard', sans-serif; resize: vertical; }
+        .ai-input:focus { border-color: var(--edit-color); outline: none; }
+        
+        .btn-ai-action { background: var(--edit-color); color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; align-self: flex-end; width: 100%; }
         .btn-save { background: #2c3e50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
 
-        /* 탭 2: 관리 */
+        /* ... 관리 탭 및 모달 스타일 유지 ... */
         .manage-container { padding: 20px; width: 100%; overflow-y: auto; padding-bottom: 80px; }
         .manage-card { background: white; padding: 20px; border-radius: 10px; border: 1px solid #eee; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.03); }
         .manage-card h3 { margin-top: 0; color: #444; font-size: 1.1rem; }
-        
-        .export-btn {
-            display: inline-flex; align-items: center; gap: 10px;
-            padding: 12px; border: 1px solid #ddd; border-radius: 8px;
-            background: white; cursor: pointer; width: 100%; margin-bottom: 10px; justify-content: center; font-weight: bold; color: #555;
-        }
+        .export-btn { display: inline-flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid #ddd; border-radius: 8px; background: white; cursor: pointer; width: 100%; margin-bottom: 10px; justify-content: center; font-weight: bold; color: #555; }
         .export-btn:hover { background: #f0f7ff; color: var(--edit-color); border-color: var(--edit-color); }
-
         .btn-delete-project { background: white; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 12px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-weight: bold; }
-
-        /* 모달 */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
         .modal { background: white; width: 90%; max-width: 800px; padding: 20px; border-radius: 10px; max-height: 90vh; overflow-y: auto; display: flex; flex-direction: column; }
         .diff-container { display: flex; gap: 10px; margin: 15px 0; flex: 1; overflow: hidden; min-height: 200px; }
@@ -141,7 +117,7 @@
     </div>
     <div class="nav-links">
         <a href="#" class="nav-item" data-target="settings.html"><i class="fas fa-cog"></i> 설정</a>
-		  <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
+        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
         <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
         <a href="#" class="nav-item active"><i class="fas fa-magic"></i> 상세편집</a>
         <a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i>장면집필</a>
@@ -185,37 +161,43 @@
                 <textarea id="mainEditor" class="text-editor" placeholder="목록 버튼을 눌러 회차를 선택하세요."></textarea>
 
                 <div class="ai-revision-panel">
-                    <div class="panel-title"><i class="fas fa-robot"></i> AI 수정 지시</div>
-                    <div class="ai-input-group">
-                        <input type="text" id="aiPrompt" class="ai-input" placeholder="예: 문체를 더 무겁게, 오타 수정">
-                        <button class="btn-ai-action" onclick="requestAiRevision()"><i class="fas fa-magic"></i> 수정</button>
+                    
+                    <div class="panel-row">
+                        <div class="panel-label">
+                            <span><i class="fas fa-quote-right"></i> 수정할 본문 (Target Text)</span>
+                            <button onclick="getSelectionFromEditor()" title="메인 에디터에서 선택한 텍스트 가져오기"><i class="fas fa-arrow-down"></i> 선택 가져오기</button>
+                        </div>
+                        <textarea id="targetEditor" class="ai-input" style="height: 80px;" placeholder="수정하고 싶은 부분을 여기에 붙여넣으세요. (비워두면 메인 에디터 전체를 수정합니다)"></textarea>
                     </div>
+
+                    <div class="panel-row">
+                        <div class="panel-label"><i class="fas fa-robot"></i> AI 수정 지시 (Prompt)</div>
+                        <input type="text" id="aiPrompt" class="ai-input" placeholder="예: 이 부분을 더 감성적으로 묘사해줘, 대화를 자연스럽게 바꿔줘">
+                    </div>
+                    
+                    <button class="btn-ai-action" onclick="requestAiRevision()"><i class="fas fa-magic"></i> AI 수정 실행</button>
                 </div>
             </div>
         </div>
 
         <div id="tab-manage" class="tab-content">
             <div class="manage-container">
-                
                 <div class="manage-card">
                     <h3><i class="fas fa-book"></i> 설정 자료 내보내기</h3>
                     <p style="color:#666; font-size:0.9rem; margin-bottom:10px;">로그라인, 세계관, 등장인물 설정을 텍스트 파일로 다운로드합니다.</p>
                     <button class="export-btn" onclick="downloadSettingsTxt()"><i class="fas fa-file-alt"></i> 설정집 다운로드 (.txt)</button>
                 </div>
-
                 <div class="manage-card">
                     <h3><i class="fas fa-file-export"></i> 본문 텍스트 내보내기</h3>
                     <p style="color:#666; font-size:0.9rem; margin-bottom:10px;">작성된 모든 회차를 하나의 텍스트 파일로 합칩니다.</p>
                     <button class="export-btn" onclick="downloadTextFile()"><i class="fas fa-file-alt"></i> 전체 본문 다운로드 (.txt)</button>
                     <button class="export-btn" onclick="copyToClipboard()"><i class="fas fa-copy"></i> 클립보드 복사</button>
                 </div>
-
                 <div class="manage-card">
                     <h3><i class="fas fa-database"></i> 데이터 백업</h3>
                     <p style="color:#666; font-size:0.9rem; margin-bottom:10px;">프로젝트의 모든 데이터를 JSON 형식으로 저장합니다.</p>
                     <button class="export-btn" onclick="downloadBackup()"><i class="fas fa-download"></i> 전체 백업 (.json)</button>
                 </div>
-
                 <div class="manage-card" style="border-color:#ffcccc; background:#fff5f5;">
                     <h3 style="color:var(--danger-color);"><i class="fas fa-trash"></i> 프로젝트 삭제</h3>
                     <button class="btn-delete-project" onclick="deleteProject()">영구 삭제</button>
@@ -228,6 +210,9 @@
 <div id="diffModal" class="modal-overlay">
     <div class="modal">
         <h3><i class="fas fa-check-circle"></i> AI 수정 확인</h3>
+        <p style="font-size:0.9rem; color:#666; margin-top:-10px; margin-bottom:10px;">
+            <span id="diffModeBadge" style="background:#eee; padding:2px 6px; border-radius:4px; font-weight:bold;">전체 수정</span> 모드입니다.
+        </p>
         <div class="diff-container">
             <div class="diff-box old-ver" id="oldTextContent"></div>
             <div class="diff-box new-ver" id="newTextContent"></div>
@@ -240,13 +225,20 @@
 </div>
 
 <script>
+    // 기존 변수들
     const urlParams = new URLSearchParams(window.location.search);
     const settingId = urlParams.get('setting_id');
    
     let currentStoryId = null;
     let globalStories = [];
-    let contextData = ""; // AI용 배경지식
+    let contextData = ""; 
     let projectTitle = "Project";
+	
+    // 🌟 수정에 사용된 모드를 저장할 변수 (partial 또는 full)
+    let lastEditMode = "full"; 
+    let lastTargetOriginal = ""; // 부분 수정 시 원본 텍스트 저장
+
+    // 기존 시스템 인스트럭션 (내용이 길어서 생략된 부분은 위 파일 내용과 동일하게 유지)
 	let systemInstruction = `⚠+ 절대 준수 원칙 (Non-Negotiable Principles)
 
 	이 프롬프트의 모든 지시는 최우선적으로 따라야 할 절대적인 규칙입니다.
@@ -418,9 +410,9 @@
 	- "음... 이건 좀 다른 이야기인데", "잠깐, 이 말을 왜 했지?" 같은 자연스러운 혼잣말.
 	- 개인적 편견이나 선입견을 솔직하게 드러내고 이를 성찰하는 과정.
 	- 때로는 논리적 일관성보다 감정의 진실함을 우선시.
-	- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.
-	`;
-    // 초기화
+	- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.`;
+
+    // --- 초기화 및 UI 함수들 ---
     async function init() {
         if (!settingId) {
             alert("잘못된 접근입니다.");
@@ -428,8 +420,8 @@
             return;
         }
         setupNav();
-        await loadContextData(); // AI 배경지식 로드
-        await loadStoryList();   // 목록 로드
+        await loadContextData();
+        await loadStoryList();
     }
 
     function setupNav() {
@@ -438,15 +430,14 @@
             if (target) item.href = `${target}?setting_id=${settingId}`;
         });
     }
- // 🌟 사이드바 토글 기능
+
     function toggleSidebar() {
         const sidebar = document.getElementById('sidebar');
         const backdrop = document.querySelector('.sidebar-backdrop');
-        
         sidebar.classList.toggle('active');
         backdrop.classList.toggle('active');
     }
-    // 탭 전환
+
     function switchTab(tabName) {
         document.querySelectorAll('.top-tab-btn').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
@@ -456,8 +447,6 @@
         document.getElementById(`tab-${tabName}`).classList.add('active');
     }
 
-    // AI용 배경지식 로드
-	// 1. 기본 컨텍스트 로드 (세계관, 캐릭터) - 고정값
     async function loadContextData() {
         try {
             const [sRes, wRes, cRes] = await Promise.all([
@@ -469,12 +458,8 @@
             const world = await wRes.json();
             const chars = await cRes.json();
 			
-			const worldText = 	world.map(s =>
-				  `=== ${s.title} ===\n${s.description || '내용 없음'}`
-		  ).join('\n\n---\n\n');
-		  const charsText = chars.map(c =>
-              `=== ${c.name} (역할: ${c.role || '미지정'}) ===\n${c.description || '상세 정보 없음'}`
-			 ).join('\n\n---\n\n');
+			const worldText = world.map(s => `=== ${s.title} ===\n${s.description || '내용 없음'}`).join('\n\n---\n\n');
+		    const charsText = chars.map(c => `=== ${c.name} (역할: ${c.role || '미지정'}) ===\n${c.description || '상세 정보 없음'}`).join('\n\n---\n\n');
 			
 			projectTitle = settings.title || "Project";
 
@@ -487,9 +472,7 @@
             console.warn("Context load failed", e);
         }
     }
-	
 
-    // 목록 로드
     async function loadStoryList() {
         const listEl = document.getElementById('storyList');
         try {
@@ -516,7 +499,6 @@
                 listEl.appendChild(li);
             });
 
-            // 첫 진입 시 첫번째 자동 선택
             if (!currentStoryId && globalStories.length > 0) {
                 selectStory(globalStories[0]);
             }
@@ -524,53 +506,104 @@
         } catch(e) { console.error(e); }
     }
 
-    // 스토리 선택
     function selectStory(story) {
         currentStoryId = story.id;
         document.getElementById('currentTitle').innerText = story.title;
         document.getElementById('mainEditor').value = story.content;
         
-        // 목록 스타일 갱신
+        // 대상 본문 입력창 초기화
+        document.getElementById('targetEditor').value = "";
+
         const listEl = document.getElementById('storyList');
         Array.from(listEl.children).forEach(li => li.classList.remove('active'));
         const idx = globalStories.findIndex(s => s.id === story.id);
         if(listEl.children[idx]) listEl.children[idx].classList.add('active');
     }
 
-    // AI 수정 요청 (전체 수정)
+    // 🌟 [추가됨] 메인 에디터에서 선택(드래그)한 텍스트 가져오기
+    function getSelectionFromEditor() {
+        const mainEditor = document.getElementById('mainEditor');
+        const start = mainEditor.selectionStart;
+        const end = mainEditor.selectionEnd;
+        
+        if (start === end) {
+            alert("메인 에디터에서 텍스트를 드래그하여 선택한 후 눌러주세요.");
+            return;
+        }
+
+        const selectedText = mainEditor.value.substring(start, end);
+        document.getElementById('targetEditor').value = selectedText;
+    }
+
+    // 🌟 [수정됨] AI 수정 요청 (부분/전체 로직 분기)
     async function requestAiRevision() {
-        const content = document.getElementById('mainEditor').value;
+        const mainContent = document.getElementById('mainEditor').value;
+        const targetContent = document.getElementById('targetEditor').value.trim(); // 대상 본문
         const prompt = document.getElementById('aiPrompt').value;
 
         if (!currentStoryId) return alert("회차를 선택해주세요.");
-        if (!content.trim()) return alert("수정할 본문 내용이 없습니다.");
+        if (!mainContent.trim()) return alert("본문 내용이 없습니다.");
         if (!prompt.trim()) return alert("수정 지시사항(프롬프트)을 입력해주세요.");
+
+        // 모드 결정: targetContent가 있으면 '부분 수정', 없으면 '전체 수정'
+        const isPartialEdit = targetContent.length > 0;
+        lastEditMode = isPartialEdit ? "partial" : "full";
+        lastTargetOriginal = targetContent; // 나중에 교체하기 위해 원본 저장
+
+        const contentToProcess = isPartialEdit ? targetContent : mainContent;
 
         const btn = document.querySelector('.btn-ai-action');
         const originalBtnText = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 작업 중...';
-
+		let promptPayload ='';
+		let finalSystemInstruction = '';
         try {
-			systemInstruction+=`
-                            [배경지식] ${contextData}
-                            [현재 본문] ${content}
-							`
-			 const payload = {
+            // 부분 수정일 경우 시스템 프롬프트를 약간 조정하여 문맥만 참고하도록 함
+             finalSystemInstruction = systemInstruction;
+			
+			 promptPayload =`[수정 지시사항]
+                            ${prompt}`;
+			finalSystemInstruction += `
+						[배경지식] ${contextData}
+						[현재 작업 텍스트] ${contentToProcess}
+						`;
+            if (isPartialEdit) {
+                finalSystemInstruction = `
+					당신은 웹소설 전문 교정 에디터입니다.
+					사용자가 제공하는 [현재 작업 텍스트]의 맥락을 고려하여, 지정된 [수정 대상 텍스트]를 [수정 지시사항]에 맞춰 다시 작성하는 것이 당신의 임무입니다.
+
+					⚠ **절대 준수 원칙 (Strict Rules)**
+					1. **결과물 출력 범위**: [현재 작업 텍스트]을 다시 출력하지 마십시오. 오직 **[수정 대상 텍스트]가 변형된 결과물만** 출력해야 합니다.
+					2. **문체 유지**: [현재 작업 텍스트]의 톤앤매너(어투, 시점, 분위기)를 해치지 않고 자연스럽게 이어지도록 작성하십시오.
+					3. **포맷**: 설명, 인사말, 따옴표, 마크다운 코드블록(\`\`\`) 등을 절대 포함하지 말고, 순수 텍스트만 출력하십시오.
+					4. **맥락 파악**: 수정할 부분이 [현재 작업 텍스트]의 어느 위치인지 파악하고, 앞뒤 문장과 매끄럽게 연결되도록 조사나 접속사를 조정하십시오.
+					
+					[현재 작업 텍스트] ${mainContent}
+					`;
+				 promptPayload = `
+					[수정 대상 텍스트 (Target)]
+					${targetContent}
+
+					[수정 지시사항 (Instruction)]
+					${prompt}
+					`;
+            }
+			
+          
+            console.log(promptPayload);
+            console.log(finalSystemInstruction);
+            const payload = {
                 model: "gemini-2.5-flash",
                 payload: {
                     contents: [{
                         parts: [{
-                            text: `         
-							[수정 지시사항]
-                            ${prompt}
-                            `
+                            text: promptPayload
                         }]
                     }],
-                systemInstruction: { parts: [{ text: systemInstruction }] },
+                systemInstruction: { parts: [{ text: finalSystemInstruction }] },
                 }
             };
-           
 
             const res = await fetch('/api/generate-text', {
                 method: 'POST',
@@ -584,7 +617,7 @@
             const newText = data.candidates[0].content.parts[0].text;
             
             // 모달 띄우기
-            openDiffModal(content, newText);
+            openDiffModal(contentToProcess, newText, isPartialEdit);
 
         } catch (e) {
             console.error(e);
@@ -595,13 +628,17 @@
         }
     }
 
-    // 모달 제어
+    // 🌟 [수정됨] 모달 제어 및 적용 로직
     const diffModal = document.getElementById('diffModal');
     let pendingNewText = "";
 
-    function openDiffModal(oldText, newText) {
+    function openDiffModal(oldText, newText, isPartial) {
         document.getElementById('oldTextContent').innerText = oldText;
         document.getElementById('newTextContent').innerText = newText;
+        document.getElementById('diffModeBadge').innerText = isPartial ? "부분 수정" : "전체 수정";
+        document.getElementById('diffModeBadge').style.color = isPartial ? "#d35400" : "#2c3e50";
+        document.getElementById('diffModeBadge').style.backgroundColor = isPartial ? "#fadbd8" : "#eee";
+
         pendingNewText = newText;
         diffModal.style.display = 'flex';
     }
@@ -612,18 +649,34 @@
     }
 
     function applyAiResult() {
-        if (pendingNewText) {
-            document.getElementById('mainEditor').value = pendingNewText;
-            closeDiffModal();
+        if (!pendingNewText) return;
+
+        const mainEditor = document.getElementById('mainEditor');
+
+        if (lastEditMode === "partial") {
+            // 부분 수정 모드: 원본 텍스트를 찾아 교체
+            // 주의: replace는 첫 번째 일치 항목만 교체합니다.
+            if (mainEditor.value.includes(lastTargetOriginal)) {
+                mainEditor.value = mainEditor.value.replace(lastTargetOriginal, pendingNewText);
+                // 적용 후 대상 입력창 비우기 (선택 사항)
+                // document.getElementById('targetEditor').value = ""; 
+                alert("부분 수정이 적용되었습니다.");
+            } else {
+                alert("오류: 본문에서 원본 텍스트를 찾을 수 없습니다.\n(그 사이에 본문을 수정하셨나요?)");
+                return; // 닫지 않고 유지
+            }
+        } else {
+            // 전체 수정 모드: 덮어쓰기
+            mainEditor.value = pendingNewText;
         }
+
+        closeDiffModal();
     }
 
-    // 저장 (PUT /api/stories/:id)
+    // 저장
     async function saveStory() {
         if (!currentStoryId) return;
         const content = document.getElementById('mainEditor').value;
-        
-        // 제목, 번호는 기존 정보 유지
         const currentStory = globalStories.find(s => s.id === currentStoryId);
         
         try {
@@ -639,70 +692,51 @@
 
             if (res.ok) {
                 alert("저장되었습니다.");
-                // 목록의 글자수 정보 등 갱신을 위해 리로드
                 loadStoryList();
             } else {
                 alert("저장 실패");
             }
         } catch(e) { alert("오류 발생"); }
     }
-	
-	// 🌟 [NEW] 설정집 다운로드 기능
-    // 🌟 [수정됨] 설정집 다운로드 기능 (세계관/캐릭터 테이블 상세 데이터 포함)
+
+    // --- 내보내기 기능들 (기존 유지) ---
     async function downloadSettingsTxt() {
         try {
-            // 1. 기본설정, 세계관 목록, 캐릭터 목록 3가지를 동시에 조회합니다.
             const [sRes, wRes, cRes] = await Promise.all([
-                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),      // 기본 정보 (제목, 줄거리 등)
-                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()), // 세계관 테이블
-                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())     // 캐릭터 테이블
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
+                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
             ]);
 
             let text = `[ 제목 ] ${sRes.title}\n\n`;
-
-            // 2. 세계관 (world_settings 테이블 반복 출력)
-            text += `====================================\n`;
-            text += `[ 세계관 설정 ]\n`;
-            text += `====================================\n`;
-            
+            text += `====================================\n[ 세계관 설정 ]\n====================================\n`;
             if (wRes && wRes.length > 0) {
                 wRes.forEach(item => {
                     text += `■ ${item.title}\n`;
                     if (item.keywords) text += `   - 키워드: ${item.keywords}\n`;
                     text += `   ${item.description || '내용 없음'}\n\n`;
                 });
-            } else {
-                text += `(등록된 세계관 설정이 없습니다.)\n\n`;
-            }
+            } else { text += `(등록된 세계관 설정이 없습니다.)\n\n`; }
             
-            // 3. 등장인물 (characters 테이블 반복 출력)
-            text += `====================================\n`;
-            text += `[ 등장인물 ]\n`;
-            text += `====================================\n`;
-
+            text += `====================================\n[ 등장인물 ]\n====================================\n`;
             if (cRes && cRes.length > 0) {
                 cRes.forEach(char => {
                     text += `■ ${char.name} [${char.role || '역할 미정'}]\n`;
                     text += `   ${char.description || '내용 없음'}\n\n`;
                 });
-            } else {
-                text += `(등록된 등장인물이 없습니다.)\n\n`;
-            }
+            } else { text += `(등록된 등장인물이 없습니다.)\n\n`; }
             
-            // 4. 파일 생성 및 다운로드
             const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.download = `${sRes.title}_설정집.txt`;
             link.click();
-
         } catch (e) {
             console.error(e);
             alert("설정 데이터를 불러오는 중 오류가 발생했습니다.");
         }
     }
 
-    // --- 관리 기능 (내보내기 등) ---
     function downloadTextFile() {
         if (globalStories.length === 0) return alert("데이터가 없습니다.");
         let combined = `[ ${projectTitle} ]\n\n`;
@@ -724,12 +758,7 @@
     }
 
     async function downloadBackup() {
-        // 기존 edit.html 로직과 동일
-        const allData = {
-            project: projectTitle,
-            stories: globalStories
-            // 필요시 world, chars 추가 가능
-        };
+        const allData = { project: projectTitle, stories: globalStories };
         const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);

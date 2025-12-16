@@ -529,6 +529,10 @@
 	- 개인적 편견이나 선입견을 솔직하게 드러내고 이를 성찰하는 과정.
 	- 때로는 논리적 일관성보다 감정의 진실함을 우선시.
 	- 완벽한 결론보다는 열린 의문이나 여운으로 마무리.
+	
+	
+	
+	
     `;
 
     function updateCharCount() {
@@ -820,7 +824,7 @@
                 model: "gemini-2.5-flash",
                 payload: {
                   contents: [{ parts: [{ 
-                      text: `${textForAiContext}\n\n[장면 묘사 요청]\n${userInstruction}\n\n위 흐름에 이어 자연스럽게 서술해.` 
+                      text: `${textForAiContext}\n\n[장면 묘사 요청]\n${userInstruction}\n\n위 흐름에 이어 자연스럽게 서술해.  [장면 묘사 요청]에 SCENE이 있으면 SCENE별로 공백제외 900자 분량으로 작성해줘. ` 
                   }] }],
                   systemInstruction: { parts: [{ text: fullSystemInstruction }] },
                 }

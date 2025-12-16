@@ -306,42 +306,69 @@
         });
     }
 
-	// 🌟 [수정됨] 이전 회차 '본문(Stories)' 로드 함수
+	// 🌟 [수정됨] 이전 회차 '본문(Stories)' 로드 함수 (Stories 우선, 없을 시 Episodes.treatment 대체)
     async function loadPreviousStoryContext(epNum) {
+		console.log(epNum);
         if (!epNum || epNum <= 1) {
             previousStoryContext = "이전 회차가 없습니다 (1화).";
             return;
         }
+        
+        let storyContentFound = false; // Stories 데이터 발견 여부 플래그
+
+        // 1. stories 테이블(실제 집필본) 조회 시도 (1순위)
         try {
-            // 1. stories 테이블(실제 집필본) 전체 조회
             const res = await fetch(`/api/stories?setting_id=${settingId}`);
             if (res.ok) {
                 const stories = await res.json();
 
-                // 2. 현재 회차보다 이전 회차만 필터링 + 역순 정렬 (최신순)
+                // 현재 회차보다 이전 회차만 필터링 + 역순 정렬 (최신순)
                 const prevStories = stories
                     .filter(s => s.episode_number < epNum)
                     .sort((a, b) => b.episode_number - a.episode_number) // 내림차순(최신이 위로)
                     .slice(0, 2); // 직전 2개 회차만 참조
 
                 if (prevStories.length > 0) {
-                    // 3. AI에게 보여줄 텍스트로 변환
+                    // 3. Stories 데이터(집필본) 사용
                     previousStoryContext = prevStories.map(s => {
                         // 본문이 너무 길면 AI가 힘들어하므로, 문맥 연결에 중요한 '마지막 1000자'만 발췌
-                        let contentSnippet = s.content || "";
-                        if (contentSnippet.length > 1000) {
-                            contentSnippet = "...(중략)..." + contentSnippet.slice(-1000);
-                        }
+                        let contentSnippet = s.content ? s.content.slice(-1000) : ''; 
                         
-                        return `[제${s.episode_number}화: ${s.title}]\n(실제 집필 본문 발췌):\n${contentSnippet}`;
+                        return `[제${s.episode_number}화: ${s.title}]\n(실제 집필 본문 발췌 - Stories):\n${contentSnippet}`;
                     }).reverse().join('\n\n----------------\n\n'); // 순서대로(옛날->최신) 정렬해서 합침
-                } else {
-                    previousStoryContext = "이전 회차의 집필 기록(Stories)이 아직 없습니다.";
+                    storyContentFound = true;
                 }
             }
         } catch (e) { 
-            console.warn("Previous story load failed", e);
-            previousStoryContext = "데이터 로드 실패";
+            console.warn("Previous story load failed (Stories Table)", e);
+            // Stories API 오류 발생 시, 플래그는 false로 유지하고 다음 단계로 진행
+        }
+
+        // 🌟 2. Stories 데이터가 없으면 Episodes 테이블의 Treatment 조회 (2순위 Fallback)
+        if (!storyContentFound) {
+            let fallbackStories = [];
+            // epNum - 1, epNum - 2 회차를 순서대로 확인
+            const prevEpNums = [epNum - 1].filter(n => n > 0); 
+            
+            for (const pNum of prevEpNums) {
+                // globalEpisodes는 이미 loadEpisodeList에서 로드되었음을 가정
+                const ep = globalEpisodes.find(e => e.episode_number == pNum);
+                // treatment가 있고 내용이 비어있지 않은 경우만
+                if (ep && ep.treatment && ep.treatment.trim().length > 0) {
+                    fallbackStories.push(ep);
+                    if (fallbackStories.length >= 2) break; // 최대 2개까지만 참조
+                }
+            }
+
+            if (fallbackStories.length > 0) {
+                // 3. Treatment 데이터 사용 (오름차순 정렬)
+                fallbackStories.sort((a, b) => a.episode_number - b.episode_number);
+                previousStoryContext = fallbackStories.map(s => {
+                    return `[제${s.episode_number}화: ${s.title}]\n(트리트먼트 본문 발췌 - Episodes Treatment):\n${s.treatment}`;
+                }).join('\n\n----------------\n\n');
+            } else {
+                previousStoryContext = "이전 회차의 집필 기록(Stories) 또는 트리트먼트(Episodes)가 아직 없습니다.";
+            }
         }
     }
 	
@@ -611,14 +638,14 @@
                 nextEpisodeContext = `
                 [⚠️ 중요: 다음 회차(${nextEp.episode_number}화) 예고]
                 - 제목: ${nextEp.title}
-                - 주요 사건 요약: ${nextEp.content || "아직 작성되지 않음"}
+                - ${nextEp.content}
                 
                 ※ 필독 지침: 
                 이번 회차의 엔딩은 위 '다음 회차'의 사건이 시작될 수 있는 계기나 분위기를 조성하며 끝나야 합니다. 
                 갑자기 뚝 끊기지 말고, 다음 화로 넘어갈 수밖에 없는 '복선'이나 '위기'를 엔딩에 배치하세요.
                 `;
             }
-			
+			//console.log(previousStoryContext);
             const fullPrompt = `	
 				[이전 이야기 흐름 (Context)]
                 ${previousStoryContext}
@@ -636,7 +663,7 @@
                 위 [이전 이야기 흐름]과 자연스럽게 이어지고, [다음 회차 예고]로 매끄럽게 연결되도록 
                 [현재 회차 줄거리]를 바탕으로 상세 **트리트먼트(Treatment)**를 작성해줘.
 				`;
-            console.log(fullPrompt)
+         
             // 🌟 [수정됨] 등장 세계관 항목(3번) 추가 및 순서 재배치
             const systemInstruction = `				
                 [작품 정보]				
@@ -666,8 +693,8 @@
                    - 반드시 **[사용 가능한 세계관 키워드 목록]**에 존재하는 키워드만 선택하여 나열하십시오.
                    - 목록에 없는 새로운 키워드를 창조하거나 변형하지 마십시오.
                    - 만약 적절한 키워드가 없다면 "없음"으로 표시하십시오.
-                4. **장면 구성(SCENE X)**은 최소 6씬 이상으로 구성하며, 각 씬은 **상황, 사건, 갈등, 심리, 대사, 연출** 요소를 포함해야 합니다.
-                5. **장면 구성(SCENE 7)**은 해당 회차의 마지막 씬으로 **상황, 사건, 갈등, 심리, 대사,연출, ENDING/HOOK** 요소를 포함해야 합니다.
+                4. **장면 구성(SCENE X)**은 최소 7씬 이상으로 구성하며, 각 씬은 **상황, 사건, 갈등, 심리, 대사, 연출** 요소를 포함해야 합니다.
+                5. **장면 구성(SCENE 8)**은 해당 회차의 마지막 씬으로 **상황, 사건, 갈등, 심리, 대사,연출, ENDING/HOOK** 요소를 포함해야 합니다.
                 6. **장면 구성(SCENE X)**의 **대사** 요소는 등장인물의 설정을 반영하여 작성 합니다.
                 7. **등장 인물** 목록은 해당 트리트먼트 내용에 실제로 등장하는 인물만 나열하세요.
                 8. 반드시 아래 예시와 정확히 동일한 형식(제목, 별표, 구분선, 콜론)으로, **줄글 텍스트**로만 출력하세요.
@@ -676,45 +703,45 @@
                 
                 [제 X화] 회차 제목
                 
-                **1. 요약**
+                1. 요약
                 (회차 전체 줄거리 요약. 500자 내외)
                 
-                ***
+                ---
                 
-                **2. 등장 인물**
+                2. 등장 인물
                 장한빛, 장한성, ...(이 회차에 등장하는 인물만 나열)
 				                
-                ***
+                ---
 				
-                **3. 등장 세계관 (키워드)**
-                * **#마법, #마나** (이 회차와 관련된 키워드 노출)
+                3. 등장 세계관 (키워드)
+                - #마법, #마나 (이 회차와 관련된 키워드 노출)
 				
-                **4. 장면 구성 (X Scenes)**
-                **SCENE 1: 장면 제목**
-                * **상황: (분위기를 조성하라)
-                * **사건: (의미 있는 행동 서술)
-                * **갈등: (위기감의 구체화)
-                * **심리: (공감 가는 반응)
-                * **대사: (생동감 있는 티키타카)
-                * **연출: (비언어적 묘사와 무게감)
+                4. 장면 구성 (X Scenes)
+                SCENE 1: 장면 제목
+                - 상황: (분위기를 조성하라)
+                - 사건: (의미 있는 행동 서술)
+                - 갈등: (위기감의 구체화)
+                - 심리: (공감 가는 반응)
+                - 대사: (생동감 있는 티키타카)
+                - 연출: (비언어적 묘사와 무게감)
 
-                **SCENE 2: 장면 제목**
-                * ... (반복) ...
+                SCENE 2: 장면 제목
+                - ... (반복) ...
                 
-				**SCENE 7: 장면 제목**				
-                * **상황: (분위기를 조성하라)
-                * **사건: (의미 있는 행동 서술)
-                * **갈등: (위기감의 구체화)
-                * **심리: (공감 가는 반응)
-                * **대사: (생동감 있는 티키타카)
-                * **연출: (비언어적 묘사와 무게감)
-				* **ENDING/HOOK:(자연스러운 연결) 
+				SCENE 8: 장면 제목				
+                - 상황: (분위기를 조성하라)
+                - 사건: (의미 있는 행동 서술)
+                - 갈등: (위기감의 구체화)
+                - 심리: (공감 가는 반응)
+                - 대사: (생동감 있는 티키타카)
+                - 연출: (비언어적 묘사와 무게감)
+				- ENDING/HOOK:(자연스러운 연결) 
                 
-				***          
+				---          
 				
 				
-				**5. 설정 체크**
-                * (해당 회차에서 회수된 떡밥이나, 강조된 설정 체크)
+				5. 설정 체크
+                - (해당 회차에서 회수된 떡밥이나, 강조된 설정 체크)
 				
             `;
 				

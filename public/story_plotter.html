@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소설 플롯 및 에피소드 관리 (내용 검증 및 수정)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        :root { font-family: 'Inter', sans-serif; }
+        .ai-output-container {
+            white-space: pre-wrap;
+            background-color: #f7f7f7;
+            border-left: 4px solid #3b82f6;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .custom-scroll::-webkit-scrollbar { width: 8px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .nav-link { @apply px-3 py-2 rounded-md text-sm font-medium text-gray-700 transition duration-150 ease-in-out; }
+    </style>
+</head>
+<body class="p-0 min-h-screen flex flex-col items-center">
+
+<nav class="fixed top-0 left-0 z-50 w-full bg-white border-b border-gray-200 shadow-lg">
+    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8">
+        <div class="relative flex items-center justify-between h-14 sm:h-16">
+            <div class="flex-1 flex items-center justify-start">
+                <a href="#" class="flex-shrink-0 text-gray-800 text-lg font-bold"></a>
+            </div>
+            <div class="flex items-center sm:ml-6">
+                <div class="flex space-x-1 sm:space-x-4 overflow-x-auto whitespace-nowrap py-1">
+                    <a href="/" class="nav-link hover:bg-gray-100">글쓰기</a>
+                    <a href="/index3" class="nav-link hover:bg-gray-100">세계관구성관리</a>
+                    <a href="/index4" class="nav-link hover:bg-gray-100">에피소드생성기</a>
+                    <a href="/index2" class="nav-link hover:bg-gray-100">등장인물관리</a>
+                    <a href="/storys2" class="nav-link hover:bg-gray-100">회차 상세 편집</a>
+                    <a href="/storys1" class="nav-link bg-blue-100 text-blue-800 hover:bg-blue-200" aria-current="page">소설 내용 검증</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div id="app" class="mt-16 sm:mt-20 w-full max-w-7xl bg-white shadow-2xl rounded-xl p-4 sm:p-8 border border-gray-100 mb-8 flex flex-col lg:flex-row gap-6">
+
+    <div class="lg:w-1/3 border-r border-gray-200 p-6 flex flex-col">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-3">플롯 설정 목록</h2>
+        <p id="system-info" class="text-xs text-gray-500 mb-4">API 상태: 연결 중...</p>
+        <div id="plot-list-container" class="flex-grow space-y-2 overflow-y-auto custom-scroll" style="max-height: 60vh;">
+            <p id="loading-plots" class="text-center text-blue-500">
+                <span class="spinner inline-block align-middle mr-2"></span> 설정 데이터를 불러오는 중...
+            </p>
+        </div>
+        <button id="refresh-data-button" class="mt-4 w-full bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow-md hover:shadow-lg text-sm">
+            데이터 새로고침
+        </button>
+    </div>
+
+    <div class="lg:w-2/3 p-6 flex flex-col">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">
+            <span id="selected-plot-title" class="text-indigo-600">선택된 설정 없음</span>
+        </h2>
+
+        <div class="flex-grow grid grid-rows-[max-content_1fr] gap-6">
+            <div class="border rounded-xl p-4 shadow-sm bg-gray-50">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2">회차 목록</h3>
+                <div id="episode-list-container" class="h-32 max-h-32 overflow-y-auto custom-scroll space-y-1">
+                    <p id="episode-placeholder" class="text-gray-400 text-center mt-8">설정을 선택하시면 회차 목록이 나타납니다.</p>
+                </div>
+            </div>
+
+            <div class="border rounded-xl p-4 shadow-md flex flex-col">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3 border-b pb-2 flex justify-between items-center">
+                    <span id="selected-episode-title" class="text-blue-600">회차 상세 내용</span>
+                    <span id="current-episode-info" class="text-xs text-gray-400"></span>
+                </h3>
+
+                <div id="episode-detail-content" class="flex-grow overflow-y-auto custom-scroll mb-4 text-gray-700 text-sm h-64 border p-2 rounded bg-gray-50">
+                    <p class="text-gray-400 text-center mt-20">회차를 선택하세요.</p>
+                </div>
+
+                <div id="ai-section" class="pt-4 border-t">
+                    <button id="ai-analysis-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center mb-4" disabled>
+                        <span id="ai-button-text">소설 내용 검증 및 분석 (리포트 생성)</span>
+                        <span id="ai-spinner" class="spinner ml-3 hidden"></span>
+                    </button>
+
+                    <div id="ai-output" class="p-4 rounded-lg ai-output-container text-sm hidden mb-4 max-h-60 overflow-y-auto custom-scroll">
+                        </div>
+                </div>
+
+                <div id="rewrite-section" class="pt-4 border-t border-gray-300 mt-2 hidden">
+                    <h4 class="font-bold text-gray-800 mb-2">✍️ 내용 개선 및 저장</h4>
+                    
+                    <div class="mb-3">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">개선 요청 사항 (Prompt)</label>
+                        <textarea id="rewrite-instructions" class="w-full p-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="2" placeholder="예: 주인공의 감정을 더 격하게 표현해줘, 마지막 대사를 좀 더 비꼬듯이 수정해줘..."></textarea>
+                    </div>
+                    
+                    <button id="ai-rewrite-button" class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-150 shadow flex items-center justify-center mb-4">
+                        <span id="rewrite-button-text">AI로 내용 다시 쓰기 (Rewrite)</span>
+                        <span id="rewrite-spinner" class="spinner ml-3 hidden" style="border-top-color: white;"></span>
+                    </button>
+
+                    <div id="rewrite-result-container" class="hidden">
+                        <label class="block text-xs font-medium text-gray-600 mb-1">수정된 내용 (편집 후 저장 가능)</label>
+                        <textarea id="revised-content-editor" class="w-full p-3 border border-green-400 rounded-md text-sm bg-white focus:outline-none h-64 custom-scroll font-medium text-gray-800"></textarea>
+                        
+                        <div class="flex gap-2 mt-2">
+                            <button id="save-revision-button" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition transform active:scale-95">
+                                변경 내용 저장하기 (DB 반영)
+                            </button>
+                            <button onclick="document.getElementById('rewrite-result-container').classList.add('hidden')" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300">
+                                취소
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    // --- 글로벌 변수 및 설정 ---
+    const API_BASE_URL = 'http://localhost:3000/api';
+
+    // Gemini API 설정 (클라이언트 직접 호출)
+    const GEMINI_MODEL = "gemini-2.5-flash";
+    const API_KEY = "AIzaSyCzR2rKB7ZtwYrXUZsE65_DkVyJlXXscqU"; // ⚠️ 실제 배포 시에는 서버 프록시 사용 권장
+    const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${API_KEY}`;
+
+    let allSettings = [];
+    let currentSettingStories = [];
+    let selectedSettingId = null;
+    let selectedStoryId = null;
+    let currentStoryData = null; // 현재 선택된 스토리 객체 보관용
+    
+    // [추가] 상세 컨텍스트 데이터 (세계관, 캐릭터 등)
+    let contextData = ""; 
+
+    // UI 요소
+    const plotListContainer = document.getElementById('plot-list-container');
+    const episodeListContainer = document.getElementById('episode-list-container');
+    const episodeDetailContent = document.getElementById('episode-detail-content');
+    const selectedPlotTitle = document.getElementById('selected-plot-title');
+    const selectedEpisodeTitle = document.getElementById('selected-episode-title');
+    
+    // 분석 관련 버튼
+    const aiAnalysisButton = document.getElementById('ai-analysis-button');
+    const aiButtonText = document.getElementById('ai-button-text');
+    const aiSpinner = document.getElementById('ai-spinner');
+    const aiOutput = document.getElementById('ai-output');
+    
+    // 수정 관련 버튼
+    const rewriteSection = document.getElementById('rewrite-section');
+    const rewriteInstructions = document.getElementById('rewrite-instructions');
+    const aiRewriteButton = document.getElementById('ai-rewrite-button');
+    const rewriteButtonText = document.getElementById('rewrite-button-text');
+    const rewriteSpinner = document.getElementById('rewrite-spinner');
+    const rewriteResultContainer = document.getElementById('rewrite-result-container');
+    const revisedContentEditor = document.getElementById('revised-content-editor');
+    const saveRevisionButton = document.getElementById('save-revision-button');
+
+    const loadingPlots = document.getElementById('loading-plots');
+    const systemInfo = document.getElementById('system-info');
+    const episodePlaceholder = document.getElementById('episode-placeholder');
+
+    // --- 초기화 및 URL 파라미터 확인 ---
+    window.onload = async function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const paramId = urlParams.get('setting_id') || urlParams.get('id');
+
+        await fetchSettings(); // 전체 목록 먼저 로드
+
+        // URL 파라미터가 있다면 해당 설정 자동 선택
+        if (paramId) {
+            await handlePlotSelection(paramId);
+        }
+
+        // 이벤트 리스너 등록
+        document.getElementById('refresh-data-button').addEventListener('click', () => fetchSettings());
+        aiAnalysisButton.addEventListener('click', performAIAnalysis);
+        aiRewriteButton.addEventListener('click', performRewrite);
+        saveRevisionButton.addEventListener('click', saveRevisedStory);
+    };
+
+    // --- API 통신 ---
+
+    async function fetchSettings() {
+        if(loadingPlots) loadingPlots.classList.remove('hidden');
+        try {
+            const response = await fetch(`${API_BASE_URL}/settings-list`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            allSettings = await response.json();
+            renderPlotList();
+            systemInfo.textContent = `API 상태: 연결 성공 (${allSettings.length}개 설정)`;
+        } catch (error) {
+            console.error(error);
+            systemInfo.textContent = 'API 상태: 연결 실패';
+            if(loadingPlots) loadingPlots.innerHTML = `<p class="text-red-500">서버 연결 실패</p>`;
+        } finally {
+            if(loadingPlots) loadingPlots.classList.add('hidden');
+        }
+    }
+
+    // [핵심] 설정 선택 시 상세 컨텍스트(세계관, 캐릭터) 로드
+    async function loadContextData(settingId) {
+        try {
+            // Promise.all로 병렬 요청
+            const [sRes, wRes, cRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`${API_BASE_URL}/worldsettings?setting_id=${settingId}`).then(r => r.json()),
+                fetch(`${API_BASE_URL}/characters?setting_id=${settingId}`).then(r => r.json())
+            ]);
+
+            // AI에게 전달할 상세 문자열 생성
+            contextData = `
+[제목]: ${sRes.title}
+
+[세계관 상세]: 
+${Array.isArray(wRes) && wRes.length > 0 ? wRes.map(w => `- ${w.title}: ${w.description} (키워드: ${w.keywords || ''})`).join('\n') : '상세 세계관 정보 없음'}
+
+[주요 등장인물]: 
+${Array.isArray(cRes) && cRes.length > 0 ? cRes.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n') : '상세 등장인물 정보 없음'}
+            
+[기본 플롯]: ${sRes.plotDetails || '없음'}
+            `;
+            console.log("Context Loaded:", contextData);
+
+        } catch (e) { 
+            console.warn("Context load failed", e);
+            contextData = "상세 설정 로드 실패. 기본 정보만 사용합니다.";
+        }
+    }
+
+    async function handlePlotSelection(settingId) {
+        selectedSettingId = settingId.toString();
+        selectedStoryId = null;
+
+        const setting = allSettings.find(p => p.id.toString() === selectedSettingId);
+        if (setting) {
+            selectedPlotTitle.textContent = setting.title;
+        }
+
+        renderPlotList(); // UI 갱신 (선택 표시)
+        
+        // 회차 로드
+        await fetchStoriesForSetting(selectedSettingId);
+        
+        // [중요] 상세 컨텍스트 데이터 로드 (AI용)
+        await loadContextData(selectedSettingId);
+        
+        renderEpisodeDetail();
+    }
+
+    async function fetchStoriesForSetting(settingId) {
+        episodeListContainer.innerHTML = `<p class="text-center text-blue-500 mt-8"><span class="spinner inline-block align-middle mr-2"></span> 로딩 중...</p>`;
+        try {
+            const response = await fetch(`${API_BASE_URL}/stories?setting_id=${settingId}`);
+            currentSettingStories = await response.json();
+            renderEpisodeList();
+        } catch (error) {
+            episodeListContainer.innerHTML = `<p class="text-red-500 text-center">회차 로드 실패</p>`;
+        }
+    }
+
+    async function saveRevisedStory() {
+        if (!selectedStoryId || !currentStoryData) return;
+
+        const newContent = revisedContentEditor.value;
+        if (!newContent.trim()) {
+            alert("저장할 내용이 없습니다.");
+            return;
+        }
+
+        if (!confirm("정말로 이 내용으로 수정하시겠습니까? (기존 내용은 덮어씌워집니다)")) return;
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/stories/${selectedStoryId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    episode_number: currentStoryData.episode_number,
+                    title: currentStoryData.title,
+                    content: newContent
+                })
+            });
+
+            if (!response.ok) throw new Error('Save failed');
+
+            alert("성공적으로 저장되었습니다.");
+            
+            // UI 갱신
+            currentStoryData.content = newContent; 
+            renderEpisodeDetail(false); 
+            rewriteResultContainer.classList.add('hidden'); 
+            rewriteInstructions.value = ""; 
+
+        } catch (error) {
+            console.error(error);
+            alert("저장 중 오류가 발생했습니다: " + error.message);
+        }
+    }
+
+    // --- 렌더링 함수 ---
+
+    function renderPlotList() {
+        plotListContainer.innerHTML = '';
+        allSettings.forEach(setting => {
+            const isActive = setting.id.toString() === selectedSettingId;
+            const div = document.createElement('div');
+            div.className = `p-3 rounded-lg cursor-pointer transition ${isActive ? 'bg-indigo-100 border-indigo-500 border-2' : 'bg-white hover:bg-gray-100 border border-gray-200'}`;
+            div.innerHTML = `<h4 class="font-semibold text-gray-700">${setting.title}</h4>`;
+            div.onclick = () => handlePlotSelection(setting.id.toString());
+            plotListContainer.appendChild(div);
+        });
+    }
+
+    function renderEpisodeList() {
+        episodeListContainer.innerHTML = '';
+        if (currentSettingStories.length === 0) {
+            episodeListContainer.innerHTML = `<p class="text-gray-400 text-center mt-4">회차 없음</p>`;
+            return;
+        }
+        currentSettingStories.forEach(story => {
+            const isActive = story.id.toString() === selectedStoryId;
+            const div = document.createElement('div');
+            div.className = `p-2 rounded-md cursor-pointer text-sm ${isActive ? 'bg-blue-100 text-blue-700 font-bold' : 'hover:bg-gray-50 text-gray-600'}`;
+            div.innerText = `[${story.episode_number}화] ${story.title || '제목 없음'}`;
+            div.onclick = () => {
+                selectedStoryId = story.id.toString();
+                currentStoryData = story; 
+                renderEpisodeList();
+                renderEpisodeDetail();
+            };
+            episodeListContainer.appendChild(div);
+        });
+    }
+
+    function renderEpisodeDetail(shouldScroll = true) {
+        if (!selectedStoryId || !currentStoryData) {
+            selectedEpisodeTitle.textContent = "회차 상세 내용";
+            episodeDetailContent.innerHTML = `<p class="text-gray-400 text-center mt-20">회차를 선택하세요.</p>`;
+            aiAnalysisButton.disabled = true;
+            rewriteSection.classList.add('hidden');
+            return;
+        }
+
+        selectedEpisodeTitle.textContent = `[${currentStoryData.episode_number}화] ${currentStoryData.title}`;
+        episodeDetailContent.innerHTML = `<div class="whitespace-pre-wrap leading-relaxed">${currentStoryData.content || '내용 없음'}</div>`;
+        
+        if (shouldScroll) episodeDetailContent.scrollTop = 0;
+
+        aiAnalysisButton.disabled = false;
+        rewriteSection.classList.remove('hidden');
+        rewriteResultContainer.classList.add('hidden'); 
+        aiOutput.classList.add('hidden');
+    }
+
+    // --- AI 로직 (상세 contextData 활용) ---
+
+    // 1. 분석
+    async function performAIAnalysis() {
+        if (!selectedSettingId || !selectedStoryId) return;
+
+        aiButtonText.textContent = '분석 중...';
+        aiSpinner.classList.remove('hidden');
+        aiAnalysisButton.disabled = true;
+        aiOutput.classList.add('hidden');
+
+        const systemPrompt = "당신은 전문적인 소설 에디터입니다. 제공된 [상세 세계관 및 설정]과 [현재 회차 내용]을 바탕으로 내용의 개연성을 검증하고 혹은 모순되는 부분은 없는지 명확하게 분석, 캐릭터의 행동이 설정과 부합하는지 확인하며, 다음 전개를 예상하는 리포트를 한국어로 작성하세요.";
+        
+        // [수정] contextData 사용
+        const userQuery = `
+${contextData}
+
+**[현재 회차 내용 (Episode ${currentStoryData.episode_number})]**
+${currentStoryData.content}`;
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] }
+        };
+
+        try {
+            const response = await fetch(GEMINI_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            const text = result.candidates?.[0]?.content?.parts?.[0]?.text || "분석 실패";
+            
+            aiOutput.innerHTML = `<h4 class="font-bold text-gray-800 mb-2">📊 상세 분석 결과</h4><div class="prose text-sm">${text.replace(/\n/g, '<br>')}</div>`;
+            aiOutput.classList.remove('hidden');
+
+        } catch (error) {
+            alert("AI 분석 오류: " + error.message);
+        } finally {
+            aiButtonText.textContent = '소설 내용 검증 및 분석 (리포트 생성)';
+            aiSpinner.classList.add('hidden');
+            aiAnalysisButton.disabled = false;
+        }
+    }
+
+    // 2. 다시 쓰기
+    async function performRewrite() {
+        if (!selectedSettingId || !selectedStoryId) return;
+        
+        const instructions = rewriteInstructions.value.trim();
+        if (!instructions) {
+            alert("개선 요청 사항을 입력해주세요.");
+            return;
+        }
+
+        rewriteButtonText.textContent = 'AI가 다시 쓰는 중...';
+        rewriteSpinner.classList.remove('hidden');
+        aiRewriteButton.disabled = true;
+
+        const systemPrompt = `당신은 베스트셀러 소설 작가입니다. 
+사용자의 [요청 사항]을 반영하여 [현재 원고]를 **처음부터 끝까지 다시 작성**하세요.
+출력은 오직 **수정된 소설 본문**만 제공하세요.
+[상세 세계관 및 설정]을 철저히 준수해야 합니다.`;
+
+        // [수정] contextData 사용
+        const userQuery = `
+${contextData}
+
+**[현재 원고]**
+${currentStoryData.content}
+
+**[요청 사항 (이 내용을 반영하여 수정)]**
+${instructions}
+`;
+
+        const payload = {
+            contents: [{ parts: [{ text: userQuery }] }],
+            systemInstruction: { parts: [{ text: systemPrompt }] }
+        };
+
+        try {
+            const response = await fetch(GEMINI_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json();
+            let newText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+            if (newText) {
+                revisedContentEditor.value = newText;
+                rewriteResultContainer.classList.remove('hidden');
+                rewriteResultContainer.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                alert("AI가 내용을 생성하지 못했습니다.");
+            }
+
+        } catch (error) {
+            alert("수정 요청 오류: " + error.message);
+        } finally {
+            rewriteButtonText.textContent = 'AI로 내용 다시 쓰기 (Rewrite)';
+            rewriteSpinner.classList.add('hidden');
+            aiRewriteButton.disabled = false;
+        }
+    }
+</script>
+</body>
+</html>

@@ -494,9 +494,7 @@
             반드시 아래 형식을 그대로 지켜주세요. 파싱에 사용됩니다.
 
             [제N화] (회차 제목)
-            - 핵심 테마: (내용)
-            - N화 줄거리: (내용 - 400자 이상 상세하게)
-            - 등장인물: (이 회차에 등장하는 인물 이름)
+            - (내용 - 400자 이상 상세하게)
             `;
 
             const userPrompt = `
@@ -628,7 +626,7 @@
                     method = 'PUT';
                     url = `/api/episodes/${existingId}`;
                 } else {
-                    finalTreatment = currentRoadmap ? currentRoadmap.content : "";
+                    finalTreatment = "";
                 }
             }
 
