@@ -821,7 +821,7 @@
 
             // 4. 요청
             const payload = {
-                model: "gemini-3.0-flash",
+                model: "gemini-3-flash-preview",
                 payload: {
                   contents: [{ parts: [{ 
                       text: `${textForAiContext}\n\n[장면 묘사 요청]\n${userInstruction}\n\n위 흐름에 이어 자연스럽게 서술해.  [장면 묘사 요청]에 SCENE이 있으면 SCENE별로 공백제외 900자 분량으로 작성해줘. ` 
@@ -878,7 +878,7 @@
             if(contextInput) fullSystemInstruction += `\n[사용자 메모]: ${contextInput}`;
 
             const payload = {
-                model: "gemini-3.0-flash",
+                model: "gemini-3-flash-preview",
                 payload: {
                     systemInstruction: { parts: [{ text: fullSystemInstruction }] },
                     contents: [{
@@ -929,7 +929,7 @@
 
         try {
             const payload = {
-                model: "gemini-3.0-flash",
+                model: "gemini-3-flash-preview",
                 payload: {
                     contents: [{
                         parts: [{ text: `원문: ${selectedText}\n지시: ${instruction}\n조건: 수정된 문장만 출력.` }]
