@@ -536,9 +536,17 @@
     `;
 
     function updateCharCount() {
-        const text = document.getElementById('mainEditor').value;
-        const count = text.replace(/\s/g, '').length; // 공백 제외
-        document.getElementById('charCount').innerText = `${count}자 (공백제외)`;
+       const text = document.getElementById('mainEditor').value;
+        
+        // 1. 문피아 식 공백 포함: 줄바꿈 문자(\n)를 제거하고 계산
+        // (기존 .length는 줄바꿈도 1자로 칩니다)
+        const munpiaTotal = text.replace(/\n/g, '').length;
+        
+        // 2. 공백 제외: 띄어쓰기, 줄바꿈 등 모든 공백 제거
+        const noSpace = text.replace(/\s/g, '').length; 
+
+        document.getElementById('charCount').innerHTML = 
+            `<span style="color:#888; font-size:0.9em;">공백포함 ${munpiaTotal}자</span> <span style="color:#ddd;">|</span> <span style="color:var(--write-color); font-weight:bold;">공백제외 ${noSpace}자</span>`;
     }
 
     async function init() {
@@ -649,11 +657,17 @@
             }
 
             globalStories.forEach((story) => {
-                const li = document.createElement('li');
+				const li = document.createElement('li');
                 li.className = `ep-item ${story.id === currentStoryId ? 'active' : ''}`;
+                
+                // 여기도 줄바꿈(\n)을 제거한 길이로 표시합니다.
+                const count = story.content ? story.content.replace(/\n/g, '').length : 0;
+				
+
                 li.innerHTML = `
                     <div style="font-weight:bold;">${story.title}</div>
-                    <div class="ep-meta">${story.episode_number}화 · ${story.content ? story.content.length : 0}자</div>
+                    <div class="ep-meta">${story.episode_number}화 · 
+                        공백포함 ${count}자</div>
                 `;
                 li.onclick = () => selectStory(story);
                 listEl.appendChild(li);
