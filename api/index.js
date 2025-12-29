@@ -7,6 +7,8 @@ require('dotenv').config({ quiet: true });;
 const app = express();
 const port = process.env.PORT || 3000;
 
+app.use(express.json({ limit: '10mb' })); 
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // 🌟🌟🌟 환경 변수에서 Gemini API 키 로드 🌟🌟🌟
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";

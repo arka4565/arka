@@ -400,17 +400,23 @@
     // 1. Context 로드
     async function loadContextData() {
         try {
-            const [sRes, wRes, cRes] = await Promise.all([
+            const [sRes, wRes, cRes, dRes] = await Promise.all([
+			
                 fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
                 fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
-                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
+                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json()),
+                fetch(`/api/stories?setting_id=${settingId}`).then(r => r.json())
             ]);
             currentSettings = sRes;
             contextData = `
 			[제목]: ${sRes.title}
 			[세계관 요약]: ${Array.isArray(wRes) ? wRes.map(w => w.title + ": " + w.description).join('\n') : '없음'}
-			[주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}
+			[주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}			
+			 
+			[내용]: ${Array.isArray(dRes) ? dRes.map(d => `\n=== ${d.episode_number}화: ${d.title} ===\n\n${d.content}\n\n`).join('\n') : '없음'}
 			`;
+			console.log(contextData);
+			
         } catch (e) { console.warn("Context fail", e); }
     }
 
