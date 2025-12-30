@@ -753,7 +753,7 @@
     function copyToClipboard() {
         if (globalStories.length === 0) return alert("데이터가 없습니다.");
         let combined = "";
-        globalStories.forEach(s => combined += `${s.title}\n${s.content}\n\n`);
+        globalStories.forEach(s => combined += `=== ${s.episode_number}화: ${s.title}=== \n${s.content}\n\n`);
         navigator.clipboard.writeText(combined).then(()=>alert("복사완료"));
     }
 
