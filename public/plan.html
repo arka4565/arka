@@ -173,18 +173,18 @@
             justify-content: space-between;
             align-items: center;
         }
-		.part-theme {
-			font-size: 0.9rem;
-			color: #555;
-			background-color: #fff3cd; /* 연한 노란색 강조 */
-			padding: 8px 12px;
-			border-radius: 6px;
-			margin: 10px 20px 0 20px; /* 위치 조정 */
-			border: 1px solid #ffeeba;
-			display: flex;
-			align-items: center;
-			gap: 6px;
-		}
+        .part-theme {
+            font-size: 0.9rem;
+            color: #555;
+            background-color: #fff3cd; /* 연한 노란색 강조 */
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 10px 20px 0 20px; /* 위치 조정 */
+            border: 1px solid #ffeeba;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
         .part-title { font-weight: bold; color: #2c3e50; font-size: 1.1rem; }
         .part-range { font-size: 0.85rem; color: #fff; background: var(--map-color); padding: 4px 10px; border-radius: 15px; font-weight: 600; margin-left: 10px;}
         
@@ -233,84 +233,86 @@
             border-radius: 12px;
             border: 2px dashed #eee;
         }
-/* --- 모달(레이어 팝업) 스타일 --- */
-.modal-overlay {
-    display: none; /* 기본적으로 숨김 */
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 2000;
-    justify-content: center;
-    align-items: center;
-}
-.modal-window {
-    background: white;
-    width: 90%;
-    max-width: 800px;
-    height: 85vh; /* 화면 높이의 85% */
-    border-radius: 12px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-}
-.modal-header {
-    padding: 20px;
-    border-bottom: 1px solid #eee;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #f8f9fa;
-}
-.modal-title { font-size: 1.2rem; font-weight: bold; color: #333; }
-.modal-body {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    background: #f4f6f8;
-}
-.modal-footer {
-    padding: 15px 20px;
-    border-top: 1px solid #eee;
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    background: white;
-}
-.btn-secondary {
-    background: #95a5a6;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-.btn-secondary:hover { background: #7f8c8d; }
-.btn-primary {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-.btn-primary:hover { background: #2980b9; }
 
-/* 미리보기 카드 스타일 (약간 축소형) */
-.preview-card {
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-}
-.preview-title { font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
-.preview-content { font-size: 0.9rem; color: #555; white-space: pre-wrap; line-height: 1.5; }
+        /* --- 모달(레이어 팝업) 스타일 --- */
+        .modal-overlay {
+            display: none; /* 기본적으로 숨김 */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-window {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            height: 85vh; /* 화면 높이의 85% */
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8f9fa;
+        }
+        .modal-title { font-size: 1.2rem; font-weight: bold; color: #333; }
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f4f6f8;
+        }
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: white;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .btn-primary {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn-primary:hover { background: #2980b9; }
+
+        /* 미리보기 카드 스타일 */
+        .preview-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .preview-title { font-weight: bold; color: #2c3e50; margin-bottom: 5px; }
+        .preview-content { font-size: 0.9rem; color: #555; white-space: pre-wrap; line-height: 1.5; }
+        
         @media (max-width: 768px) {
             .container { padding: 15px; }
             .part-header { flex-direction: column; align-items: flex-start; gap: 8px; }
@@ -349,17 +351,42 @@
     <div class="ai-input-section" id="initialInputSection">
         <div class="input-group">
             <label class="input-label"><i class="fas fa-robot"></i> 전체 구조 설계 요청 (AI)</label>
-            <div style="font-size:0.9em; color:#666; margin-bottom:10px;">작품의 전체 흐름을 굵직한 챕터(Part) 단위로 나눕니다.</div>
-            <textarea id="aiPrompt" class="map-textarea" placeholder="예: 주인공이 밑바닥부터 시작해서 황제가 되는 과정을 5개의 Part로 나누어줘.">소설 전체를 16개의 Part로 나누어줘. 각 Part는 25화 분량이야.</textarea>
+            <div style="font-size:0.9em; color:#666; margin-bottom:10px;">작품 전체의 핵심 줄거리를 입력하세요. (단계별 생성 시 계속 유지됩니다)</div>
+            <textarea id="aiPrompt" class="map-textarea" placeholder="예: 주인공이 밑바닥부터 시작해서 황제가 되는 과정"></textarea>
         </div>
         
-        <div style="display:flex; gap:15px; margin-bottom:20px; align-items:center;">
-             <label class="input-label" style="margin-bottom:0;">예상 전체 회차:</label>
-             <input type="number" id="totalEpisodes" class="form-input" style="width:120px;" placeholder="200" value="400">
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border: 1px solid #eee;">
+            <label class="input-label" style="margin-bottom: 10px; color: #2c3e50;"><i class="fas fa-sliders-h"></i> 생성 설정 (이어쓰기)</label>
+            
+            <div style="display:flex; gap:15px; flex-wrap: wrap; align-items: flex-end;">
+                <div>
+                    <label style="font-size: 0.85rem; color: #666; display:block; margin-bottom:5px;">작성 분위기 (단계)</label>
+                    <select id="generationPhase" class="form-input" style="width:140px;">
+                        <option value="ki">1. 기 (발단)</option>
+                        <option value="seung">2. 승 (전개)</option>
+                        <option value="jeon">3. 전 (위기)</option>
+                        <option value="gyeol">4. 결 (결말)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label style="font-size: 0.85rem; color: #666; display:block; margin-bottom:5px;">시작 회차</label>
+                    <input type="number" id="startEpisode" class="form-input" style="width:80px; text-align:center;" value="1">
+                </div>
+                <div style="padding-bottom: 10px;">~</div>
+                <div>
+                    <label style="font-size: 0.85rem; color: #666; display:block; margin-bottom:5px;">종료 회차</label>
+                    <input type="number" id="endEpisode" class="form-input" style="width:80px; text-align:center;" value="25">
+                </div>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: #888; margin-top: 10px;">
+                * 긴 소설(100화+)은 한 번에 <b>25화씩</b> 끊어서 [생성] 하세요. (자동으로 다음 구간이 설정됩니다)
+            </div>
         </div>
 
-        <button id="btnGenerate" class="btn-generate" onclick="generateRoadmap()">
-            <i class="fas fa-bolt"></i> AI 구조 생성 시작
+        <button id="btnGenerate" class="btn-generate" onclick="generateRoadmap()" style="margin-top: 15px;">
+            <i class="fas fa-bolt"></i> 해당 구간 생성 시작
         </button>
     </div>
 
@@ -367,7 +394,26 @@
         <div class="empty-state">
             <i class="fas fa-layer-group" style="font-size:3rem; margin-bottom:15px; color:#eee;"></i><br>
             아직 생성된 기획이 없습니다.<br>
-            위 입력창을 통해 전체 구조를 설계해보세요.
+            위 입력창을 통해 구조를 설계해보세요.
+        </div>
+    </div>
+</div>
+
+<div id="previewModal" class="modal-overlay">
+    <div class="modal-window">
+        <div class="modal-header">
+            <div class="modal-title"><i class="fas fa-magic"></i> AI 구조 생성 결과 미리보기</div>
+            <button onclick="closePreviewModal()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="previewListArea">
+        </div>
+        <div class="modal-footer">
+            <span style="margin-right:auto; font-size:0.9rem; color:#e74c3c;" id="previewWarningText">
+                 </span>
+            <button class="btn-secondary" onclick="closePreviewModal()">취소</button>
+            <button class="btn-primary" onclick="applyPreview()">적용하기</button>
         </div>
     </div>
 </div>
@@ -377,8 +423,8 @@
     const settingId = urlParams.get('setting_id') || urlParams.get('id');
 
     let contextData = ""; 
-    let roadmapData = []; // [{ part: 1, title: "", range: "", content: "" }, ...]
-	let tempRoadmapData = []; //[추가] 임시 저장용 변수
+    let roadmapData = []; 
+    let tempRoadmapData = [];
     let currentSettings = {};
 
     window.onload = init;
@@ -395,13 +441,34 @@
         }
         await loadContextData(); 
         await loadRoadmapData(); 
+        
+        // 데이터 로드 후 다음 작성할 구간 자동 계산
+        autoSetNextRange();
+    }
+
+    // 다음 작성 구간 자동 계산 함수
+    function autoSetNextRange() {
+        let nextStart = 1;
+        if (roadmapData.length > 0) {
+            // 마지막 데이터의 range (예: "25화" 또는 "1~25화")에서 숫자 추출
+            // 보통 마지막 Part의 range는 "25화" 형식이지만, 안전하게 처리
+            const lastItem = roadmapData[roadmapData.length - 1];
+            // range 문자열에서 숫자를 모두 추출
+            const nums = lastItem.range.match(/\d+/g); 
+            if (nums && nums.length > 0) {
+                // 가장 뒤에 있는 숫자를 마지막 회차로 간주
+                const lastNum = parseInt(nums[nums.length - 1]);
+                nextStart = lastNum + 1;
+            }
+        }
+        document.getElementById('startEpisode').value = nextStart;
+        document.getElementById('endEpisode').value = nextStart + 24; // 25화 단위 기본값
     }
 
     // 1. Context 로드
     async function loadContextData() {
         try {
             const [sRes, wRes, cRes, dRes] = await Promise.all([
-			
                 fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
                 fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
                 fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json()),
@@ -409,78 +476,97 @@
             ]);
             currentSettings = sRes;
             contextData = `
-			[제목]: ${sRes.title}
-			[세계관 요약]: ${Array.isArray(wRes) ? wRes.map(w => w.title + ": " + w.description).join('\n') : '없음'}
-			[주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}			
-			 
-			[내용]: ${Array.isArray(dRes) ? dRes.map(d => `\n=== ${d.episode_number}화: ${d.title} ===\n\n${d.content}\n\n`).join('\n') : '없음'}
-			`;
-			console.log(contextData);
-			
+            [제목]: ${sRes.title}
+            [세계관 요약]: ${Array.isArray(wRes) ? wRes.map(w => w.title + ": " + w.description).join('\n') : '없음'}
+            [주요 등장인물]: ${Array.isArray(cRes) ? cRes.map(c => `${c.name} (${c.role}): ${c.description}`).join('\n') : '없음'}            
+            `;
+            // stories 내용이 너무 길 수 있으므로 생략하거나 최근 회차만 가져오는 것이 좋음
+            console.log("Context Loaded");
+            
         } catch (e) { console.warn("Context fail", e); }
     }
 
-    // 2. 🌟 [수정] 저장된 로드맵(Plan) 불러오기 (DB Table: plan)
+    // 2. 로드맵(Plan) 불러오기
     async function loadRoadmapData() {
         try {
             const res = await fetch(`/api/plans?setting_id=${settingId}`);
             if (res.ok) {
                 const data = await res.json();
-                
-                // DB 필드명(part_index, episode_range)을 UI용 객체(part, range)로 변환
                 if (Array.isArray(data)) {
                     roadmapData = data.map(item => ({
-                        id: item.id,            // DB PK (필요시 사용)
-                        part: item.part_index,  // DB: part_index -> JS: part
+                        id: item.id,
+                        part: item.part_index,
                         title: item.title,
                         theme: item.theme,
                         content: item.content,
-                        range: item.episode_range // DB: episode_range -> JS: range
+                        range: item.episode_range
                     }));
                     renderRoadmap();
                 }
-            } else {
-                console.warn("플랜 데이터를 불러오지 못했습니다.");
             }
-        } catch (e) { 
-            console.error("Load Plan Error", e); 
-        }
+        } catch (e) { console.error("Load Plan Error", e); }
     }
 
-    // 3. AI 생성
+    // 3. 🌟 AI 생성 (단계별 범위 지정 모드)
     async function generateRoadmap() {
         const prompt = document.getElementById('aiPrompt').value.trim();
-        const total = document.getElementById('totalEpisodes').value || 200;
+        const phase = document.getElementById('generationPhase').value;
+        const startEp = document.getElementById('startEpisode').value;
+        const endEp = document.getElementById('endEpisode').value;
         
-        if (!prompt) return alert("요청 내용을 입력하세요.");
+        if (!prompt) return alert("줄거리 요청 내용을 입력하세요.");
+        if (parseInt(startEp) > parseInt(endEp)) return alert("시작 회차가 종료 회차보다 큽니다.");
 
         const btn = document.getElementById('btnGenerate');
         const orgText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 생성 중...`;
+        btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${startEp}~${endEp}화 생성 중...`;
 
         try {
+            // 현재까지의 줄거리 맥락 가져오기 (전체를 다 넣으면 너무 길 수 있으니 요약이 필요하지만, 여기선 전체를 넣음)
+            // 토큰 최적화를 위해 최근 10개 part 정도만 넣거나, 전체를 넣되 모델 성능에 기대함.
+            const currentStoryContext = roadmapData.map(item => 
+                `[Part ${item.part} (${item.range})]: ${item.content}`
+            ).join('\n');
+
+            let phaseInstruction = "";
+            if (phase === 'ki') phaseInstruction = "현재는 [기(발단)] 단계입니다. 세계관 소개, 인물 등장, 사건의 발단을 흥미롭게 서술하세요.";
+            else if (phase === 'seung') phaseInstruction = "현재는 [승(전개)] 단계입니다. 사건이 확장되고 주인공의 시련과 성장이 본격화되는 과정을 그리세요.";
+            else if (phase === 'jeon') phaseInstruction = "현재는 [전(위기/절정)] 단계입니다. 갈등이 최고조에 달하고 충격적인 반전이나 큰 사건이 터지는 구간입니다.";
+            else if (phase === 'gyeol') phaseInstruction = "현재는 [결(결말)] 단계입니다. 모든 갈등을 해소하고 이야기를 마무리하세요.";
+
             // 시스템 프롬프트 구성
-			
             const sysPrompt = `
-            당신은 소설 구조 설계 전문가입니다.
+            당신은 웹소설 구조 설계 전문가입니다.
             [작품 정보] ${contextData}
-            [목표] 전체 분량(${total}화)을 고려하여 사용자의 요청에 맞게 Part(챕터)를 나누어 설계하세요. Part 줄거리는 분량이 충분히 나오도록 **상세하게** 작성하라. 대략 **한글글자로 1000자정도** 나오게 작성하라.
-            [형식] JSON 배열 형식으로만 응답하세요. 예:
+            
+            [현재 작업 목표]: ${startEp}화부터 ${endEp}화까지 총 ${endEp - startEp + 1}개 Part를 생성하는 것.
+            [단계 분위기]: ${phaseInstruction}
+            
+            [이전까지의 줄거리(Context)]:
+            ${currentStoryContext ? currentStoryContext : "아직 생성된 내용 없음. 이 구간이 시작입니다."}
+
+            위 [이전 줄거리]와 자연스럽게 이어지도록, **오직 ${startEp}화부터 ${endEp}화까지**의 내용만 작성하세요.
+            각 Part는 1화 분량입니다. 이전 내용을 반복해서 쓰지 말고, 그 뒷이야기를 쓰세요.
+            
+            [출력 형식] JSON 배열만 출력하세요. (코드블럭 없이)
             [
-              {"part": 1, "title": "Part 1 제목", "range": "1~25화","theme": "핵심테마", "content": "상세 줄거리..."},
-              {"part": 2, "title": "Part 2 제목", "range": "26~50화","theme": "핵심테마", "content": "상세 줄거리..."}
+              {"part": 숫자, "title": "제목", "range": "${startEp}화", "theme": "핵심테마", "content": "상세 줄거리..."},
+              ...
             ]
             `;
-			 const fullPrompt = `
-                [전체 예상 회차]: ${total}화
-                [요청 사항]: ${prompt}
+
+            const fullPrompt = `
+                [사용자 요청]: ${prompt}
+                [생성 구간]: ${startEp}화 ~ ${endEp}화
             `;
+
+            // 모델 변경: gemini-2.0-flash-exp 사용 권장 (성능 우수)
             const response = await fetch('/api/generate-text', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: "gemini-3-flash-preview",
+                    model: "gemini-3-flash-preview", 
                     payload: {
                         contents: [{ parts: [{ text: fullPrompt }] }],
                         systemInstruction: { parts: [{ text: sysPrompt }] }
@@ -492,10 +578,21 @@
             const text = resData.candidates?.[0]?.content?.parts?.[0]?.text;
             
             if (text) {
-                // JSON 파싱 (코드블럭 제거)
                 const jsonStr = text.replace(/```json|```/g, '').trim();
-				 // 🌟 [변경] 바로 roadmapData에 넣지 않고 tempRoadmapData에 저장 후 모달 오픈
                 tempRoadmapData = JSON.parse(jsonStr);
+
+                // Part 번호 자동 보정 (이어쓰기 시)
+                let startPartIndex = 1;
+                if (roadmapData.length > 0) {
+                    startPartIndex = roadmapData[roadmapData.length - 1].part + 1;
+                }
+                
+                // AI가 Part 번호를 1부터 주는 경우를 대비해 순서대로 재할당
+                tempRoadmapData.forEach((item, idx) => {
+                    item.part = startPartIndex + idx;
+                    // range 텍스트가 이상하면 강제 수정 가능하나 AI를 믿음
+                });
+                
                 openPreviewModal();
             }
 
@@ -508,7 +605,7 @@
         }
     }
 
-    // 4. 화면 렌더링 (수정 기능 포함)
+    // 4. 화면 렌더링
     function renderRoadmap() {
         const container = document.getElementById('roadmapListArea');
         container.innerHTML = '';
@@ -521,8 +618,6 @@
         roadmapData.forEach((item, index) => {
             const card = document.createElement('div');
             card.className = 'part-card';
-            
-            // 데이터 안전 처리
             const themeText = item.theme || "테마 없음";
 
             card.innerHTML = `
@@ -546,16 +641,12 @@
                 <div class="part-body" id="edit-mode-${index}" style="display:none;">
                     <label style="font-size:0.8rem; color:#666;">제목</label>
                     <input type="text" class="edit-mode-input" id="edit-title-${index}" value="${item.title}">
-                    
                     <label style="font-size:0.8rem; color:#666;">회차 범위</label>
                     <input type="text" class="edit-mode-input" id="edit-range-${index}" value="${item.range}">
-                    
                     <label style="font-size:0.8rem; color:#666;">핵심 테마</label>
-                    <input type="text" class="edit-mode-input" id="edit-theme-${index}" value="${item.theme || ''}" placeholder="핵심 테마 입력">
-                    
+                    <input type="text" class="edit-mode-input" id="edit-theme-${index}" value="${item.theme || ''}">
                     <label style="font-size:0.8rem; color:#666;">줄거리</label>
                     <textarea class="edit-mode-textarea" id="edit-content-${index}">${item.content}</textarea>
-                    
                     <div style="text-align:right; margin-top:10px;">
                         <button class="btn-confirm-edit" onclick="confirmEdit(${index})">저장</button>
                         <button class="btn-edit-part" onclick="cancelEdit(${index})">취소</button>
@@ -564,86 +655,55 @@
             `;
             container.appendChild(card);
         });
-        
-        // 전체 저장 버튼 보이기
         document.getElementById('btnSaveMap').style.display = 'inline-flex';
     }
-	
 
-    // 🌟 [수정 기능 1] 편집 모드 활성화
     function enableEdit(index) {
         document.getElementById(`view-mode-${index}`).style.display = 'none';
         document.getElementById(`edit-mode-${index}`).style.display = 'block';
     }
-
-    // 🌟 [수정 기능 2] 취소 (원래대로)
     function cancelEdit(index) {
         document.getElementById(`view-mode-${index}`).style.display = 'block';
         document.getElementById(`edit-mode-${index}`).style.display = 'none';
     }
-
-    // 🌟 [수정 기능 3] 확인 (데이터 반영)
     function confirmEdit(index) {
-        const newTitle = document.getElementById(`edit-title-${index}`).value;
-        const newRange = document.getElementById(`edit-range-${index}`).value;
-		const newTheme = document.getElementById(`edit-theme-${index}`).value; // 테마 값 가져오기
-        const newContent = document.getElementById(`edit-content-${index}`).value;
-
-        // 데이터 갱신
-        roadmapData[index].title = newTitle;
-        roadmapData[index].range = newRange;
-		roadmapData[index].theme = newTheme; // 테마 저장
-        roadmapData[index].content = newContent;
-
-        // 다시 렌더링
+        roadmapData[index].title = document.getElementById(`edit-title-${index}`).value;
+        roadmapData[index].range = document.getElementById(`edit-range-${index}`).value;
+        roadmapData[index].theme = document.getElementById(`edit-theme-${index}`).value;
+        roadmapData[index].content = document.getElementById(`edit-content-${index}`).value;
         renderRoadmap();
     }
 
-    // 5. 🌟 [수정] DB 전체 저장 (Plan 테이블로 저장)
     async function saveRoadmap(silent = false) {
         if (!settingId) return;
-        
         const btn = document.getElementById('btnSaveMap');
-        if(!silent) {
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 저장 중...`;
-        }
-
+        if(!silent) { btn.disabled = true; btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> 저장 중...`; }
         try {
-            // 변경된 백엔드 API 호출 (/api/plans/bulk)
-            // roadmapData 배열 전체를 보냄 (객체 구조는 JS 기준: part, range, title...)
             const response = await fetch('/api/plans/bulk', { 
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    setting_id: settingId,
-                    plans: roadmapData 
-                })
+                body: JSON.stringify({ setting_id: settingId, plans: roadmapData })
             });
-
-            if (response.ok) {
-                if(!silent) alert("저장되었습니다.");
-                // 저장 후 ID 등의 동기화를 위해 다시 로드하는 것도 좋은 방법임
-                // await loadRoadmapData(); 
-            } else {
-                throw new Error("저장 실패");
-            }
-        } catch (e) {
-            console.error(e);
-            if(!silent) alert("저장 중 오류 발생");
-        } finally {
-            if(!silent) {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fas fa-save"></i> 전체 저장`;
-            }
-        }
+            if (response.ok && !silent) alert("저장되었습니다.");
+            else if(!response.ok) throw new Error("저장 실패");
+        } catch (e) { console.error(e); if(!silent) alert("저장 중 오류 발생"); } 
+        finally { if(!silent) { btn.disabled = false; btn.innerHTML = `<i class="fas fa-save"></i> 전체 저장`; } }
     }
-	
-	function openPreviewModal() {
+    
+    // 모달 관련
+    function openPreviewModal() {
         const listArea = document.getElementById('previewListArea');
+        const warning = document.getElementById('previewWarningText');
         listArea.innerHTML = '';
         
         if(!tempRoadmapData || tempRoadmapData.length === 0) return;
+
+        // 경고 문구 설정
+        if (roadmapData.length > 0) {
+            warning.innerHTML = `<i class="fas fa-info-circle"></i> 기존 내용 뒤에 <b>${tempRoadmapData.length}개 Part</b>가 추가됩니다.`;
+        } else {
+            warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 새로 생성된 내용이 적용됩니다.`;
+        }
 
         tempRoadmapData.forEach(item => {
              const div = document.createElement('div');
@@ -655,7 +715,6 @@
              `;
              listArea.appendChild(div);
         });
-
         document.getElementById('previewModal').style.display = 'flex';
     }
 
@@ -663,34 +722,25 @@
         document.getElementById('previewModal').style.display = 'none';
     }
 
+    // 🌟 [중요] 미리보기 적용 시 이어붙이기(Append)
     function applyPreview() {
-        // AI가 생성한 데이터로 현재 데이터를 교체
-        roadmapData = JSON.parse(JSON.stringify(tempRoadmapData));
+        if (roadmapData.length === 0) {
+            // 처음 생성 시
+            roadmapData = JSON.parse(JSON.stringify(tempRoadmapData));
+        } else {
+            // 이어쓰기 시 -> 기존 배열에 추가
+            roadmapData = [...roadmapData, ...JSON.parse(JSON.stringify(tempRoadmapData))];
+        }
+        
         renderRoadmap();
         closePreviewModal();
         
-        // (선택사항) 적용 즉시 자동 저장하려면 아래 주석 해제
+        // 적용 후, 다음 구간 입력을 위해 자동 계산 실행
+        autoSetNextRange();
+        
+        // 자동 저장 (선택 사항)
         // saveRoadmap(true);
     }
 </script>
-<div id="previewModal" class="modal-overlay">
-    <div class="modal-window">
-        <div class="modal-header">
-            <div class="modal-title"><i class="fas fa-magic"></i> AI 구조 생성 결과 미리보기</div>
-            <button onclick="closePreviewModal()" style="border:none; background:none; font-size:1.2rem; cursor:pointer;">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body" id="previewListArea">
-            </div>
-        <div class="modal-footer">
-            <span style="margin-right:auto; font-size:0.9rem; color:#e74c3c;">
-                <i class="fas fa-exclamation-triangle"></i> 적용 시 기존 내용은 삭제됩니다.
-            </span>
-            <button class="btn-secondary" onclick="closePreviewModal()">취소</button>
-            <button class="btn-primary" onclick="applyPreview()">현재 구조로 교체(적용)</button>
-        </div>
-    </div>
-</div>
 </body>
 </html>
