@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>로그인 - AI Novel Studio</title>
+    <style>
+        body {
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; background-color: #f4f6f8;
+            font-family: 'Pretendard', sans-serif;
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px;
+            text-align: center;
+        }
+        h2 { margin-bottom: 30px; color: #2c3e50; }
+        input {
+            width: 100%; padding: 12px; margin-bottom: 15px;
+            border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box;
+        }
+        button {
+            width: 100%; padding: 12px; background-color: #4a90e2;
+            color: white; border: none; border-radius: 6px; font-weight: bold;
+            cursor: pointer; font-size: 1rem;
+        }
+        button:hover { background-color: #357abd; }
+        .msg { color: red; font-size: 0.9rem; margin-top: 10px; display: none; }
+    </style>
+    <script>
+        // 이미 로그인 되어 있으면 메인으로 이동
+        if (localStorage.getItem('novel_auth_token')) {
+            window.location.href = 'index.html';
+        }
+    </script>
+</head>
+<body>
+
+<div class="login-box">
+    <h2><i class="fas fa-book-open"></i> AI Novel Studio</h2>
+    <input type="text" id="username" placeholder="아이디" onkeypress="if(event.key==='Enter') doLogin()">
+    <input type="password" id="password" placeholder="비밀번호" onkeypress="if(event.key==='Enter') doLogin()">
+    <button onclick="doLogin()">로그인</button>
+    <div id="msg" class="msg">아이디 또는 비밀번호를 확인하세요.</div>
+</div>
+
+<script>
+    async function doLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const msg = document.getElementById('msg');
+
+        if(!username || !password) {
+            alert("아이디와 비밀번호를 입력하세요.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                // 토큰 저장
+                localStorage.setItem('novel_auth_token', result.token);
+                // 메인 페이지로 이동
+                window.location.href = 'index.html';
+            } else {
+                msg.style.display = 'block';
+                msg.textContent = result.message || "로그인 실패";
+            }
+        } catch (error) {
+            console.error(error);
+            alert("서버 오류가 발생했습니다.");
+        }
+    }
+</script>
+
+</body>
+</html>

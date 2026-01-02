@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql');
 const bodyParser = require('body-parser');
+const jwt = require('jsonwebtoken');
 const cors = require('cors');
 require('dotenv').config({ quiet: true });;
 
@@ -43,7 +44,38 @@ app.use((req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     next();
 });
-// --- API 엔드포인트 ---
+
+
+// ... (기존 DB 설정 및 미들웨어 코드들) ...
+
+// ==========================================
+// 🌟 [추가] 로그인 API
+// ==========================================
+app.post('/api/login', (req, res) => {
+    const { username, password } = req.body;
+
+    const sql = 'SELECT * FROM g5_users WHERE username = ?';
+    db.query(sql, [username], (err, results) => {
+        if (err) return res.status(500).json({ error: 'Database error' });
+
+        // 유저가 존재하고 비밀번호가 일치하는지 확인
+        // (주의: 실무에서는 bcrypt.compare 등을 사용해야 합니다)
+        if (results.length > 0 && results[0].password === password) {
+            const user = results[0];
+            
+            // 토큰 생성 (유효기간 12시간)
+            const token = jwt.sign(
+                { id: user.id, username: user.username },
+                 process.env.SECRET_KEY,
+                { expiresIn: '30d' }
+            );
+
+            res.json({ message: 'Login successful', token: token });
+        } else {
+            res.status(401).json({ message: '아이디 또는 비밀번호가 잘못되었습니다.' });
+        }
+    });
+});
 
 // 🌟 [핵심 변경] Router 사용! 
 // 이제 주소 앞에 '/api'를 중복해서 적지 않아도 됩니다.
