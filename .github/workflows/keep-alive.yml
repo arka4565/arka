@@ -1,0 +1,23 @@
+name: Keep DB Alive
+
+on:
+  schedule:
+    # 2시간마다 한 번씩 실행 (UTC 기준)
+    - cron: '0 */2 * * *'
+  workflow_dispatch: # 수동으로도 실행 가능하게 함
+
+jobs:
+  ping-db:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install MySQL Client
+        run: sudo apt-get install -y mysql-client
+
+      - name: Ping Database
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        run: |
+          mysql -h $DB_HOST -P $DB_PORT -u $DB_USER -p"$DB_PASSWORD" -e "SELECT 1;"
