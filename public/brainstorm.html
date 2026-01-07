@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아이디어 브레인스토밍 - AI Novel Studio</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #9b59b6;
+            --bg-color: #f4f6f8;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --nav-bg: #2c3e50;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+        }
+
+/* 네비게이션 */
+        .navbar {
+            background-color: var(--nav-bg); color: white; padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7; text-decoration: none; padding: 8px 12px;
+            border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
+
+        
+        .container { display: flex; flex: 1; overflow: hidden; flex-direction: row; }
+        
+        .control-panel {
+            width: 380px; background: white; border-right: 1px solid #ddd;
+            padding: 20px; display: flex; flex-direction: column; gap: 15px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 10; overflow-y: auto;
+        }
+        .input-group { display: flex; flex-direction: column; }
+        label { font-weight: bold; font-size: 0.9rem; color: #555; margin-bottom: 5px; }
+        textarea, select, input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; resize: none; font-family: inherit; }
+        textarea:focus, input:focus, select:focus { border-color: var(--primary-color); outline: none; }
+
+        .mode-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .mode-btn {
+            padding: 10px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;
+            cursor: pointer; text-align: center; font-size: 0.85rem; transition: all 0.2s;
+        }
+        .mode-btn:hover { background: #eee; }
+        .mode-btn.selected { background: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+        .btn-generate {
+            background: var(--primary-color); color: white; border: none; padding: 15px;
+            border-radius: 8px; font-size: 1rem; font-weight: bold; cursor: pointer; margin-top: 10px;
+        }
+        .btn-generate:disabled { background: #ccc; }
+
+        .right-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fff; }
+        
+        .tab-header { display: flex; border-bottom: 1px solid #ddd; background: #f9f9f9; }
+        .tab-btn {
+            flex: 1; padding: 15px; cursor: pointer; text-align: center; font-weight: bold; color: #777;
+            border-bottom: 3px solid transparent; transition: all 0.2s;
+        }
+        .tab-btn.active { background: white; color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-btn:hover { background: #eee; }
+
+        .tab-content { display: none; flex: 1; padding: 20px; overflow-y: auto; background-image: radial-gradient(#e1e1e1 1px, transparent 1px); background-size: 20px 20px; }
+        .tab-content.active { display: block; }
+
+        .idea-card {
+            background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-left: 5px solid var(--primary-color);
+            position: relative; animation: fadeIn 0.5s ease; border: 1px solid #eee;
+        }
+        .idea-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+        .idea-type { font-size: 0.8rem; background: #eee; padding: 4px 8px; border-radius: 4px; color: #666; font-weight: bold; }
+        .idea-content { white-space: pre-wrap; line-height: 1.6; color: #444; font-size: 1rem; }
+        .idea-meta { 
+            font-size: 0.85rem; color: #666; margin-top: 15px; 
+            background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #eee; 
+        }
+
+        .card-actions { display: flex; gap: 10px; align-items: center; }
+        .btn-icon { background: none; border: none; cursor: pointer; color: #999; font-size: 1.1rem; transition: color 0.2s; padding: 5px; }
+        .btn-icon:hover { color: var(--primary-color); }
+        .btn-icon.delete:hover { color: #e74c3c; }
+
+        .save-input-area { background: white; padding: 15px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .save-input-area h3 { margin: 0 0 10px 0; font-size: 1rem; color: #555; }
+        .btn-save-manual { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; float: right; margin-top: 10px; font-weight: bold; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal { background: white; width: 90%; max-width: 800px; padding: 25px; border-radius: 12px; max-height: 90vh; overflow-y: auto; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .modal h3 { margin-top: 0; color: var(--primary-color); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .modal-body { margin: 20px 0; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;}
+        .btn-modal { padding: 10px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-cancel { background: #eee; color: #555; }
+
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+            .control-panel { width: 100%; height: auto; border-right: none; max-height: 40vh; }
+            .right-area { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+
+<script src="include.js"></script>
+<div data-include="nav.html"></div>
+
+<div class="container">
+    <aside class="control-panel">
+        <div>
+            <h2 style="margin:0; color:var(--primary-color);"><i class="fas fa-brain"></i> 브레인스토밍</h2>
+            <p style="font-size:0.85rem; color:#666; margin-top:5px;">AI와 함께 아이디어를 발산하고 저장하세요.</p>
+        </div>
+
+        <div class="input-group">
+            <label>사고 방식 (Mode)</label>
+            <div class="mode-cards" id="modeContainer">
+                <div class="mode-btn selected" onclick="selectMode('next_episode', this)">🔜 다음 화 추천</div>
+                <div class="mode-btn" onclick="selectMode('random', this)">🎲 랜덤 발산</div>
+                <div class="mode-btn" onclick="selectMode('scamper', this)">⚡ 비틀기(SCAMPER)</div>
+                <div class="mode-btn" onclick="selectMode('whatif', this)">🔄 만약에(What If)</div>
+                <div class="mode-btn" onclick="selectMode('conflict', this)">🔥 위기/갈등</div>
+                <div class="mode-btn" onclick="selectMode('title', this)">🏷️ 제목 짓기</div>
+                <div class="mode-btn" onclick="selectMode('item', this)">💎 아이템/스킬</div>
+            </div>
+        </div>
+
+        <div style="border-top:1px solid #eee; padding-top:15px; margin-top:5px;">
+            <label style="color:var(--primary-color); margin-bottom:10px;"><i class="fas fa-book-reader"></i> 참고 자료 범위</label>
+            <div class="input-group" style="margin-bottom:10px;">
+                <div style="font-size:0.8rem; color:#666;">줄거리 (Plot)</div>
+                <div style="display:flex; gap:5px;">
+                    <select id="plotStartEp" style="flex:1;"><option value="">선택</option></select> ~ <select id="plotEndEp" style="flex:1;"><option value="">선택</option></select>
+                </div>
+            </div>
+            <div class="input-group">
+                <div style="font-size:0.8rem; color:#666;">본문 (Content)</div>
+                <div style="display:flex; gap:5px;">
+                    <select id="contentStartEp" style="flex:1;"><option value="">선택</option></select> ~ <select id="contentEndEp" style="flex:1;"><option value="">선택</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label>고민거리 / 키워드</label>
+            <textarea id="userInput" rows="3" placeholder="예: 15화 이후 전개가 막혔어. 반전이 필요해."></textarea>
+        </div>
+
+        <button class="btn-generate" onclick="generateIdea()">
+            <i class="fas fa-bolt"></i> 아이디어 생성
+        </button>
+    </aside>
+
+    <main class="right-area">
+        <div class="tab-header">
+            <div class="tab-btn active" onclick="switchRightTab('result')"><i class="fas fa-magic"></i> AI 생성 결과</div>
+            <div class="tab-btn" onclick="switchRightTab('saved')"><i class="fas fa-archive"></i> 아이디어 보관함</div>
+        </div>
+
+        <div id="tab-result" class="tab-content active">
+            <div id="resultContainer">
+                <div style="text-align:center; color:#999; margin-top:50px;">
+                    <i class="far fa-lightbulb" style="font-size:3rem; margin-bottom:20px; opacity:0.3;"></i>
+                    <p>좌측에서 '아이디어 생성'을 누르면 이곳에 표시됩니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-saved" class="tab-content">
+            <div class="save-input-area">
+                <h3><i class="fas fa-pen"></i> 아이디어 직접 기록</h3>
+                <textarea id="manualIdeaInput" style="width:100%; height:80px;" placeholder="떠오른 아이디어를 자유롭게 메모하세요."></textarea>
+                <div style="overflow:hidden;">
+                    <button class="btn-save-manual" onclick="saveManualIdea()">저장하기</button>
+                </div>
+            </div>
+
+            <h3><i class="fas fa-list"></i> 저장된 아이디어 목록</h3>
+            <div id="savedListContainer">
+                <div style="text-align:center; padding:20px; color:#999;">로딩 중...</div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<div id="treatmentModal" class="modal-overlay">
+    <div class="modal" style="max-width: 800px;">
+        <h3>🎬 아이디어로 씬(Scene) 구성하기</h3>
+        <div class="modal-body">
+            
+            <input type="hidden" id="modalSystemPrompt">
+
+            <div id="treatmentInputArea">
+                <p style="color:#666; margin-bottom:15px;">아이디어를 바탕으로 장면을 구성합니다.</p>
+                <div class="input-group" style="margin-bottom:15px;">
+                    <label>생성할 회차 번호</label>
+                    <input type="number" id="targetEpNum" placeholder="예: 15" style="width:100%;">
+                </div>
+                <div class="input-group">
+                    <label>아이디어 내용</label>
+                    <textarea id="modalIdeaContent" rows="4" readonly style="background:#f9f9f9;"></textarea>
+                </div>
+            </div>
+
+            <div id="treatmentPreviewArea" style="display:none; margin-top:20px; border-top:2px solid #eee; padding-top:20px;">
+                <h4 style="margin:0 0 10px 0; color:#2c3e50;">📜 생성 결과 확인 (수정 가능)</h4>
+                <p style="font-size:0.85rem; color:#888; margin-bottom:10px;">내용을 검토하고 수정한 뒤 '최종 저장' 버튼을 누르세요.</p>
+                
+                <div id="scenePreviewList" style="max-height: 400px; overflow-y: auto; padding-right:5px; margin-bottom:15px;"></div>
+            </div>
+
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-modal btn-cancel" onclick="closeTreatmentModal()">닫기</button>
+            <button class="btn-modal btn-primary" id="btnGenPreview" onclick="previewTreatment()">
+                <i class="fas fa-magic"></i> 트리트먼트 초안 생성
+            </button>
+            <button class="btn-modal btn-primary" id="btnSaveFinal" onclick="saveScenesFinal()" style="display:none; background-color:#27ae60;">
+                <i class="fas fa-save"></i> 확인 및 DB 저장
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+    let currentMode = 'next_episode';
+    
+    let globalStories = []; 
+    let globalWorld = [];
+    let globalChars = [];
+
+    async function init() {
+        if (!settingId) { alert("잘못된 접근입니다."); return; }
+        setupNav(); 
+        await loadAllData();
+        loadSavedIdeas();
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    window.switchRightTab = function(tabName) {
+        document.querySelectorAll('.right-area .tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.right-area .tab-content').forEach(content => content.classList.remove('active'));
+        
+        const buttons = document.querySelectorAll('.right-area .tab-btn');
+        if(tabName === 'result') buttons[0].classList.add('active');
+        else buttons[1].classList.add('active');
+
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        if(tabName === 'saved') loadSavedIdeas();
+    }
+
+    async function loadAllData() {
+        try {
+            const [wRes, cRes, sRes] = await Promise.all([
+                fetch(`/api/worldsettings?setting_id=${settingId}`),
+                fetch(`/api/characters?setting_id=${settingId}`),
+                fetch(`/api/stories?setting_id=${settingId}`)
+            ]);
+            globalWorld = await wRes.json();
+            globalChars = await cRes.json();
+            if (sRes.ok) {
+                globalStories = await sRes.json();
+                globalStories.sort((a,b) => a.episode_number - b.episode_number);
+                initRangeSelects();
+            }
+        } catch (e) { console.warn("Data load fail:", e); }
+    }
+
+    function initRangeSelects() {
+        const selects = ['plotStartEp', 'plotEndEp', 'contentStartEp', 'contentEndEp'];
+        if (globalStories.length === 0) return;
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            el.innerHTML = '<option value="">선택 안함</option>';
+            globalStories.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.episode_number;
+                opt.innerText = `${s.episode_number}화`;
+                el.appendChild(opt);
+            });
+        });
+    }
+
+    window.selectMode = function(mode, el) {
+        currentMode = mode;
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('selected'));
+        el.classList.add('selected');
+    }
+
+    // --- 1. AI 생성 로직 (systemPrompt 저장) ---
+    window.generateIdea = async function() {
+        let input = document.getElementById('userInput').value;
+        if (!input.trim() && currentMode !== 'next_episode') return alert("입력값을 확인해주세요.");
+        if (!input.trim() && currentMode === 'next_episode') input = "다음 회차에 이어질 흥미로운 전개를 추천해줘.";
+
+        const btn = document.querySelector('.btn-generate');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 생각 중...';
+
+        try {
+            const pStart = document.getElementById('plotStartEp').value;
+            const pEnd = document.getElementById('plotEndEp').value;
+            const cStart = document.getElementById('contentStartEp').value;
+            const cEnd = document.getElementById('contentEndEp').value;
+
+            const plotRangeStr = (pStart && pEnd) ? `${pStart}~${pEnd}화` : "";
+            const contentRangeStr = (cStart && cEnd) ? `${cStart}~${cEnd}화` : "";
+
+            let contextText = `[세계관]: ${globalWorld.slice(0,5).map(w=>w.title).join(',')}\n[인물]: ${globalChars.slice(0,5).map(c=>c.name).join(',')}`;
+            
+            if(pStart && pEnd) {
+                const plots = globalStories.filter(s=>s.episode_number>=Math.min(pStart,pEnd) && s.episode_number<=Math.max(pStart,pEnd));
+                contextText += `\n[참고 줄거리]:\n${plots.map(s=>`(${s.episode_number}화) ${s.content_plot||''}`).join('\n')}`;
+            }
+            if(cStart && cEnd) {
+                 const contents = globalStories.filter(s=>s.episode_number>=Math.min(cStart,cEnd) && s.episode_number<=Math.max(cStart,cEnd));
+                 contextText += `\n[참고 본문(발췌)]:\n${contents.map(s=>`(${s.episode_number}화) ${s.content ? s.content.slice(0, 300) + "..." : ""}`).join('\n')}`;
+            }
+
+            const role = "당신은 세계적인 베스트셀러 작가이자 창의력 컨설턴트입니다.";
+            let systemPrompt = "";
+            if (currentMode === 'next_episode') systemPrompt = `${role} 다음 화 시나리오 3가지를 '기-승-전-결'로 제안하세요.`;
+            else systemPrompt = `${role} 창의적인 아이디어를 제안하세요.`;
+
+            const fullPrompt = `${contextText}\n\n[사용자 입력] "${input}"\n\n[요청] 위 내용을 참고하여 아이디어를 생성해주세요.`;
+
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: {
+                        contents: [{ parts: [{ text: fullPrompt }] }],
+                        systemInstruction: { parts: [{ text: systemPrompt }] }
+                    }
+                })
+            });
+            
+            const data = await res.json();
+            const resultText = data.candidates[0].content.parts[0].text;
+            
+            const metaData = {
+                plotRange: plotRangeStr,
+                contentRange: contentRangeStr,
+                userInput: input,
+                systemPrompt: systemPrompt // 🌟 메타데이터에 systemPrompt 추가
+            };
+
+            addResultCard(resultText, currentMode, metaData);
+            switchRightTab('result'); 
+
+        } catch (e) { alert("오류: " + e.message); } 
+        finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    // 🌟 [수정] 카드 생성 시 systemPrompt 저장
+    function addResultCard(text, type, metaData) {
+        const container = document.getElementById('resultContainer');
+        if (container.querySelector('.fa-lightbulb')) container.innerHTML = '';
+
+        const card = document.createElement('div');
+        card.className = 'idea-card';
+        
+        card.dataset.plotRange = metaData ? metaData.plotRange : "";
+        card.dataset.contentRange = metaData ? metaData.contentRange : "";
+        card.dataset.userInput = metaData ? encodeURIComponent(metaData.userInput) : "";
+        card.dataset.systemPrompt = metaData ? encodeURIComponent(metaData.systemPrompt || "") : ""; // 🌟 저장
+        card.dataset.type = type;
+
+        card.innerHTML = `
+            <div class="idea-header">
+                <span class="idea-type">${type}</span>
+                <div class="card-actions">
+                    <button class="btn-icon" onclick="copyText(this)" title="복사"><i class="far fa-copy"></i></button>
+                    <button class="btn-icon" onclick="saveFromCard(this)" title="보관함에 저장"><i class="fas fa-save"></i></button>
+                </div>
+            </div>
+            <div class="idea-content">${text}</div>
+            <div class="idea-meta">
+                ${metaData && metaData.userInput ? `<strong>Q:</strong> ${metaData.userInput}<br>` : ''}
+                ${metaData && metaData.plotRange ? `<span style="margin-right:10px;">📚 줄거리: ${metaData.plotRange}</span>` : ''}
+                ${metaData && metaData.contentRange ? `<span>📖 본문: ${metaData.contentRange}</span>` : ''}
+            </div>
+        `;
+        container.prepend(card);
+    }
+
+    window.copyText = function(btn) {
+        const content = btn.closest('.idea-card').querySelector('.idea-content').innerText;
+        navigator.clipboard.writeText(content).then(() => alert("복사됨"));
+    }
+
+    // --- 2. 아이디어 저장 및 보관함 로직 ---
+
+    window.saveFromCard = async function(btn) {
+        const card = btn.closest('.idea-card');
+        const content = card.querySelector('.idea-content').innerText;
+        
+        const type = card.dataset.type;
+        const plotRange = card.dataset.plotRange;
+        const contentRange = card.dataset.contentRange;
+        const userInput = decodeURIComponent(card.dataset.userInput || "");
+        const systemPrompt = decodeURIComponent(card.dataset.systemPrompt || ""); // 🌟 가져오기
+
+        await saveIdeaToDB({ type, content, plotRange, contentRange, userInput, systemPrompt });
+    }
+
+    window.saveManualIdea = async function() {
+        const content = document.getElementById('manualIdeaInput').value;
+        if (!content.trim()) return alert("내용을 입력하세요.");
+        await saveIdeaToDB({ type: "manual", content: content, userInput: "직접 입력", systemPrompt: "당신은 웹소설 작가입니다." });
+        document.getElementById('manualIdeaInput').value = '';
+    }
+
+    // 🌟 [수정] DB 전송 시 systemPrompt 포함
+    async function saveIdeaToDB(data) {
+        try {
+            const res = await fetch('/api/ideas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    setting_id: settingId, 
+                    type: data.type, 
+                    content: data.content,
+                    plot_range: data.plotRange,
+                    content_range: data.contentRange,
+                    user_input: data.userInput,
+                    systemPrompt: data.systemPrompt // 🌟 전송
+                })
+            });
+            if (res.ok) {
+                alert("보관함에 저장되었습니다!");
+                if(document.getElementById('tab-saved').classList.contains('active')) loadSavedIdeas();
+            }
+        } catch(e) { alert("저장 실패"); }
+    }
+
+    // 🌟 [수정] 보관함 로드 및 모달 열기 시 systemPrompt 전달
+    async function loadSavedIdeas() {
+        const container = document.getElementById('savedListContainer');
+        try {
+            const res = await fetch(`/api/ideas?setting_id=${settingId}`);
+            const ideas = await res.json();
+            
+            container.innerHTML = '';
+            if (ideas.length === 0) {
+                container.innerHTML = '<div style="text-align:center; padding:20px; color:#999;">저장된 아이디어가 없습니다.</div>';
+                return;
+            }
+
+            ideas.forEach(idea => {
+                const card = document.createElement('div');
+                card.className = 'idea-card';
+                card.style.borderLeftColor = '#2ecc71'; 
+                const date = new Date(idea.created_at).toLocaleDateString();
+                
+                // 🌟 openTreatmentModal 호출 시 systemPrompt 전달 (encodeURIComponent로 안전하게)
+                card.innerHTML = `
+                    <div class="idea-header">
+                        <span class="idea-type">${idea.type || 'Memo'} (${date})</span>
+                        <div class="card-actions">
+                            <button class="btn-icon" onclick="openTreatmentModal('${encodeURIComponent(idea.content)}', '${encodeURIComponent(idea.systemPrompt || '')}')" title="이 아이디어로 트리트먼트 작성"><i class="fas fa-film"></i></button>
+                            <button class="btn-icon delete" onclick="deleteIdea(${idea.id})" title="삭제"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="idea-content" style="max-height:150px; overflow-y:auto;">${idea.content}</div>
+                    <div class="idea-meta">
+                        ${idea.user_input ? `<strong>Q:</strong> ${idea.user_input}<br>` : ''}
+                        ${idea.plot_range ? `<span style="margin-right:10px;">📚 줄거리: ${idea.plot_range}</span>` : ''}
+                        ${idea.content_range ? `<span>📖 본문: ${idea.content_range}</span>` : ''}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    window.deleteIdea = async function(id) {
+        if(!confirm("삭제하시겠습니까?")) return;
+        await fetch(`/api/ideas/${id}`, { method: 'DELETE' });
+        loadSavedIdeas();
+    }
+
+    // --- 3. 트리트먼트 미리보기 & 저장 로직 ---
+
+    // 🌟 [수정] 모달 열 때 systemPrompt 설정
+    window.openTreatmentModal = function(encodedContent, encodedPrompt) {
+        const content = decodeURIComponent(encodedContent);
+        const prompt = decodeURIComponent(encodedPrompt || "");
+        
+        document.getElementById('modalIdeaContent').value = content;
+        document.getElementById('modalSystemPrompt').value = prompt; // 🌟 hidden input에 저장
+        
+        let nextEp = 1;
+        if(globalStories.length > 0) nextEp = globalStories[globalStories.length-1].episode_number + 1;
+        document.getElementById('targetEpNum').value = nextEp;
+
+        document.getElementById('treatmentModal').style.display = 'flex';
+    }
+
+    // 🌟 [수정] 트리트먼트 생성 시 저장된 systemPrompt 사용
+    window.previewTreatment = async function() {
+        const ideaContent = document.getElementById('modalIdeaContent').value;
+        const epNum = document.getElementById('targetEpNum').value;
+        const systemPrompt = document.getElementById('modalSystemPrompt').value;
+        
+        if(!epNum) return alert("회차 번호를 입력해주세요.");
+
+        const btn = document.getElementById('btnGenPreview');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 작가 빙의 중...';
+
+        try {
+            // 1. 🌍 세계관 및 캐릭터 정보 문자열로 변환
+            // (globalWorld, globalChars는 init()에서 이미 로드된 전역 변수입니다)
+            const worldText = globalWorld.length > 0 
+                ? globalWorld.map(w => `- ${w.title}: ${w.description} (키워드: ${w.keywords})`).join('\n')
+                : "특별한 세계관 설정 없음.";
+
+            const charText = globalChars.length > 0
+                ? globalChars.map(c => `- ${c.name} (${c.role}): ${c.description}`).join('\n')
+                : "특별한 캐릭터 설정 없음.";
+
+            // 2. 📚 선택된 범위의 줄거리/본문 가져오기 (맥락 보강)
+            const pStart = document.getElementById('plotStartEp').value;
+            const pEnd = document.getElementById('plotEndEp').value;
+            let storyContext = "";
+
+            if(pStart && pEnd && globalStories.length > 0) {
+                const plots = globalStories.filter(s => 
+                    s.episode_number >= Math.min(pStart, pEnd) && 
+                    s.episode_number <= Math.max(pStart, pEnd)
+                );
+                if(plots.length > 0) {
+                    storyContext = `[이전 이야기 흐름 (${pStart}~${pEnd}화)]\n` + 
+                                   plots.map(s => `(${s.episode_number}화) ${s.content_plot || '줄거리 없음'}`).join('\n');
+                }
+            }
+
+            // 3. ✍️ 프롬프트 작성 (톤앤매너, 대사량, 스타일 강력 지시)
+            const prompt = `
+                ${systemPrompt ? `[시스템 설정] ${systemPrompt}` : ''}
+
+                [역할]
+                당신은 웹소설계의 '김은숙'이라 불리는 천재 드라마 작가입니다. 
+                캐릭터의 '티키타카'가 살아있고, 장면 묘사가 생동감 넘치는 것이 특징입니다.
+
+                [현재 작품 설정]
+                1. 세계관:
+                ${worldText}
+
+                2. 등장인물 (성격과 말투를 반드시 반영할 것):
+                ${charText}
+
+                ${storyContext}
+
+                [작업 요청]
+                위 [설정]과 아래 [아이디어]를 결합하여 **제 ${epNum}화의 상세 트리트먼트**를 작성해 주세요.
+                
+                [핵심 아이디어]
+                ${ideaContent}
+
+                [⭐⭐⭐ 필수 집필 가이드라인 (반드시 준수)]
+                1. **구성:** 전체 내용을 기승전결이 있는 **8개의 Scene(장면)**으로 나누세요.
+                2. **분량:** 각 Scene마다 **대사를 최소 7~10회 이상** 주고받도록 길게 작성하세요. 내용이 짧으면 안 됩니다.
+                3. **형식 (Script Format):** 서술형 줄글 금지. 반드시 아래 형식만 사용하세요.
+                   - **지문:** (상황, 행동, 표정 묘사)
+                   - **이름:** "대사 내용"
+                4. **톤앤매너:** - 캐릭터 설정을 참고하여 각자 고유의 말투를 사용하세요.
+                   - 상황에 맞는 유머, 긴장감, 감정선을 살리세요.
+                   - 지문은 구체적이고 시각적으로 묘사하세요. (예: "민우가 웃었다" (X) -> "민우가 어이없다는 듯 피식 웃으며 머리를 쓸어넘긴다." (O))
+
+                [출력 포맷 (JSON Only)]
+                반드시 설명 없이 아래 JSON 배열 형식으로만 출력하세요.
+                [
+                    {
+                        "title": "소제목 (예: 새벽의 침입자)", 
+                        "description": "지문: 칠흑 같은 어둠 속, 농장 울타리 너머로 붉은 안광이 번뜩인다.\\n럭스: \\"주군! 기상하십시오! 적들이 몰려옵니다!\\"\\n민우: (비몽사몽하며) \\"아... 또 쥐새끼들이야?\\"\\n지문: 민우가 귀찮다는 듯 하품을 하며 몽둥이를 집어 든다."
+                    }
+                ]
+            `;
+
+            // 4. API 요청
+            const aiRes = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+            const aiData = await aiRes.json();
+            let text = aiData.candidates[0].content.parts[0].text;
+            
+            // JSON 파싱
+            text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) throw new Error("JSON 파싱 실패: AI가 형식을 지키지 않았습니다.");
+            
+            const rawScenes = JSON.parse(jsonMatch[0]);
+
+            // 미리보기 UI 렌더링
+            renderPreviewList(rawScenes);
+
+            // UI 변경
+            document.getElementById('treatmentPreviewArea').style.display = 'block';
+            document.getElementById('btnGenPreview').style.display = 'none';
+            document.getElementById('btnSaveFinal').style.display = 'block';
+
+        } catch (e) {
+            console.error(e);
+            alert("생성 중 오류 발생: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    function renderPreviewList(scenes) {
+        const listEl = document.getElementById('scenePreviewList');
+        listEl.innerHTML = '';
+
+        scenes.forEach((scene, index) => {
+            const div = document.createElement('div');
+            div.style.cssText = "background:#fff; border:1px solid #ddd; padding:15px; border-radius:8px; margin-bottom:10px;";
+            div.innerHTML = `
+                <div style="font-weight:bold; color:#2ecc71; margin-bottom:5px;">Scene ${index + 1}</div>
+                <input type="text" class="preview-title" value="${scene.title}" placeholder="씬 제목" style="width:100%; margin-bottom:5px; font-weight:bold;">
+                <textarea class="preview-desc" rows="3" style="width:100%; resize:vertical;" placeholder="씬 내용">${scene.description}</textarea>
+            `;
+            listEl.appendChild(div);
+        });
+    }
+
+    window.saveScenesFinal = async function() {
+        const epNum = document.getElementById('targetEpNum').value;
+        const listEl = document.getElementById('scenePreviewList');
+        const sceneDivs = listEl.querySelectorAll('div[style*="background"]');
+
+        if (sceneDivs.length === 0) return alert("저장할 씬이 없습니다.");
+
+        let combinedDescription = "";
+
+        sceneDivs.forEach((div, index) => {
+            const title = div.querySelector('.preview-title').value;
+            const desc = div.querySelector('.preview-desc').value;
+            combinedDescription += `==Scene ${index + 1}. ${title}==:\n${desc}\n\n`;
+        });
+
+        const scenesToSave = [{
+            scene_number: 1,
+            title: `${epNum}화 통합 트리트먼트`,
+            description: combinedDescription.trim()
+        }];
+
+        try {
+            const res = await fetch('/api/scenes/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    setting_id: settingId,
+                    episode_number: epNum,
+                    scenes: scenesToSave
+                })
+            });
+
+            if (res.ok) {
+                alert(`저장 완료!`);
+                closeTreatmentModal();
+            } else {
+                alert("저장 실패");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("서버 통신 오류");
+        }
+    }
+
+    window.closeTreatmentModal = function() {
+        document.getElementById('treatmentModal').style.display = 'none';
+        
+        setTimeout(() => {
+            document.getElementById('treatmentPreviewArea').style.display = 'none';
+            document.getElementById('scenePreviewList').innerHTML = '';
+            document.getElementById('btnGenPreview').style.display = 'block';
+            document.getElementById('btnSaveFinal').style.display = 'none';
+        }, 300);
+    }
+
+    init();
+</script>
+
+</body>
+</html>

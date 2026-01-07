@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>세계관 & 캐릭터 - AI Novel Studio</title>
+    <script src="auth.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --world-color: #4a90e2;   /* 세계관 메인 컬러 */
+            --char-color: #50c878;    /* 캐릭터 메인 컬러 */
+            --bg-color: #f4f4f9;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --nav-bg: #2c3e50;
+            --nav-text: #ecf0f1;
+            --border-color: #ddd;
+            --danger-color: #ff4d4f;
+            --ai-color: #2e7d32;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            color: var(--text-color);
+            display: flex; flex-direction: column; height: 100vh;
+        }
+
+        /* 네비게이션 */
+        .navbar {
+            background-color: var(--nav-bg); color: var(--nav-text); padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 1001;
+        }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7; text-decoration: none; padding: 8px 12px; border-radius: 4px;
+            font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--primary-color); font-weight: bold; }
+
+        /* 메인 컨테이너 */
+        .main-container {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden; max-width: 1200px; width: 100%; margin: 0 auto;
+        }
+
+        /* 탭 헤더 */
+        .tab-header {
+            display: flex; background: white; border-bottom: 1px solid #ddd; flex-shrink: 0; margin-top: 10px;
+        }
+        .tab-btn {
+            flex: 1; padding: 15px; border: none; background: #f8f9fa; cursor: pointer;
+            font-size: 1rem; font-weight: bold; color: #777; border-top: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { background: #f1f1f1; }
+        
+        .tab-btn.active[data-tab="world"] { background: white; color: var(--world-color); border-top-color: var(--world-color); }
+        .tab-btn.active[data-tab="characters"] { background: white; color: var(--char-color); border-top-color: var(--char-color); }
+
+        /* 탭 콘텐츠 */
+        .tab-content { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+        .tab-content.active { display: block; }
+
+        /* --- AI 섹션 스타일 --- */
+        .ai-section {
+            background: white; border: 1px solid #c8e6c9; border-radius: 12px; padding: 20px;
+            margin-bottom: 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .ai-header { font-size: 1.1rem; font-weight: bold; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .ai-desc { font-size: 0.9rem; color: #666; margin-bottom: 15px; }
+        .ai-textarea {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+            min-height: 80px; resize: vertical; font-family: inherit; margin-bottom: 10px; font-size: 0.95rem;
+        }
+        .ai-textarea:focus { outline: 2px solid var(--ai-color); border-color: transparent; }
+        
+        .btn-ai-gen {
+            width: 100%; background-color: var(--ai-color); color: white; border: none; padding: 12px;
+            border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px;
+            transition: background 0.2s;
+        }
+        .btn-ai-gen:hover { background-color: #1b5e20; }
+        .btn-ai-gen:disabled { background-color: #a5d6a7; cursor: not-allowed; }
+
+        /* 헤더 및 버튼 */
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-header h2 { margin: 0; padding-left: 10px; border-left: 5px solid #ddd; }
+        
+        #tab-world .section-header h2 { border-color: var(--world-color); color: var(--world-color); }
+        #tab-characters .section-header h2 { border-color: var(--char-color); color: var(--char-color); }
+
+        .btn-add {
+            color: white; border: none; padding: 10px 18px; border-radius: 25px; 
+            font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .btn-add.world { background-color: var(--world-color); }
+        .btn-add.char { background-color: var(--char-color); }
+
+        /* 카드 그리드 */
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        
+        /* 공통 카드 스타일 */
+        .item-card {
+            background: var(--card-bg); border-radius: 12px; padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; border: 1px solid #eee;
+            display: flex; flex-direction: column; transition: transform 0.2s; min-height: 180px;
+        }
+        .item-card:hover { transform: translateY(-3px); box-shadow: 0 8px 15px rgba(0,0,0,0.1); }
+        
+        .card-actions { margin-top: auto; padding-top: 10px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
+        .action-btn { background: none; border: none; cursor: pointer; font-size: 0.9rem; color: #999; }
+        .action-btn:hover { color: var(--primary-color); }
+        .action-btn.delete:hover { color: var(--danger-color); }
+
+        /* [세계관] 카드 특화 */
+        .world-card .card-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; color: #2c3e50; }
+        .world-card .card-desc { 
+            font-size: 0.9rem; color: #555; line-height: 1.5; margin-bottom: 10px;
+            white-space: pre-wrap; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical;
+        }
+        .card-keywords { display: flex; flex-wrap: wrap; gap: 5px; }
+        .keyword-tag { 
+            background: #eef2f7; color: #4a90e2; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: bold;
+        }
+        .btn-keyword-gen {
+            background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9;
+            padding: 5px 10px; border-radius: 15px; font-size: 0.8rem; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; gap: 5px;
+        }
+
+        /* [캐릭터] 카드 특화 */
+        .char-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+        .char-icon {
+            width: 50px; height: 50px; background: #eefbf3; color: var(--char-color);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;
+        }
+        .role-badge { background: #f0f0f0; color: #555; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+        .role-badge.main { background: #e3f2fd; color: #1976d2; }
+        .char-name { font-weight: bold; font-size: 1.2rem; color: #2c3e50; }
+        .char-desc { 
+            font-size: 0.9rem; color: #555; margin-top: 5px; overflow: hidden; 
+            display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; 
+        }
+
+        /* 모달 스타일 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            display: none; justify-content: center; align-items: center; z-index: 2000;
+        }
+        .modal { background: white; padding: 25px; border-radius: 12px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
+        .form-input, .form-textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95rem; }
+        .form-textarea { min-height: 100px; resize: vertical; }
+        
+        .modal-buttons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        .btn-cancel { background: #eee; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+        .btn-submit { background: var(--primary-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; }
+
+        /* AI 미리보기 목록 */
+        .preview-list { display: flex; flex-direction: column; gap: 10px; margin: 15px 0; }
+        .preview-item {
+            border: 1px solid #ddd; padding: 15px; border-radius: 8px; background: #fafafa;
+            display: flex; gap: 15px; align-items: flex-start;
+        }
+        .preview-check { margin-top: 5px; transform: scale(1.3); cursor: pointer; }
+        .preview-content { flex: 1; }
+        .preview-title { font-weight: bold; font-size: 1rem; margin-bottom: 5px; color: #2e7d32; }
+        .preview-desc { font-size: 0.9rem; color: #444; white-space: pre-wrap; line-height: 1.5; }
+        .preview-tag { color: #4a90e2; font-size: 0.8rem; font-weight: bold; margin-top: 5px; display:block;}
+
+        /* 반응형 */
+        @media (max-width: 600px) {
+            .navbar { flex-direction: column; align-items: stretch; gap: 10px; }
+            .grid-container { grid-template-columns: 1fr; }
+            .tab-btn { padding: 12px 10px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+
+<script src="include.js"></script>
+<div data-include="nav.html"></div>
+
+<div class="main-container">
+    <div class="tab-header">
+        <button class="tab-btn active" data-tab="world" onclick="switchTab('world')">
+            <i class="fas fa-globe"></i> 세계관 설정 (World)
+        </button>
+        <button class="tab-btn" data-tab="characters" onclick="switchTab('characters')">
+            <i class="fas fa-users"></i> 등장인물 (Characters)
+        </button>
+    </div>
+
+    <div id="tab-world" class="tab-content active">
+        <div class="ai-section">
+            <div class="ai-header" style="color:var(--world-color);">
+                <i class="fas fa-robot"></i> AI 세계관 생성
+            </div>
+            <div class="ai-desc">
+                특정 회차 범위의 사건을 분석하여 세계관 설정을 제안합니다.
+            </div>
+            
+            <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+                <label style="font-weight:bold; color:#555; font-size:0.9rem;">참고 범위:</label>
+                <input type="number" id="startEp" class="form-input" style="width:80px; padding:8px;" placeholder="1" value="1">
+                <span style="font-weight:bold;">~</span>
+                <input type="number" id="endEp" class="form-input" style="width:80px; padding:8px;" placeholder="50">
+                <span style="font-size:0.8rem; color:#888;">화</span>
+            </div>
+
+            <textarea id="worldAiPrompt" class="ai-textarea" placeholder="예: 이 세계의 마법 체계와 등급을 설정해줘. (비워두고 버튼 누르면 자동 생성)"></textarea>
+            
+            <div style="display:flex; gap:10px;">
+                <button type="button" onclick="setRandomWorldPrompt()" style="background:#fff; border:1px solid #ddd; padding:10px 15px; border-radius:8px; cursor:pointer; color:#555; font-weight:bold;">
+                    🎲 예시
+                </button>
+                <button id="btnWorldAiGen" class="btn-ai-gen" onclick="generateAiWorldSettings()" style="flex:1;">
+                    <i class="fas fa-magic"></i> 세계관 생성하기
+                </button>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>세계관 목록</h2>
+            <button class="btn-add world" onclick="openWorldModal('add')"><i class="fas fa-plus"></i> 항목 추가</button>
+        </div>
+
+        <div id="worldGrid" class="grid-container">
+            <div style="grid-column: 1/-1; text-align:center; padding: 40px; color: #999;">로딩 중...</div>
+        </div>
+    </div>
+
+    <div id="tab-characters" class="tab-content">
+        <div class="ai-section">
+            <div class="ai-header" style="color:var(--char-color);">
+                <i class="fas fa-robot"></i> AI 등장인물 생성
+            </div>
+            <div class="ai-desc">
+                현재 플롯과 세계관에 맞춰 필요한 등장인물을 추천해드립니다.
+            </div>
+            <textarea id="charAiPrompt" class="ai-textarea" placeholder="예: 주인공을 괴롭히는 학교 일진 3명과 그들의 리더를 만들어줘."></textarea>
+            <button id="btnCharAiGen" class="btn-ai-gen" onclick="generateAiCharacters()" style="background-color: var(--char-color);">
+                <i class="fas fa-magic"></i> 등장인물 생성하기
+            </button>
+        </div>
+
+        <div class="section-header">
+            <h2>등장인물 목록</h2>
+            <button class="btn-add char" onclick="openCharModal('add')"><i class="fas fa-user-plus"></i> 직접 추가</button>
+        </div>
+
+        <div id="charGrid" class="grid-container">
+            <div style="grid-column: 1/-1; text-align:center; padding: 40px; color: #999;">로딩 중...</div>
+        </div>
+    </div>
+</div>
+
+<div id="worldModal" class="modal-overlay">
+    <div class="modal">
+        <h3>세계관 설정</h3>
+        <input type="hidden" id="worldEditId">
+        <div class="form-group">
+            <label class="form-label">제목</label>
+            <input type="text" id="worldTitle" class="form-input" placeholder="예: 마나 시스템">
+        </div>
+        <div class="form-group">
+            <label class="form-label">관련 키워드</label>
+            <input type="text" id="worldKeywords" class="form-input" placeholder="예: #마법 #판타지">
+        </div>
+        <div class="form-group">
+            <label class="form-label">내용</label>
+            <textarea id="worldDesc" class="form-textarea"></textarea>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('worldModal')">취소</button>
+            <button class="btn-submit" onclick="saveWorldSetting()" style="background:var(--world-color);">저장</button>
+        </div>
+    </div>
+</div>
+
+<div id="charModal" class="modal-overlay">
+    <div class="modal">
+        <h3>인물 설정</h3>
+        <input type="hidden" id="charEditId">
+        <div class="form-group">
+            <label class="form-label">이름</label>
+            <input type="text" id="charName" class="form-input">
+        </div>
+        <div class="form-group">
+            <label class="form-label">역할</label>
+            <input type="text" id="charRole" class="form-input" placeholder="예: 주인공, 조력자">
+        </div>
+        <div class="form-group">
+            <label class="form-label">설명</label>
+            <textarea id="charDesc" class="form-textarea" rows="5"></textarea>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('charModal')">취소</button>
+            <button class="btn-submit" onclick="saveCharacter()" style="background:var(--char-color);">저장</button>
+        </div>
+    </div>
+</div>
+
+<div id="worldAiPreviewModal" class="modal-overlay">
+    <div class="modal" style="max-width: 700px;">
+        <h3><i class="fas fa-check-double"></i> 생성된 세계관 확인</h3>
+        <p style="font-size:0.9rem; color:#666;">저장할 항목을 선택해주세요.</p>
+        <div id="worldAiResultList" class="preview-list"></div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('worldAiPreviewModal')">취소</button>
+            <button class="btn-submit" onclick="saveBulkWorldSettings()" style="background:var(--world-color);">선택 저장</button>
+        </div>
+    </div>
+</div>
+
+<div id="charAiPreviewModal" class="modal-overlay">
+    <div class="modal" style="max-width: 600px;">
+        <h3><i class="fas fa-check-double"></i> 생성된 인물 확인</h3>
+        <p style="font-size:0.9rem; color:#666;">저장할 인물을 선택해주세요.</p>
+        <div id="charAiResultList" class="preview-list"></div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('charAiPreviewModal')">취소</button>
+            <button class="btn-submit" onclick="saveBulkCharacters()" style="background:var(--char-color);">선택 저장</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+    
+    // 데이터 저장소
+    let worldList = []; 
+    let charList = [];
+    let worldAiData = []; // AI 세계관 결과
+    let charAiData = [];  // AI 캐릭터 결과
+
+    const worldPrompts = [
+        "이 소설의 분위기에 맞는 독창적인 지리적 특성과 기후, 주요 산업 3가지를 설정해줘.",
+        "이 세계의 신분 제도와 사회적 계급 구조, 그리고 계급 간의 갈등 요소를 만들어줘.",
+        "능력에 따른 '대가'나 '패널티'가 존재하는 독특한 능력을 구체적으로 만들어줘.",
+        "게이트가 발생한 이후 바뀐 현대 사회의 법률과 헌터들의 등급 체계를 설정해줘.",
+    ];
+
+    async function init() {
+        if (!settingId) {
+            alert("프로젝트 ID가 없습니다.");
+            window.location.href = 'index.html';
+            return;
+        }
+        setupNav();
+        
+        // 기본 탭 로드 (세계관)
+        switchTab('world');
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    // --- 탭 전환 로직 ---
+    function switchTab(tabName) {
+        // 1. 버튼 스타일
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active');
+
+        // 2. 콘텐츠 표시
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+
+        // 3. 데이터 로드 (필요시)
+        if (tabName === 'world') loadWorldSettings();
+        if (tabName === 'characters') loadCharacters();
+    }
+
+    // ==========================================
+    // 🌍 [세계관] 관련 함수들
+    // ==========================================
+
+    function setRandomWorldPrompt() {
+        const randomIndex = Math.floor(Math.random() * worldPrompts.length);
+        document.getElementById('worldAiPrompt').value = worldPrompts[randomIndex];
+    }
+
+    async function loadWorldSettings() {
+        const grid = document.getElementById('worldGrid');
+        try {
+            const res = await fetch(`/api/worldsettings?setting_id=${settingId}`);
+            worldList = await res.json();
+            
+            grid.innerHTML = '';
+            if (worldList.length === 0) {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:60px; color:#aaa;">등록된 설정이 없습니다.</div>`;
+                return;
+            }
+
+            worldList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'item-card world-card';
+                card.onclick = (e) => { 
+                    if(!e.target.closest('button')) openWorldModal('edit', item.id); 
+                };
+
+                let keywordsHtml = '';
+                if(item.keywords && item.keywords.trim() !== '') {
+                    keywordsHtml = item.keywords.split(',').map(k => `<span class="keyword-tag">${k.trim()}</span>`).join('');
+                } else {
+                    keywordsHtml = `
+                        <button class="btn-keyword-gen" onclick="autoGenerateKeywords(event, ${item.id})">
+                            <i class="fas fa-magic"></i> 키워드 자동 추출
+                        </button>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="card-title">${item.title}</div>
+                    <div class="card-desc">${item.description || ''}</div>
+                    <div class="card-keywords">${keywordsHtml}</div>
+                    <div class="card-actions">
+                        <button class="action-btn delete" onclick="deleteWorldSetting(event, ${item.id})"><i class="fas fa-trash"></i> 삭제</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    // AI 세계관 생성
+    async function generateAiWorldSettings() {
+        const prompt = document.getElementById('worldAiPrompt').value.trim();
+        const startEpInput = document.getElementById('startEp').value;
+        const endEpInput = document.getElementById('endEp').value;
+        
+        const btn = document.getElementById('btnWorldAiGen');
+        const originalBtnText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 생성 중...';
+
+        try {
+            const [sRes, eRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`),
+                fetch(`/api/episodes?setting_id=${settingId}`)
+            ]);
+
+            const settings = await sRes.json();
+            const allEpisodes = await eRes.json();
+            const existTitles = worldList.map(w => w.title).join(', ');
+
+            const startEp = startEpInput ? parseInt(startEpInput) : 1;
+            const endEp = endEpInput ? parseInt(endEpInput) : 9999;
+            const targetEpisodes = allEpisodes.filter(ep => 
+                ep.episode_number >= startEp && ep.episode_number <= endEp
+            );
+
+            let episodeSummary = "";
+            if (targetEpisodes.length > 0) {
+                episodeSummary = targetEpisodes.map(ep => {
+                    const snippet = ep.content ? ep.content.substring(0, 300).replace(/\n/g, ' ') : "내용 없음";
+                    return `- [${ep.episode_number}화: ${ep.title}] ${snippet}...`;
+                }).join('\n');
+            } else {
+                episodeSummary = "선택된 범위에 회차 내용이 없습니다.";
+            }
+
+            const fullPrompt = `
+                [역할] 웹소설 세계관 설정 작가
+                [작품 제목] ${settings.title}
+                [이야기 흐름] ${episodeSummary}
+                [기존 설정] ${existTitles}
+                [요청] ${prompt || "이 소설에 필요한 핵심 세계관 설정 3가지를 제안해줘."}
+
+                [출력 조건]
+                1. 세계관 설정 **3~5가지**를 생성하세요.
+                2. JSON 배열 형식으로만 출력하세요.
+                3. 각 항목: title, description, keywords
+                4. description은 줄바꿈(\\n) 사용.
+
+                [JSON 예시]
+                [{"title":"마나","description":"- 자연에 존재하는 에너지","keywords":"#마법, #에너지"}]
+            `;
+
+            const aiRes = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: fullPrompt }] }] }
+                })
+            });
+            const aiData = await aiRes.json();
+            let text = aiData.candidates[0].content.parts[0].text;
+            
+            // JSON 파싱
+            text = text.replace(/```json/g, '').replace(/```/g, '');
+            const jsonMatch = text.match(/\[[\s\S]*\]/);
+            if (!jsonMatch) throw new Error("JSON 파싱 실패");
+            
+            worldAiData = JSON.parse(jsonMatch[0]);
+            
+            // 미리보기 모달 표시
+            const listContainer = document.getElementById('worldAiResultList');
+            listContainer.innerHTML = '';
+            worldAiData.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.innerHTML = `
+                    <input type="checkbox" class="preview-check" id="world_chk_${idx}" checked>
+                    <div class="preview-content">
+                        <div class="preview-title">${item.title}</div>
+                        <div class="preview-desc">${item.description}</div>
+                        <div class="preview-tag">${item.keywords || ''}</div>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+            document.getElementById('worldAiPreviewModal').style.display = 'flex';
+
+        } catch (e) {
+            console.error(e);
+            alert("생성 실패: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    }
+
+    async function saveBulkWorldSettings() {
+        const selectedItems = [];
+        worldAiData.forEach((item, idx) => {
+            const chk = document.getElementById(`world_chk_${idx}`);
+            if (chk && chk.checked) selectedItems.push(item);
+        });
+
+        if (selectedItems.length === 0) return alert("선택된 항목이 없습니다.");
+
+        try {
+            const promises = selectedItems.map(item => {
+                return fetch('/api/worldsettings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        setting_id: settingId,
+                        title: item.title,
+                        description: item.description,
+                        keywords: item.keywords || ''
+                    })
+                });
+            });
+            await Promise.all(promises);
+            alert("저장되었습니다.");
+            closeModal('worldAiPreviewModal');
+            loadWorldSettings();
+        } catch (e) { alert("저장 중 오류 발생"); }
+    }
+
+    // 키워드 자동 생성
+    async function autoGenerateKeywords(e, id) {
+        e.stopPropagation();
+        const item = worldList.find(w => w.id === id);
+        if (!item) return;
+
+        const btn = e.target.closest('button');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 분석 중...';
+
+        const prompt = `
+            [설정 제목] ${item.title}
+            [내용] ${item.description}
+            위 내용을 분석하여 핵심 키워드 3~5개를 쉼표로 구분해 해시태그 형식(#키워드)으로 추출해줘. 설명 없이 키워드만 출력해.
+        `;
+
+        try {
+            const aiRes = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+            const aiData = await aiRes.json();
+            const keywords = aiData.candidates[0].content.parts[0].text.trim();
+
+            await fetch(`/api/worldsettings/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    setting_id: settingId,
+                    title: item.title,
+                    description: item.description,
+                    keywords: keywords
+                })
+            });
+            loadWorldSettings();
+        } catch (error) { console.error(error); alert("오류 발생"); }
+    }
+
+    // 세계관 모달 & 저장/삭제
+    function openWorldModal(mode, id = null) {
+        document.getElementById('worldModal').style.display = 'flex';
+        document.getElementById('worldEditId').value = id || '';
+        document.getElementById('worldTitle').value = '';
+        document.getElementById('worldDesc').value = '';
+        document.getElementById('worldKeywords').value = '';
+
+        if (mode === 'edit') {
+            const item = worldList.find(w => w.id === id);
+            if (item) {
+                document.getElementById('worldTitle').value = item.title;
+                document.getElementById('worldDesc').value = item.description;
+                document.getElementById('worldKeywords').value = item.keywords || '';
+            }
+        }
+    }
+
+    async function saveWorldSetting() {
+        const id = document.getElementById('worldEditId').value;
+        const title = document.getElementById('worldTitle').value;
+        const url = id ? `/api/worldsettings/${id}` : '/api/worldsettings';
+        const method = id ? 'PUT' : 'POST';
+
+        if(!title) return alert("제목 필수");
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    setting_id: settingId,
+                    title: title,
+                    description: document.getElementById('worldDesc').value,
+                    keywords: document.getElementById('worldKeywords').value
+                })
+            });
+            if (res.ok) {
+                closeModal('worldModal');
+                loadWorldSettings();
+            }
+        } catch(e) { alert("오류"); }
+    }
+
+    async function deleteWorldSetting(e, id) {
+        e.stopPropagation();
+        if(!confirm("삭제하시겠습니까?")) return;
+        await fetch(`/api/worldsettings/${id}`, { method: 'DELETE' });
+        loadWorldSettings();
+    }
+
+
+    // ==========================================
+    // 👥 [캐릭터] 관련 함수들
+    // ==========================================
+
+    async function loadCharacters() {
+        const grid = document.getElementById('charGrid');
+        try {
+            const res = await fetch(`/api/characters?setting_id=${settingId}`);
+            charList = await res.json();
+            
+            grid.innerHTML = '';
+            if (charList.length === 0) {
+                grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:60px; color:#aaa;">등록된 인물이 없습니다.</div>`;
+                return;
+            }
+
+            charList.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'item-card char-card';
+                card.onclick = (e) => { if(!e.target.closest('.action-btn')) openCharModal('edit', item.id); };
+                
+                const isMain = item.role && (item.role.includes('주인공') || item.role.includes('메인'));
+                const badgeClass = isMain ? 'role-badge main' : 'role-badge';
+
+                card.innerHTML = `
+                    <div class="char-header">
+                        <div class="char-icon"><i class="fas fa-user"></i></div>
+                        ${item.role ? `<span class="${badgeClass}">${item.role}</span>` : ''}
+                    </div>
+                    <div class="char-name">${item.name}</div>
+                    <div class="char-desc">${item.description || ''}</div>
+                    <div class="card-actions">
+                        <button class="action-btn delete" onclick="deleteCharacter(event, ${item.id})"><i class="fas fa-trash"></i> 삭제</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (e) { console.error(e); }
+    }
+
+    async function generateAiCharacters() {
+        const prompt = document.getElementById('charAiPrompt').value.trim();
+        if (!prompt) return alert("요청 내용을 입력해주세요.");
+
+        const btn = document.getElementById('btnCharAiGen');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 생성 중...';
+
+        try {
+            const [sRes, wRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json())
+            ]);
+            
+            const existNames = charList.map(c => c.name).join(', ');
+
+            const fullPrompt = `
+                [역할] 웹소설 캐릭터 디자이너
+                [작품] ${sRes.title}
+                [줄거리] ${sRes.plotDetails || '미정'}
+                [세계관] ${wRes.map(w => w.title).join(', ')}
+                [기존 인물] ${existNames}
+                [요청] ${prompt}
+
+                [조건]
+                1. 새로운 인물 3~5명 생성.
+                2. JSON 배열만 출력.
+                3. 각 객체: name, role, description (줄바꿈 \\n 사용)
+
+                [JSON 예시]
+                [{"name":"홍길동","role":"주인공","description":"- 활발함\\n- 정의로움"}]
+            `;
+
+            const aiRes = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: fullPrompt }] }] }
+                })
+            });
+            const aiData = await aiRes.json();
+            
+            let text = aiData.candidates[0].content.parts[0].text;
+            text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            
+            charAiData = JSON.parse(text);
+
+            const listContainer = document.getElementById('charAiResultList');
+            listContainer.innerHTML = '';
+            charAiData.forEach((char, idx) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+                div.innerHTML = `
+                    <input type="checkbox" class="preview-check" id="char_chk_${idx}" checked>
+                    <div class="preview-content">
+                        <div class="preview-title" style="color:var(--char-color);">${char.role}</div>
+                        <div class="preview-title" style="font-size:1.1rem; color:#333;">${char.name}</div>
+                        <div class="preview-desc">${char.description}</div>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+            document.getElementById('charAiPreviewModal').style.display = 'flex';
+
+        } catch (e) {
+            console.error(e);
+            alert("생성 실패: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-magic"></i> 등장인물 생성하기';
+        }
+    }
+
+    async function saveBulkCharacters() {
+        const selectedChars = [];
+        charAiData.forEach((char, idx) => {
+            const chk = document.getElementById(`char_chk_${idx}`);
+            if (chk && chk.checked) {
+                selectedChars.push({
+                    setting_id: settingId,
+                    name: char.name,
+                    role: char.role,
+                    description: char.description
+                });
+            }
+        });
+
+        if (selectedChars.length === 0) return alert("선택된 캐릭터가 없습니다.");
+
+        try {
+            const res = await fetch('/api/characters/bulk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ characters: selectedChars })
+            });
+
+            if (res.ok) {
+                alert(`${selectedChars.length}명의 인물이 추가되었습니다.`);
+                closeModal('charAiPreviewModal');
+                loadCharacters();
+                document.getElementById('charAiPrompt').value = '';
+            } else {
+                alert("저장 실패");
+            }
+        } catch (e) { console.error(e); alert("오류 발생"); }
+    }
+
+    function openCharModal(mode, id = null) {
+        document.getElementById('charModal').style.display = 'flex';
+        document.getElementById('charEditId').value = id || '';
+        document.getElementById('charName').value = '';
+        document.getElementById('charRole').value = '';
+        document.getElementById('charDesc').value = '';
+
+        if (mode === 'edit') {
+            const item = charList.find(c => c.id === id);
+            if (item) {
+                document.getElementById('charName').value = item.name;
+                document.getElementById('charRole').value = item.role;
+                document.getElementById('charDesc').value = item.description;
+            }
+        }
+    }
+
+    async function saveCharacter() {
+        const id = document.getElementById('charEditId').value;
+        const name = document.getElementById('charName').value;
+        if(!name) return alert("이름 필수");
+
+        const url = id ? `/api/characters/${id}` : '/api/characters';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    setting_id: settingId,
+                    name: name,
+                    role: document.getElementById('charRole').value,
+                    description: document.getElementById('charDesc').value
+                })
+            });
+            if (res.ok) {
+                closeModal('charModal');
+                loadCharacters();
+            }
+        } catch(e) { alert("오류"); }
+    }
+
+    async function deleteCharacter(e, id) {
+        e.stopPropagation();
+        if(!confirm("삭제하시겠습니까?")) return;
+        await fetch(`/api/characters/${id}`, { method: 'DELETE' });
+        loadCharacters();
+    }
+
+    // ==========================================
+    // 🛠 공통 유틸리티
+    // ==========================================
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = 'none';
+    }
+
+    // 초기화 실행
+    init();
+</script>
+
+</body>
+</html>

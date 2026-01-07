@@ -84,18 +84,6 @@
         /* 높이 조정 */
         .form-textarea { min-height: 150px; resize: vertical; line-height: 1.6; }
         
-        /* 읽기 전용 스타일 */
-        .readonly-field {
-            background-color: #f9f9f9;
-            color: #555;
-            cursor: default;
-        }
-
-        .btn-link {
-            background: none; border: none; color: var(--primary-color); 
-            font-size: 0.9rem; cursor: pointer; text-decoration: underline; padding: 0;
-        }
-
         .btn-save {
             width: 100%;
             padding: 15px;
@@ -111,34 +99,45 @@
         }
         .btn-save:hover { background-color: #357abd; }
 
+        /* 내보내기/백업 카드 스타일 */
+        .manage-card { 
+            background: #fdfdfd; padding: 20px; border-radius: 10px; 
+            border: 1px solid #eee; margin-top: 40px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.03); 
+        }
+        .manage-card h3 { 
+            margin-top: 0; color: #444; font-size: 1.1rem; 
+            border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 15px; 
+        }
+        .export-btn { 
+            display: inline-flex; align-items: center; gap: 10px; 
+            padding: 12px; border: 1px solid #ddd; border-radius: 8px; 
+            background: white; cursor: pointer; width: 100%; margin-bottom: 10px; 
+            justify-content: center; font-weight: bold; color: #555; transition: all 0.2s;
+        }
+        .export-btn:hover { 
+            background: #f0f7ff; color: var(--primary-color); border-color: var(--primary-color); 
+        }
+
+        /* 🌟 버튼 그룹 (나란히 배치용) */
+        .btn-group {
+            display: flex; gap: 10px; margin-bottom: 10px;
+        }
+        .btn-group .export-btn {
+            margin-bottom: 0; flex: 1; /* 반반 차지 */
+        }
+
         @media (max-width: 600px) {
             .navbar { flex-direction: column; align-items: stretch; gap: 10px; }
             .container { margin: 15px; padding: 15px; }
+            .btn-group { flex-direction: column; } /* 모바일에서는 다시 세로로 */
         }
     </style>
 </head>
 <body>
 
-<nav class="navbar">
-    <div class="nav-left">
-        <a href="index.html" class="nav-logo"><i class="fas fa-chevron-left"></i> 목록</a>
-    </div>
-    <div class="nav-links">
-        <a href="#" class="nav-item active"><i class="fas fa-cog"></i> 설정</a>
-        <a href="#" class="nav-item" data-target="write.html"><i class="fas fa-pen-fancy"></i> 집필</a>
-        <a href="#" class="nav-item" data-target="plot.html"><i class="fas fa-project-diagram"></i> 플롯</a>
-        <a href="#" class="nav-item" data-target="edit.html"><i class="fas fa-magic"></i> 상세편집</a>
-        <a href="#" class="nav-item" data-target="write_scene.html"><i class="fas fa-layer-group"></i> 장면집필</a>
-        <a href="#" class="nav-item" data-target="world.html"><i class="fas fa-globe"></i> 세계관</a>
-        <a href="#" class="nav-item" data-target="characters.html"><i class="fas fa-users"></i> 캐릭터</a>
-        <a href="#" class="nav-item" data-target="plan.html"><i class="fas fa-magic"></i> 기획</a>
-        <a href="#" class="nav-item" data-target="roadmap.html"><i class="fas fa-magic"></i> 로드맵</a>
-        <a href="#" class="nav-item" data-target="treatment.html"><i class="fas fa-magic"></i> 트리트먼트</a>
-		<a href="javascript:void(0)" onclick="logout()" class="nav-item" style="color:#ff8787;">
-			<i class="fas fa-sign-out-alt"></i> 로그아웃
-		</a>
-    </div>
-</nav>
+<script src="include.js"></script>
+<div data-include="nav.html"></div>
 
 <div class="container">
     <h2><i class="fas fa-cog"></i> 작품 기본 설정</h2>
@@ -163,11 +162,35 @@
     <button class="btn-save" onclick="saveSettings()">
         <i class="fas fa-save"></i> 제목 저장하기
     </button>
+
+    <div class="manage-card">
+        <h3><i class="fas fa-file-export"></i> 데이터 내보내기 / 백업</h3>
+        
+        <button class="export-btn" onclick="downloadSettingsTxt()">
+            <i class="fas fa-book"></i> 설정집 다운로드 (.txt)
+        </button>
+
+        <div class="btn-group">
+            <button class="export-btn" onclick="downloadTextFile()">
+                <i class="fas fa-file-alt"></i> 본문 다운로드
+            </button>
+            <button class="export-btn" onclick="copyToClipboard()">
+                <i class="fas fa-copy"></i> 본문 복사
+            </button>
+        </div>
+
+        <button class="export-btn" onclick="downloadBackup()">
+            <i class="fas fa-database"></i> 전체 프로젝트 백업 (.json)
+        </button>
+    </div>
 </div>
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const settingId = urlParams.get('setting_id');
+    
+    let globalStories = []; 
+    let projectTitle = "Project"; 
 
     function init() {
         if (!settingId) {
@@ -177,6 +200,7 @@
         }
         setupNav();
         loadData();
+        loadStories(); 
     }
 
     function setupNav() {
@@ -186,10 +210,9 @@
         });
     }
 
-    // 데이터 불러오기 (캐릭터, 세계관 테이블 조인 효과)
+    // 데이터 불러오기
     async function loadData() {
         try {
-            // 3가지 정보를 동시에 호출합니다: 기본설정, 캐릭터목록, 세계관목록
             const [settingsRes, charRes, worldRes] = await Promise.all([
                 fetch(`/api/load-settings?id=${settingId}`),
                 fetch(`/api/characters?setting_id=${settingId}`),
@@ -199,10 +222,9 @@
             if (!settingsRes.ok) throw new Error("설정 로드 실패");
             const settings = await settingsRes.json();
             
-            // 1. 기본 제목 바인딩
-            document.getElementById('title').value = settings.title || '';
+            projectTitle = settings.title || "Project";
+            document.getElementById('title').value = projectTitle;
 
-            // 2. 캐릭터 데이터 포맷팅 및 바인딩
             if (charRes.ok) {
                 const characters = await charRes.json();
                 if (characters.length > 0) {
@@ -215,7 +237,6 @@
                 }
             }
 
-            // 3. 세계관 데이터 포맷팅 및 바인딩
             if (worldRes.ok) {
                 const worlds = await worldRes.json();
                 if (worlds.length > 0) {
@@ -228,7 +249,6 @@
                 }
             }
 
-            // 기존 데이터 보존용
             window.currentData = settings; 
 
         } catch (e) {
@@ -237,7 +257,20 @@
         }
     }
 
-    // 데이터 저장하기 (제목 및 현황 스냅샷 업데이트)
+    // 스토리 데이터 로드
+    async function loadStories() {
+        try {
+            const res = await fetch(`/api/stories?setting_id=${settingId}`);
+            if (res.ok) {
+                globalStories = await res.json();
+                globalStories.sort((a, b) => a.episode_number - b.episode_number);
+            }
+        } catch (e) {
+            console.error("Story load error", e);
+        }
+    }
+
+    // 데이터 저장하기
     async function saveSettings() {
         const title = document.getElementById('title').value;
         const worldSettingText = document.getElementById('worldSetting').value;
@@ -247,22 +280,13 @@
             alert("제목은 필수입니다.");
             return;
         }
-
-        // 주의: 여기서 worldSetting, characterDetails를 보내면
-        // DB의 settings 테이블에 현재 보이는 텍스트(스냅샷)가 저장됩니다.
-        // 이는 AI가 참조할 때 유용하므로 유지하는 것이 좋습니다.
         
         const payload = {
             id: settingId,
             title: title,
-            
-            // 읽기 전용으로 불러온 텍스트를 그대로 저장 (AI 참조용 스냅샷 역할)
             worldSetting: worldSettingText, 
             characterDetails: characterDetailsText, 
-            
-            // 줄거리(plotDetails)는 화면에서 삭제했으므로 기존 값 유지 또는 빈 값
             plotDetails: window.currentData?.plotDetails || '', 
-
             previousContent: window.currentData?.previousContent || '',
             episode_number: window.currentData?.episode_number || 1,
             roadmaps: window.currentData?.roadmaps || ''
@@ -277,7 +301,8 @@
 
             if (response.ok) {
                 alert("성공적으로 저장되었습니다.");
-                loadData(); // 갱신
+                projectTitle = title; 
+                loadData(); 
             } else {
                 const err = await response.json();
                 alert("저장 실패: " + err.error);
@@ -286,6 +311,94 @@
             console.error(e);
             alert("저장 중 오류가 발생했습니다.");
         }
+    }
+
+    // 설정집 다운로드
+    async function downloadSettingsTxt() {
+        try {
+            const [sRes, wRes, cRes] = await Promise.all([
+                fetch(`/api/load-settings?id=${settingId}`).then(r => r.json()),
+                fetch(`/api/worldsettings?setting_id=${settingId}`).then(r => r.json()),
+                fetch(`/api/characters?setting_id=${settingId}`).then(r => r.json())
+            ]);
+
+            let text = `[ 제목 ] ${sRes.title}\n\n`;
+            text += `====================================\n[ 세계관 설정 ]\n====================================\n`;
+            if (wRes && wRes.length > 0) {
+                wRes.forEach(item => {
+                    text += `■ ${item.title}\n`;
+                    if (item.keywords) text += `   - 키워드: ${item.keywords}\n`;
+                    text += `   ${item.description || '내용 없음'}\n\n`;
+                });
+            } else { text += `(등록된 세계관 설정이 없습니다.)\n\n`; }
+            
+            text += `====================================\n[ 등장인물 ]\n====================================\n`;
+            if (cRes && cRes.length > 0) {
+                cRes.forEach(char => {
+                    text += `■ ${char.name} [${char.role || '역할 미정'}]\n`;
+                    text += `   ${char.description || '내용 없음'}\n\n`;
+                });
+            } else { text += `(등록된 등장인물이 없습니다.)\n\n`; }
+            
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${sRes.title}_설정집.txt`;
+            link.click();
+        } catch (e) {
+            console.error(e);
+            alert("설정 데이터를 불러오는 중 오류가 발생했습니다.");
+        }
+    }
+
+    // 전체 본문 텍스트 다운로드
+    function downloadTextFile() {
+        if (globalStories.length === 0) return alert("저장된 본문 데이터가 없습니다. 집필 탭에서 글을 작성해주세요.");
+        
+        let combined = `[ ${projectTitle} ]\n\n`;
+        globalStories.forEach(s => {
+            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
+        });
+        
+        const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${projectTitle}_Full.txt`;
+        link.click();
+    }
+
+    // 🌟 [NEW] 전체 본문 클립보드 복사 함수 추가
+    function copyToClipboard() {
+        if (globalStories.length === 0) return alert("저장된 본문 데이터가 없습니다.");
+        
+        let combined = `[ ${projectTitle} ]\n\n`;
+        globalStories.forEach(s => {
+            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
+        });
+
+        navigator.clipboard.writeText(combined).then(() => {
+            alert("전체 본문이 클립보드에 복사되었습니다.");
+        }).catch(err => {
+            console.error('복사 실패:', err);
+            alert("복사에 실패했습니다.");
+        });
+    }
+
+    // 전체 프로젝트 백업 (JSON)
+    async function downloadBackup() {
+        const settingsRes = await fetch(`/api/load-settings?id=${settingId}`);
+        const settings = await settingsRes.json();
+
+        const allData = { 
+            project: settings, 
+            stories: globalStories 
+        };
+        
+        const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${projectTitle}_Backup.json`;
+        link.click();
     }
 
     init();

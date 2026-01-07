@@ -539,7 +539,7 @@ router.get('/stories', (req, res) => {
 
     // created_at을 프론트엔드에서 쓰기 편하게 createdAt으로 별칭 처리
     const sql = `
-        SELECT id, setting_id, episode_number, title, content, prompt, created_at AS createdAt 
+        SELECT id, setting_id, episode_number, title, content,content_plot, prompt, created_at AS createdAt 
         FROM stories 
         WHERE setting_id = ? 
         ORDER BY episode_number ASC
@@ -597,7 +597,7 @@ app.post('/api/stories', (req, res) => {
  */
 app.put('/api/stories/:id', (req, res) => {
     const storyId = req.params.id;
-    const { episode_number, title, content } = req.body;
+    const { episode_number, title, content,content_plot } = req.body;
 
     if (!storyId || !title) {
         return res.status(400).json({ message: 'ID와 제목은 필수입니다.' });
@@ -607,15 +607,16 @@ app.put('/api/stories/:id', (req, res) => {
     // 여기서는 안전하게 내용 위주로 작성 (필요시 updatedAt = NOW() 추가)
     const sql = `
         UPDATE stories 
-        SET episode_number = ?, title = ?, content = ?
+			SET episode_number = ?, title = ?, content = ?, content_plot = ?  
         WHERE id = ?
     `;
 
     // content가 undefined면 기존 내용을 지우지 않도록 처리해야 하나, 
     // 에디터 특성상 빈 문자열도 "삭제"로 볼 수 있으므로 그대로 저장합니다.
     const safeContent = content === undefined ? '' : content;
+	const safePlot = content_plot === undefined ? '' : content_plot;
 
-    db.query(sql, [episode_number, title, safeContent, storyId], (err, result) => {
+    db.query(sql, [episode_number, title, safeContent,safePlot, storyId], (err, result) => {
         if (err) {
             console.error(`DB Error /api/stories/${storyId} (PUT):`, err);
             return res.status(500).json({ message: '수정 실패', error: err.message });
@@ -1170,7 +1171,112 @@ app.post('/api/plans/bulk', (req, res) => {
         });
     });
 });
+// 1. 아이디어 목록 조회 (GET)
+router.get('/ideas', (req, res) => {
+    const setting_id = req.query.setting_id;
+    if (!setting_id) return res.status(400).json({ error: 'setting_id is required' });
 
+    // 🌟 [수정] systemPrompt 컬럼 추가 조회
+    const sql = 'SELECT id, setting_id, type, content, plot_range, content_range, user_input, systemPrompt, created_at FROM ideas WHERE setting_id = ? ORDER BY created_at DESC';
+    
+    db.query(sql, [setting_id], (err, results) => {
+        if (err) return res.status(500).json({ error: 'DB Error' });
+        res.status(200).json(results);
+    });
+});
+
+// 2. 아이디어 추가 (POST)
+app.post('/api/ideas', (req, res) => {
+    // 🌟 [수정] systemPrompt 받기
+    const { setting_id, type, content, plot_range, content_range, user_input, systemPrompt } = req.body;
+    
+    // 🌟 [수정] systemPrompt 컬럼 추가 (테이블에 컬럼이 이미 있어야 합니다)
+    const sql = 'INSERT INTO ideas (setting_id, type, content, plot_range, content_range, user_input, systemPrompt) VALUES (?, ?, ?, ?, ?, ?, ?)';
+    
+    db.query(sql, [
+        setting_id, 
+        type, 
+        content, 
+        plot_range || '', 
+        content_range || '', 
+        user_input || '',
+        systemPrompt || '' // 🌟 추가
+    ], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ error: 'DB Error' });
+        }
+        res.status(201).json({ message: 'Saved successfully', id: result.insertId });
+    });
+});
+
+// 3. 아이디어 삭제
+app.delete('/api/ideas/:id', (req, res) => {
+    const id = req.params.id;
+    db.query('DELETE FROM ideas WHERE id = ?', [id], (err, result) => {
+        if (err) return res.status(500).json({ error: 'DB Error' });
+        res.status(200).json({ message: 'Deleted successfully' });
+    });
+});
+
+// ==========================================
+// 🎬 [NEW] 씬(Scene) 대량 저장 API (트리트먼트 결과용)
+// ==========================================
+app.post('/api/scenes/bulk', (req, res) => {
+    const { setting_id, episode_number, scenes } = req.body; // scenes = [{scene_number, title, description}, ...]
+
+    if (!setting_id || !episode_number || !Array.isArray(scenes)) {
+        return res.status(400).json({ message: 'Invalid data format' });
+    }
+
+    // 트랜잭션 시작 (기존 해당 회차 씬 삭제 -> 새로 삽입)
+    db.getConnection((err, connection) => {
+        if (err) return res.status(500).json({ error: 'DB Connection Error' });
+
+        connection.beginTransaction(err => {
+            if (err) { connection.release(); return res.status(500).json({ error: 'Transaction Error' }); }
+
+            // 1. 해당 회차의 기존 씬 삭제 (덮어쓰기)
+            const deleteSql = 'DELETE FROM scenes WHERE setting_id = ? AND episode_number = ?';
+            connection.query(deleteSql, [setting_id, episode_number], (err, result) => {
+                if (err) {
+                    return connection.rollback(() => { connection.release(); res.status(500).json({ error: 'Delete Failed' }); });
+                }
+
+                // 2. 새로운 씬 삽입
+                if (scenes.length === 0) {
+                    return connection.commit(err => {
+                        connection.release();
+                        res.json({ message: 'Scenes cleared (empty list).' });
+                    });
+                }
+
+                const insertSql = 'INSERT INTO scenes (setting_id, episode_number, scene_number, title, description) VALUES ?';
+                const values = scenes.map(s => [
+                    setting_id,
+                    episode_number,
+                    s.scene_number,
+                    s.title,
+                    s.description
+                ]);
+
+                connection.query(insertSql, [values], (err, result) => {
+                    if (err) {
+                        return connection.rollback(() => { connection.release(); console.error(err); res.status(500).json({ error: 'Insert Failed' }); });
+                    }
+
+                    connection.commit(err => {
+                        if (err) {
+                            return connection.rollback(() => { connection.release(); res.status(500).json({ error: 'Commit Failed' }); });
+                        }
+                        connection.release();
+                        res.status(201).json({ message: `${result.affectedRows} scenes saved.` });
+                    });
+                });
+            });
+        });
+    });
+});
 // 🌟🌟🌟 [END NEW] Gemini API 프록시 엔드포인트 🌟🌟🌟
 
 // 🌟 [만능 연결 설정]
