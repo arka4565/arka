@@ -839,7 +839,14 @@ const ALL_KEYS = [
     process.env.GEMINI_API_KEY26,
     process.env.GEMINI_API_KEY27,
     process.env.GEMINI_API_KEY28,
-    process.env.GEMINI_API_KEY29
+    process.env.GEMINI_API_KEY29,
+    process.env.GEMINI_API_KEY30,
+    process.env.GEMINI_API_KEY31,
+    process.env.GEMINI_API_KEY32,
+    process.env.GEMINI_API_KEY33,
+    process.env.GEMINI_API_KEY34,
+    process.env.GEMINI_API_KEY35,
+    process.env.GEMINI_API_KEY36
 ].filter(key => key && key.trim() !== ''); // 빈 키 제거
 
 // 현재 몇 번째 키를 쓸 차례인지 기억하는 변수 (전역 변수)

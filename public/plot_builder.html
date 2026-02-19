@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>플롯 설계</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #9b59b6;
+            --primary-light: #f0e8f8;
+            --primary-border: #e0cff0;
+            --nav-bg: #2c3e50;
+            --bg: #f4f6f8;
+            --green: #27ae60;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: var(--bg);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── 네비게이션 ── */
+        .navbar {
+            background: var(--nav-bg); color: white; padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7; text-decoration: none; padding: 8px 12px;
+            border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--primary); font-weight: bold; }
+
+        /* ── 레이아웃 ── */
+        .container { display: flex; flex: 1; overflow: hidden; }
+
+        /* ── 왼쪽 패널 ── */
+        .control-panel {
+            width: 300px; background: white; border-right: 1px solid #ddd;
+            padding: 20px; display: flex; flex-direction: column; gap: 14px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05); z-index: 10; overflow-y: auto; flex-shrink: 0;
+        }
+        .panel-title { margin: 0; color: var(--primary); font-size: 1.1rem; }
+        .panel-desc { font-size: 0.82rem; color: #888; margin: 4px 0 0; }
+
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-weight: bold; font-size: 0.88rem; color: #555; }
+        .input-group input[type="number"],
+        .input-group select {
+            padding: 9px 10px; border: 1px solid #ccc; border-radius: 6px;
+            font-size: 0.9rem; font-family: inherit; width: 100%;
+        }
+        .input-group input:focus, .input-group select:focus {
+            border-color: var(--primary); outline: none;
+        }
+
+        .range-row { display: flex; align-items: center; gap: 6px; }
+        .range-row select { flex: 1; }
+        .range-sep { color: #999; font-size: 0.85rem; }
+
+        .section-divider {
+            border-top: 1px solid #eee; padding-top: 14px; margin-top: 4px;
+        }
+        .section-label {
+            font-size: 0.82rem; font-weight: bold; color: var(--primary);
+            margin-bottom: 8px; display: flex; align-items: center; gap: 5px;
+        }
+
+        .btn-start {
+            background: var(--primary); color: white; border: none;
+            padding: 13px; border-radius: 8px; font-size: 0.95rem; font-weight: bold;
+            cursor: pointer; width: 100%; margin-top: auto;
+            transition: opacity 0.2s;
+        }
+        .btn-start:hover { opacity: 0.88; }
+        .btn-start:disabled { background: #ccc; cursor: not-allowed; }
+
+        .btn-restart {
+            background: #f5f5f5; color: #666; border: 1px solid #ddd;
+            padding: 9px; border-radius: 6px; font-size: 0.85rem;
+            cursor: pointer; width: 100%; display: none;
+        }
+        .btn-restart:hover { background: #eee; }
+
+        .control-panel textarea {
+            padding: 10px; border: 1px solid #ccc; border-radius: 6px;
+            font-size: 0.88rem; font-family: inherit; resize: vertical;
+            width: 100%; line-height: 1.6; min-height: 100px;
+        }
+        .control-panel textarea:focus { border-color: var(--primary); outline: none; }
+        .required-mark { color: #e74c3c; margin-left: 2px; }
+
+        /* 저장된 플롯 표시 */
+        .saved-plot-box {
+            background: #f0fff6; border: 1px solid #a8e6c1; border-radius: 8px;
+            padding: 12px; font-size: 0.82rem; color: #2d6a4f; display: none;
+        }
+        .saved-plot-box strong { display: block; margin-bottom: 4px; }
+
+        /* ── 오른쪽 채팅 영역 ── */
+        .chat-area {
+            flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fafafa;
+        }
+
+        .chat-header {
+            background: white; border-bottom: 1px solid #eee;
+            padding: 12px 20px; display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+        }
+        .chat-header-icon {
+            width: 36px; height: 36px; background: var(--primary); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white; font-size: 0.9rem;
+        }
+        .chat-header-title { font-weight: bold; color: #333; }
+        .chat-header-sub { font-size: 0.8rem; color: #999; }
+        .progress-bar-wrap { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .progress-label { font-size: 0.8rem; color: #999; }
+        .progress-bar {
+            width: 120px; height: 6px; background: #eee; border-radius: 3px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; background: var(--primary); border-radius: 3px;
+            transition: width 0.4s ease; width: 0%;
+        }
+
+        /* 메시지 영역 */
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; gap: 16px;
+        }
+
+        /* 환영 화면 */
+        .welcome-screen {
+            flex: 1; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; color: #bbb; text-align: center;
+        }
+        .welcome-screen i { font-size: 3.5rem; opacity: 0.25; margin-bottom: 16px; }
+        .welcome-screen p { font-size: 0.95rem; line-height: 1.6; }
+
+        /* AI 버블 */
+        .msg-ai { display: flex; align-items: flex-start; gap: 10px; animation: fadeSlideIn 0.3s ease; }
+        .ai-avatar {
+            width: 34px; height: 34px; background: var(--primary); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 0.85rem; flex-shrink: 0; margin-top: 2px;
+        }
+        .bubble-ai {
+            background: var(--primary-light); border: 1px solid var(--primary-border);
+            border-radius: 0 12px 12px 12px; padding: 12px 15px;
+            max-width: 78%; line-height: 1.6; color: #333; font-size: 0.92rem;
+        }
+        .bubble-ai .step-tag {
+            display: inline-block; background: var(--primary); color: white;
+            font-size: 0.72rem; padding: 2px 7px; border-radius: 10px; margin-bottom: 6px; font-weight: bold;
+        }
+
+        /* 유저 버블 */
+        .msg-user { display: flex; justify-content: flex-end; animation: fadeSlideIn 0.3s ease; }
+        .bubble-user {
+            background: var(--nav-bg); color: #e8ecf0;
+            border-radius: 12px 0 12px 12px; padding: 12px 15px;
+            max-width: 78%; line-height: 1.6; font-size: 0.92rem;
+            white-space: pre-wrap;
+        }
+
+        /* 최종 플롯 카드 */
+        .final-plot-card {
+            background: white; border: 2px solid var(--green); border-radius: 12px;
+            padding: 18px; margin: 5px 0; animation: fadeSlideIn 0.4s ease;
+        }
+        .final-plot-card h4 {
+            margin: 0 0 12px; color: var(--green); font-size: 1rem;
+            display: flex; align-items: center; gap: 7px;
+        }
+        .final-plot-content {
+            white-space: pre-wrap; line-height: 1.8; color: #333;
+            font-size: 0.92rem; border-top: 1px solid #eee; padding-top: 12px;
+        }
+
+        /* 누적 플롯 요약 */
+        .partial-plot-wrap {
+            margin-top: 10px; border-top: 1px dashed #d4b8f0; padding-top: 8px;
+        }
+        .partial-plot-toggle {
+            font-size: 0.78rem; color: var(--primary); cursor: pointer;
+            display: flex; align-items: center; gap: 4px; user-select: none;
+        }
+        .partial-plot-toggle:hover { opacity: 0.75; }
+        .partial-plot-body {
+            display: none; margin-top: 6px; font-size: 0.82rem; color: #555;
+            white-space: pre-wrap; line-height: 1.6; background: #faf5ff;
+            padding: 8px 10px; border-radius: 6px; border: 1px solid #e8d5f8;
+        }
+
+        /* 정리/추가질문 선택 카드 */
+        .finalize-banner {
+            background: linear-gradient(135deg, #f0e8f8, #e8f5fe);
+            border: 1.5px solid var(--primary); border-radius: 10px;
+            padding: 12px 15px; margin-bottom: 6px;
+            font-size: 0.88rem; color: #444; line-height: 1.5;
+        }
+        .finalize-banner strong { color: var(--primary); }
+
+        /* 생각 중 인디케이터 */
+        .thinking { display: flex; align-items: center; gap: 4px; padding: 8px 0; }
+        .dot {
+            width: 7px; height: 7px; background: var(--primary); border-radius: 50%;
+            animation: bounce 1.2s infinite ease-in-out;
+        }
+        .dot:nth-child(2) { animation-delay: 0.15s; }
+        .dot:nth-child(3) { animation-delay: 0.3s; }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0.4); opacity: 0.4; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        /* ── 질문 패널 (하단 고정) ── */
+        .question-panel {
+            background: white; border-top: 2px solid var(--primary);
+            padding: 18px 20px; display: none; flex-shrink: 0;
+            max-height: 55vh; overflow-y: auto;
+        }
+        .q-title {
+            font-weight: bold; color: #333; margin-bottom: 12px;
+            font-size: 0.95rem; display: flex; align-items: flex-start; gap: 8px;
+        }
+        .q-title i { color: var(--primary); margin-top: 2px; flex-shrink: 0; }
+
+        .options-list { display: flex; flex-direction: column; gap: 7px; }
+        .option-card {
+            display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px;
+            border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
+            transition: all 0.18s; background: #fafafa; user-select: none;
+        }
+        .option-card:hover { border-color: var(--primary); background: #faf0ff; }
+        .option-card.selected { border-color: var(--primary); background: var(--primary-light); }
+        .option-card input { flex-shrink: 0; margin-top: 3px; cursor: pointer; accent-color: var(--primary); }
+        .option-lbl { font-weight: bold; color: var(--primary); flex-shrink: 0; min-width: 20px; }
+        .option-txt { color: #444; font-size: 0.88rem; line-height: 1.45; }
+
+        .etc-row { margin-top: 8px; }
+        .etc-row label { font-size: 0.83rem; color: #777; margin-bottom: 4px; display: block; }
+        .etc-row input {
+            width: 100%; padding: 9px 11px; border: 1px solid #ddd; border-radius: 7px;
+            font-size: 0.9rem; font-family: inherit;
+        }
+        .etc-row input:focus { border-color: var(--primary); outline: none; }
+
+        .q-actions { display: flex; gap: 8px; margin-top: 13px; }
+        .btn-submit-ans {
+            flex: 1; background: var(--primary); color: white; border: none;
+            padding: 12px; border-radius: 7px; font-size: 0.93rem; font-weight: bold;
+            cursor: pointer; transition: opacity 0.2s;
+        }
+        .btn-submit-ans:hover { opacity: 0.88; }
+        .btn-submit-ans:disabled { background: #ccc; cursor: not-allowed; }
+
+        /* 저장 버튼 */
+        .btn-save-plot {
+            background: var(--green); color: white; border: none;
+            padding: 12px 20px; border-radius: 7px; font-size: 0.9rem; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; gap: 6px;
+            transition: opacity 0.2s; white-space: nowrap;
+        }
+        .btn-save-plot:hover { opacity: 0.88; }
+
+        @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (max-width: 900px) {
+            .container { flex-direction: column; }
+            .control-panel { width: 100%; max-height: 38vh; border-right: none; border-bottom: 1px solid #ddd; }
+            .progress-bar-wrap { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<script src="include.js"></script>
+<div data-include="nav.html"></div>
+
+<div class="container">
+
+    <!-- ── 왼쪽 설정 패널 ── -->
+    <aside class="control-panel">
+        <div>
+            <h2 class="panel-title"><i class="fas fa-sitemap"></i> 플롯 설계</h2>
+            <p class="panel-desc">AI가 질문을 통해 새 화의 플롯을 함께 구성합니다.</p>
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-hashtag"></i> 설계할 회차</label>
+            <input type="number" id="targetEp" min="1" placeholder="예: 29" />
+        </div>
+
+        <div class="section-divider">
+            <div class="section-label"><i class="fas fa-book"></i> 참고 자료 범위</div>
+            <div class="input-group" style="margin-bottom:10px;">
+                <label style="font-size:0.8rem; color:#888;">줄거리 (Plot)</label>
+                <div class="range-row">
+                    <select id="plotStart"><option value="">처음부터</option></select>
+                    <span class="range-sep">~</span>
+                    <select id="plotEnd"><option value="">선택</option></select>
+                </div>
+            </div>
+            <div class="input-group">
+                <label style="font-size:0.8rem; color:#888;">본문 (Content)</label>
+                <div class="range-row">
+                    <select id="contentStart"><option value="">선택 안함</option></select>
+                    <span class="range-sep">~</span>
+                    <select id="contentEnd"><option value="">선택 안함</option></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <label><i class="fas fa-edit"></i> 이번 화 기본 구상 <span style="font-weight:normal; color:#aaa; font-size:0.8rem;">(선택)</span></label>
+            <textarea id="userInitInput" placeholder="비워두면 AI가 이전 회차를 분석하여 방향을 제안합니다.&#10;예: 29화는 둘째날 아침에서 시작. 식량 보존 문제와 성벽 완성을 넣고 싶어."></textarea>
+        </div>
+
+        <div class="saved-plot-box" id="savedPlotBox">
+            <strong><i class="fas fa-check-circle"></i> 저장 완료</strong>
+            <span id="savedPlotSummary"></span>
+        </div>
+
+        <button class="btn-start" id="btnStart" onclick="startPlanning()">
+            <i class="fas fa-play"></i> 플롯 설계 시작
+        </button>
+        <button class="btn-restart" id="btnRestart" onclick="restartPlanning()">
+            <i class="fas fa-redo"></i> 처음부터 다시
+        </button>
+    </aside>
+
+    <!-- ── 오른쪽 채팅 영역 ── -->
+    <main class="chat-area">
+        <div class="chat-header">
+            <div class="chat-header-icon"><i class="fas fa-robot"></i></div>
+            <div>
+                <div class="chat-header-title" id="chatTitle">플롯 설계 AI</div>
+                <div class="chat-header-sub" id="chatSub">회차를 선택하고 시작하세요</div>
+            </div>
+            <div class="progress-bar-wrap" id="progressWrap" style="display:none;">
+                <span class="progress-label" id="progressLabel">0 / 5</span>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-screen" id="welcomeScreen">
+                <i class="fas fa-sitemap"></i>
+                <p>왼쪽에서 <strong>회차 번호</strong>를 입력하고<br><strong>플롯 설계 시작</strong>을 눌러주세요.</p>
+                <p style="font-size:0.82rem; margin-top:10px; color:#ccc;">기본 구상을 입력하면 그 내용 기반으로,<br>비워두면 이전 회차 분석 기반으로<br>AI가 방향 선택지 3가지를 제안합니다.</p>
+            </div>
+        </div>
+
+        <div class="question-panel" id="questionPanel">
+            <div class="q-title">
+                <i class="fas fa-question-circle"></i>
+                <span id="questionText"></span>
+            </div>
+            <div class="options-list" id="optionsList"></div>
+            <div class="etc-row">
+                <label><i class="fas fa-pen"></i> 기타 (직접 입력)</label>
+                <input type="text" id="etcInput" placeholder="다른 내용이 있다면 입력하세요…" />
+            </div>
+            <div class="q-actions">
+                <button class="btn-submit-ans" id="btnSubmit" onclick="submitAnswer()">
+                    <i class="fas fa-paper-plane"></i> 답변 제출
+                </button>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const settingId = urlParams.get('setting_id');
+
+    let globalStories = [];
+    let globalWorld = [];
+    let globalChars = [];
+    let conversationHistory = []; // [{q: '...', a: '...'}]
+    let currentQuestion = null;   // 현재 질문 객체
+    let questionStep = 0;
+    let totalSteps = 5;
+    let finalPlotText = '';
+    let isFinished = false;
+    let userInitInput = '';       // 사용자가 입력한 이번 화 기본 구상
+    const FINALIZE_THRESHOLD = 5; // 이 횟수 이상 답변 시 정리/추가질문 선택 표시
+
+    // ── 초기화 ──────────────────────────────────────────────
+    async function init() {
+        if (!settingId) { alert("잘못된 접근입니다."); return; }
+        setupNav();
+        await loadAllData();
+    }
+
+    function setupNav() {
+        document.querySelectorAll('.nav-item').forEach(item => {
+            const target = item.dataset.target;
+            if (target) item.href = `${target}?setting_id=${settingId}`;
+        });
+    }
+
+    async function loadAllData() {
+        try {
+            const [wRes, cRes, sRes] = await Promise.all([
+                fetch(`/api/worldsettings?setting_id=${settingId}`),
+                fetch(`/api/characters?setting_id=${settingId}`),
+                fetch(`/api/stories?setting_id=${settingId}`)
+            ]);
+            globalWorld = await wRes.json();
+            globalChars = await cRes.json();
+            if (sRes.ok) {
+                globalStories = await sRes.json();
+                globalStories.sort((a, b) => a.episode_number - b.episode_number);
+                initRangeSelects();
+                autoSetTargetEp();
+            }
+        } catch (e) { console.warn("데이터 로드 실패:", e); }
+    }
+
+    function initRangeSelects() {
+        const selects = ['plotStart', 'plotEnd', 'contentStart', 'contentEnd'];
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            const defaultOpt = el.options[0].outerHTML;
+            el.innerHTML = defaultOpt;
+            globalStories.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.episode_number;
+                opt.textContent = `${s.episode_number}화`;
+                el.appendChild(opt);
+            });
+        });
+
+        // 기본값: 줄거리는 전체 범위
+        if (globalStories.length > 0) {
+            document.getElementById('plotStart').value = globalStories[0].episode_number;
+            document.getElementById('plotEnd').value = globalStories[globalStories.length - 1].episode_number;
+        }
+    }
+
+    function autoSetTargetEp() {
+        if (globalStories.length > 0) {
+            const lastEp = globalStories[globalStories.length - 1].episode_number;
+            document.getElementById('targetEp').value = lastEp + 1;
+        }
+    }
+
+    // ── 컨텍스트 빌드 ────────────────────────────────────────
+    function buildContextText() {
+        const worldText = globalWorld.length > 0
+            ? globalWorld.map(w => `- ${w.title}: ${w.description || ''} (키워드: ${w.keywords || ''})`).join('\n')
+            : "별도 세계관 설정 없음.";
+
+        const charText = globalChars.length > 0
+            ? globalChars.map(c => `- ${c.name} (${c.role || ''}): ${c.description || ''}`).join('\n')
+            : "등록된 캐릭터 없음.";
+
+        const pStart = document.getElementById('plotStart').value;
+        const pEnd = document.getElementById('plotEnd').value;
+        let storyText = "이전 줄거리 없음.";
+        if (pStart && pEnd && globalStories.length > 0) {
+            const filtered = globalStories.filter(s =>
+                s.episode_number >= Math.min(pStart, pEnd) &&
+                s.episode_number <= Math.max(pStart, pEnd)
+            );
+            if (filtered.length > 0) {
+                storyText = filtered.map(s =>
+                    `(${s.episode_number}화) ${s.content_plot || s.title || '줄거리 없음'}`
+                ).join('\n');
+            }
+        }
+
+        const cStart = document.getElementById('contentStart').value;
+        const cEnd = document.getElementById('contentEnd').value;
+        let contentText = "";
+        if (cStart && cEnd && globalStories.length > 0) {
+            const filtered = globalStories.filter(s =>
+                s.episode_number >= Math.min(cStart, cEnd) &&
+                s.episode_number <= Math.max(cStart, cEnd)
+            );
+            if (filtered.length > 0) {
+                contentText = "\n\n[참고 본문 발췌]\n" +
+                    filtered.map(s =>
+                        `(${s.episode_number}화) ${s.content ? s.content.slice(0, 400) + "..." : ""}`
+                    ).join('\n');
+            }
+        }
+
+        return { worldText, charText, storyText, contentText };
+    }
+
+    function buildHistoryText() {
+        if (conversationHistory.length === 0) return "없음 (첫 번째 질문)";
+        return conversationHistory.map((item, i) =>
+            `Q${i + 1}: ${item.q}\nA${i + 1}: ${item.a}`
+        ).join('\n\n');
+    }
+
+    // ── 설계 시작 ────────────────────────────────────────────
+    async function startPlanning() {
+        const epNum = document.getElementById('targetEp').value;
+        const initText = document.getElementById('userInitInput').value.trim();
+        if (!epNum || epNum < 1) return alert("회차 번호를 입력해주세요.");
+
+        // 상태 초기화
+        isFinished = false;
+        conversationHistory = [];
+        questionStep = 0;
+        finalPlotText = '';
+        userInitInput = initText;
+
+        // UI 초기화
+        document.getElementById('welcomeScreen').style.display = 'none';
+        document.getElementById('chatMessages').innerHTML = '';
+        document.getElementById('savedPlotBox').style.display = 'none';
+        document.getElementById('btnStart').style.display = 'none';
+        document.getElementById('btnRestart').style.display = 'block';
+        document.getElementById('progressWrap').style.display = 'flex';
+        document.getElementById('chatTitle').textContent = `제 ${epNum}화 플롯 설계`;
+        document.getElementById('chatSub').textContent = 'AI가 방향 선택지를 제안합니다';
+
+        // 구상 입력 여부에 따라 분기
+        if (initText) {
+            // 입력한 경우: 유저 버블로 먼저 표시
+            addUserMessage(initText);
+        } else {
+            // 미입력: 안내 메시지
+            addSystemMessage("이전 회차 내용을 분석하여 진행 방향을 제안합니다…");
+        }
+        addThinkingIndicator();
+        await fetchNextQuestion(epNum);
+    }
+
+    function restartPlanning() {
+        document.getElementById('btnStart').style.display = 'block';
+        document.getElementById('btnRestart').style.display = 'none';
+        document.getElementById('progressWrap').style.display = 'none';
+        document.getElementById('questionPanel').style.display = 'none';
+        document.getElementById('chatMessages').innerHTML = `
+            <div class="welcome-screen" id="welcomeScreen">
+                <i class="fas fa-sitemap"></i>
+                <p>왼쪽에서 <strong>회차 번호</strong>를 입력하고<br><strong>플롯 설계 시작</strong>을 눌러주세요.</p>
+                <p style="font-size:0.82rem; margin-top:10px; color:#ccc;">기본 구상을 입력하면 그 내용 기반으로,<br>비워두면 이전 회차 분석 기반으로<br>AI가 방향 선택지 3가지를 제안합니다.</p>
+            </div>`;
+        document.getElementById('chatTitle').textContent = '플롯 설계 AI';
+        document.getElementById('chatSub').textContent = '회차를 선택하고 시작하세요';
+        isFinished = false;
+        conversationHistory = [];
+        userInitInput = '';
+        finalPlotText = '';
+    }
+
+    // ── AI 질문 요청 ─────────────────────────────────────────
+    async function fetchNextQuestion(epNum) {
+        const { worldText, charText, storyText, contentText } = buildContextText();
+        const historyText = buildHistoryText();
+        const isFirst = conversationHistory.length === 0;
+
+        const prompt = `
+[ROLE]
+You are an expert web-novel plot designer. Guide the author step by step to build a complete episode plot through structured Q&A. After each answer, update and accumulate the plot outline.
+
+[STORY CONTEXT]
+## World Setting:
+${worldText}
+
+## Characters:
+${charText}
+
+## Previous Story Flow (episode summaries):
+${storyText}
+${contentText}
+
+[GOAL]
+Design the plot for Episode ${epNum}.
+
+[AUTHOR'S INITIAL IDEA FOR THIS EPISODE]
+${userInitInput || "(None — derive directions from the previous story flow)"}
+
+[CONVERSATION HISTORY (all previous Q&A)]
+${historyText}
+
+[INSTRUCTIONS]
+${isFirst ? (userInitInput ? `
+STEP 1 — Author provided an initial idea:
+- Analyze the author's initial idea with the previous story flow and character arcs.
+- Ask a single direction-choosing question (Korean).
+- Propose exactly 3 concrete directions that elaborate on the initial idea.
+- Each option format: "Story structure — Key event — Expected tone/mood"
+- Set "multiple": false.
+- "partialPlot": "" (empty string, first question)
+` : `
+STEP 1 — No initial idea provided:
+- Analyze the previous story flow, unresolved subplots, character arcs, and foreshadowing.
+- Ask a single direction-choosing question for Episode ${epNum} (Korean).
+- Propose exactly 3 natural continuation directions.
+- Each option format: "Core event — Story structure — Expected emotional arc"
+- Set "multiple": false.
+- "partialPlot": "" (empty string, first question)
+`) : `
+FOLLOW-UP STEP:
+- Based on ALL previous answers in the Conversation History, ask about the next unresolved story element.
+- Cover elements in this order (skip already-decided ones):
+  1. Detailed daytime/mid-episode events
+  2. Conflict or crisis moment
+  3. Episode ending / resolution
+  4. Foreshadowing for the next episode
+- Options must reflect the story setting, character personalities, and all previous choices.
+- IMPORTANT: In "partialPlot", write a Korean outline of ALL plot elements decided so far from the conversation history. This should grow with each answer and read as a coherent episode summary in progress.
+`}
+
+CRITICAL RULES:
+1. "question" and "options[].text" MUST be in Korean (한국어).
+2. "partialPlot" MUST be in Korean.
+3. Output ONLY raw JSON — no markdown, no extra text.
+4. Always exactly 3 options labeled A, B, C.
+
+[OUTPUT FORMAT — raw JSON only]:
+{
+  "question": "(Korean question text)",
+  "options": [
+    {"label": "A", "text": "(Korean option A — detailed)"},
+    {"label": "B", "text": "(Korean option B — detailed)"},
+    {"label": "C", "text": "(Korean option C — detailed)"}
+  ],
+  "multiple": false,
+  "partialPlot": "(Korean outline of all plot elements decided so far, or empty string on first question)"
+}
+`;
+
+        try {
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+            const data = await res.json();
+            let rawText = data.candidates[0].content.parts[0].text;
+
+            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("JSON 형식 오류");
+            const questionObj = JSON.parse(jsonMatch[0]);
+
+            removeThinkingIndicator();
+            questionStep++;
+            currentQuestion = questionObj;
+            currentQuestion._epNum = epNum;
+
+            showAIQuestion(questionObj);
+            updateProgress();
+
+        } catch (e) {
+            removeThinkingIndicator();
+            addSystemMessage("⚠️ 오류가 발생했습니다: " + e.message);
+        }
+    }
+
+    // ── 최종 플롯 컴파일 AI 호출 ────────────────────────────
+    async function finalizePlot(epNum) {
+        const { worldText, charText, storyText, contentText } = buildContextText();
+        const historyText = buildHistoryText();
+
+        const prompt = `
+[ROLE]
+You are an expert web-novel plot designer. Compile all the author's decisions into a single, complete, well-structured episode plot.
+
+[STORY CONTEXT]
+## World Setting:
+${worldText}
+
+## Characters:
+${charText}
+
+## Previous Story Flow:
+${storyText}
+${contentText}
+
+[AUTHOR'S INITIAL IDEA]
+${userInitInput || "(None provided)"}
+
+[ALL Q&A DECISIONS FOR EPISODE ${epNum}]
+${historyText}
+
+[INSTRUCTIONS]
+Using ALL the decisions above, write a complete, detailed plot outline for Episode ${epNum}.
+- Synthesize all answers into a single coherent narrative flow.
+- Fill in any minor gaps naturally based on the story context.
+- Write in Korean. Format exactly as shown below.
+
+[OUTPUT FORMAT — raw JSON only]:
+{
+  "finalPlot": "[${epNum}화 플롯]\\n\\n▶ 시작: ...\\n▶ 전개: ...\\n▶ 낮 이벤트: ...\\n▶ 갈등/위기: ...\\n▶ 마무리: ...\\n\\n[다음 화 예고]\\n..."
+}
+`;
+
+        try {
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+            const data = await res.json();
+            let rawText = data.candidates[0].content.parts[0].text;
+            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("JSON 형식 오류");
+            const result = JSON.parse(jsonMatch[0]);
+
+            removeThinkingIndicator();
+            finalPlotText = result.finalPlot;
+            showFinalPlot(result.finalPlot, epNum);
+
+        } catch (e) {
+            removeThinkingIndicator();
+            addSystemMessage("⚠️ 플롯 정리 중 오류: " + e.message);
+        }
+    }
+
+    // ── 답변 제출 ────────────────────────────────────────────
+    async function submitAnswer() {
+        if (!currentQuestion) return;
+
+        // 정리/추가질문 선택 처리
+        if (currentQuestion._isFinalizeChoice) {
+            const selectedLabel = document.querySelector('.option-card.selected')?.dataset.label;
+            if (!selectedLabel) return alert("선택해주세요.");
+            document.getElementById('questionPanel').style.display = 'none';
+            const epNum = currentQuestion._epNum;
+
+            if (selectedLabel === 'A') {
+                // 전체 플롯 정리
+                addUserMessage("전체 플롯 정리하기");
+                addSystemMessage("지금까지의 답변을 바탕으로 플롯을 정리합니다…");
+                addThinkingIndicator();
+                await finalizePlot(epNum);
+            } else {
+                // 추가 질문
+                addUserMessage("추가 질문 계속하기");
+                addThinkingIndicator();
+                await fetchNextQuestion(epNum);
+            }
+            return;
+        }
+
+        // 저장 확인 처리
+        if (currentQuestion._isSaveChoice) {
+            const selectedLabel = document.querySelector('.option-card.selected')?.dataset.label;
+            if (!selectedLabel) return alert("선택해주세요.");
+            document.getElementById('questionPanel').style.display = 'none';
+            const epNum = currentQuestion._epNum;
+
+            if (selectedLabel === 'A') {
+                addUserMessage("저장하기");
+                addSystemMessage("플롯을 DB에 저장 중...");
+                await savePlotToDB(epNum, finalPlotText);
+            } else {
+                addUserMessage("추가 수정하기");
+                addThinkingIndicator();
+                await fetchNextQuestion(epNum);
+            }
+            return;
+        }
+
+        // 일반 답변 수집
+        const selectedLabels = [];
+        const selectedTexts = [];
+        document.querySelectorAll('.option-card.selected').forEach(card => {
+            selectedLabels.push(card.dataset.label);
+            selectedTexts.push(`${card.dataset.label}. ${card.dataset.text}`);
+        });
+
+        const etcText = document.getElementById('etcInput').value.trim();
+        if (etcText) selectedTexts.push(`기타: ${etcText}`);
+
+        if (selectedTexts.length === 0) return alert("최소 하나를 선택하거나 기타 내용을 입력해주세요.");
+
+        const answerText = selectedTexts.join('\n');
+
+        document.getElementById('questionPanel').style.display = 'none';
+        document.getElementById('btnSubmit').disabled = true;
+
+        conversationHistory.push({ q: currentQuestion.question, a: answerText });
+        addUserMessage(answerText);
+
+        const epNum = currentQuestion._epNum;
+
+        // 5회 이상 답변 → 정리/추가질문 선택
+        if (conversationHistory.length >= FINALIZE_THRESHOLD) {
+            addThinkingIndicator();
+            // 잠깐 대기 후 선택지 표시 (자연스러운 흐름)
+            await new Promise(r => setTimeout(r, 400));
+            removeThinkingIndicator();
+            showFinalizeChoice(epNum);
+        } else {
+            addThinkingIndicator();
+            await fetchNextQuestion(epNum);
+        }
+
+        document.getElementById('btnSubmit').disabled = false;
+    }
+
+    // ── 정리/추가질문 선택지 표시 ────────────────────────────
+    function showFinalizeChoice(epNum) {
+        const container = document.getElementById('chatMessages');
+
+        // AI 메시지로 안내 표시
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg-ai';
+        msgDiv.innerHTML = `
+            <div class="ai-avatar" style="background:#e67e22;"><i class="fas fa-list-check"></i></div>
+            <div class="bubble-ai">
+                <span class="step-tag" style="background:#e67e22;">${conversationHistory.length}개 답변 완료</span><br>
+                지금까지의 답변으로 플롯의 주요 요소가 구성되었습니다.<br>
+                전체 플롯을 정리할까요, 아니면 추가 질문을 계속할까요?
+            </div>
+        `;
+        container.appendChild(msgDiv);
+        scrollToBottom();
+
+        // 정리/추가질문 선택 패널
+        const fakeQ = {
+            question: `제 ${epNum}화 플롯 — 다음 단계를 선택해주세요.`,
+            options: [
+                { label: 'A', text: '전체 플롯 정리하기 — 지금까지의 답변을 하나의 완성된 플롯으로 정리합니다' },
+                { label: 'B', text: '추가 질문 계속하기 — 더 세밀하게 플롯을 다듬습니다' }
+            ],
+            multiple: false,
+            _isFinalizeChoice: true,
+            _epNum: epNum
+        };
+        currentQuestion = fakeQ;
+        renderQuestionPanel(fakeQ);
+    }
+
+    // ── 저장 확인 선택지 표시 ────────────────────────────────
+    function showSaveChoice(epNum) {
+        const fakeQ = {
+            question: "플롯을 저장하겠습니까?",
+            options: [
+                { label: 'A', text: '저장하기 — 완성된 플롯을 DB에 저장합니다' },
+                { label: 'B', text: '추가 수정하기 — 질문을 더 진행합니다' }
+            ],
+            multiple: false,
+            _isSaveChoice: true,
+            _epNum: epNum
+        };
+        currentQuestion = fakeQ;
+        renderQuestionPanel(fakeQ);
+    }
+
+    // ── UI 렌더링 ────────────────────────────────────────────
+    function showAIQuestion(qObj) {
+        const container = document.getElementById('chatMessages');
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'msg-ai';
+
+        // partialPlot 섹션 (2번째 질문부터)
+        const partialHtml = (qObj.partialPlot && qObj.partialPlot.trim())
+            ? `<div class="partial-plot-wrap">
+                <div class="partial-plot-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
+                    <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i> 지금까지 구성된 플롯 보기
+                </div>
+                <div class="partial-plot-body">${escapeHtml(qObj.partialPlot)}</div>
+               </div>`
+            : '';
+
+        msgDiv.innerHTML = `
+            <div class="ai-avatar"><i class="fas fa-robot"></i></div>
+            <div class="bubble-ai">
+                <span class="step-tag">질문 ${questionStep}</span><br>
+                ${escapeHtml(qObj.question)}
+                ${partialHtml}
+            </div>
+        `;
+        container.appendChild(msgDiv);
+        scrollToBottom();
+
+        renderQuestionPanel(qObj);
+    }
+
+    function renderQuestionPanel(qObj) {
+        document.getElementById('questionText').textContent = qObj.question;
+        document.getElementById('etcInput').value = '';
+
+        const list = document.getElementById('optionsList');
+        list.innerHTML = '';
+
+        const inputType = qObj.multiple ? 'checkbox' : 'radio';
+        const isFinalChoice = qObj._isFinalizeChoice || qObj._isSaveChoice;
+
+        qObj.options.forEach(opt => {
+            const card = document.createElement('div');
+            card.className = 'option-card';
+            card.dataset.label = opt.label;
+            card.dataset.text = opt.text;
+            card.innerHTML = `
+                <input type="${inputType}" name="opt" value="${opt.label}">
+                <span class="option-lbl">${opt.label}.</span>
+                <span class="option-txt">${escapeHtml(opt.text)}</span>
+            `;
+            card.addEventListener('click', () => toggleOption(card, inputType));
+            list.appendChild(card);
+        });
+
+        // 정리/저장 선택지이면 기타 입력 숨김
+        document.querySelector('.etc-row').style.display = isFinalChoice ? 'none' : 'block';
+        document.getElementById('questionPanel').style.display = 'block';
+        document.getElementById('btnSubmit').innerHTML = isFinalChoice
+            ? '<i class="fas fa-check"></i> 선택 확정'
+            : '<i class="fas fa-paper-plane"></i> 답변 제출';
+
+        scrollToBottom();
+    }
+
+    function toggleOption(card, type) {
+        if (type === 'radio') {
+            document.querySelectorAll('.option-card').forEach(c => {
+                c.classList.remove('selected');
+                c.querySelector('input').checked = false;
+            });
+            card.classList.add('selected');
+            card.querySelector('input').checked = true;
+        } else {
+            card.classList.toggle('selected');
+            card.querySelector('input').checked = card.classList.contains('selected');
+        }
+    }
+
+    function showFinalPlot(plotText, epNum) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'msg-ai';
+        div.innerHTML = `
+            <div class="ai-avatar" style="background:#27ae60;"><i class="fas fa-scroll"></i></div>
+            <div style="flex:1; max-width:85%;">
+                <div class="final-plot-card">
+                    <h4><i class="fas fa-check-circle"></i> ${epNum}화 플롯이 완성되었습니다!</h4>
+                    <div class="final-plot-content">${escapeHtml(plotText)}</div>
+                </div>
+            </div>
+        `;
+        container.appendChild(div);
+        scrollToBottom();
+
+        // 플롯 표시 후 저장 여부 선택지 표시
+        setTimeout(() => showSaveChoice(epNum), 300);
+    }
+
+    function addUserMessage(text) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'msg-user';
+        div.innerHTML = `<div class="bubble-user">${escapeHtml(text)}</div>`;
+        container.appendChild(div);
+        scrollToBottom();
+    }
+
+    function addSystemMessage(text) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.style.cssText = "text-align:center; color:#999; font-size:0.85rem; padding:5px;";
+        div.textContent = text;
+        container.appendChild(div);
+        scrollToBottom();
+    }
+
+    function addThinkingIndicator() {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = 'msg-ai';
+        div.id = 'thinkingMsg';
+        div.innerHTML = `
+            <div class="ai-avatar"><i class="fas fa-robot"></i></div>
+            <div class="bubble-ai">
+                <div class="thinking">
+                    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                </div>
+            </div>`;
+        container.appendChild(div);
+        scrollToBottom();
+    }
+
+    function removeThinkingIndicator() {
+        const el = document.getElementById('thinkingMsg');
+        if (el) el.remove();
+    }
+
+    function updateProgress() {
+        const fill = document.getElementById('progressFill');
+        const label = document.getElementById('progressLabel');
+        const pct = Math.min((questionStep / totalSteps) * 100, 100);
+        fill.style.width = pct + '%';
+        label.textContent = `${questionStep} / ${totalSteps}`;
+        if (finalPlotText) {
+            fill.style.width = '100%';
+            label.textContent = '완성!';
+        }
+    }
+
+    function scrollToBottom() {
+        const el = document.getElementById('chatMessages');
+        setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                  .replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>');
+    }
+
+    // ── DB 저장 ──────────────────────────────────────────────
+    async function savePlotToDB(epNum, plotText) {
+        try {
+            const res = await fetch('/api/stories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    setting_id: settingId,
+                    episode_number: epNum,
+                    title: `${epNum}화`,
+                    content_plot: plotText,
+                    content: ''
+                })
+            });
+
+            if (res.ok) {
+                addSystemMessage(`✅ 제 ${epNum}화 플롯이 저장되었습니다!`);
+                document.getElementById('savedPlotBox').style.display = 'block';
+                document.getElementById('savedPlotSummary').textContent =
+                    `제 ${epNum}화 플롯이 저장되었습니다.`;
+                isFinished = true;
+            } else {
+                // 이미 존재하는 에피소드인 경우 PUT으로 업데이트 시도
+                addSystemMessage("⚠️ 이미 존재하는 회차입니다. 줄거리를 업데이트합니다...");
+                await updatePlotInDB(epNum, plotText);
+            }
+        } catch (e) {
+            addSystemMessage("⚠️ 저장 실패: " + e.message);
+        }
+    }
+
+    async function updatePlotInDB(epNum, plotText) {
+        try {
+            const storyToUpdate = globalStories.find(s => String(s.episode_number) === String(epNum));
+            if (!storyToUpdate) {
+                addSystemMessage("⚠️ 해당 회차를 찾을 수 없습니다.");
+                return;
+            }
+            const res = await fetch(`/api/stories/${storyToUpdate.id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content_plot: plotText })
+            });
+            if (res.ok) {
+                addSystemMessage(`✅ 제 ${epNum}화 줄거리가 업데이트되었습니다!`);
+                document.getElementById('savedPlotBox').style.display = 'block';
+                document.getElementById('savedPlotSummary').textContent =
+                    `제 ${epNum}화 플롯이 업데이트되었습니다.`;
+                isFinished = true;
+            } else {
+                addSystemMessage("⚠️ 업데이트 실패");
+            }
+        } catch (e) {
+            addSystemMessage("⚠️ 업데이트 실패: " + e.message);
+        }
+    }
+
+    init();
+</script>
+
+</body>
+</html>
