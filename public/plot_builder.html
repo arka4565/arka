@@ -197,10 +197,20 @@
         }
         .partial-plot-toggle:hover { opacity: 0.75; }
         .partial-plot-body {
-            display: none; margin-top: 6px; font-size: 0.82rem; color: #555;
-            white-space: pre-wrap; line-height: 1.6; background: #faf5ff;
-            padding: 8px 10px; border-radius: 6px; border: 1px solid #e8d5f8;
+            display: none; margin-top: 6px; font-size: 0.82rem; color: #333;
+            white-space: pre-wrap; line-height: 1.7; background: #faf5ff;
+            padding: 10px 12px; border-radius: 6px; border: 1px solid #e8d5f8;
+            outline: none; min-height: 40px;
+            transition: border-color 0.2s, background 0.2s;
         }
+        .partial-plot-body[contenteditable="true"]:focus {
+            border-color: var(--primary); background: #fff; box-shadow: 0 0 0 2px rgba(155,89,182,0.12);
+        }
+        .plot-edit-hint {
+            font-size: 0.72rem; color: #bbb; margin-top: 4px;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .plot-edit-hint i { color: #ccc; }
 
         /* 정리/추가질문 선택 카드 */
         .finalize-banner {
@@ -397,8 +407,9 @@
     let totalSteps = 5;
     let finalPlotText = '';
     let isFinished = false;
-    let userInitInput = '';       // 사용자가 입력한 이번 화 기본 구상
-    const FINALIZE_THRESHOLD = 5; // 이 횟수 이상 답변 시 정리/추가질문 선택 표시
+    let userInitInput = '';        // 사용자가 입력한 이번 화 기본 구상
+    let lastPartialPlot = '';      // 누적된 플롯 서술 (매 질문마다 AI가 연장)
+    const FINALIZE_THRESHOLD = 5; // 이 횟수 이상 답변 후 AI가 플롯 반영 → 정리/추가질문 표시
 
     // ── 초기화 ──────────────────────────────────────────────
     async function init() {
@@ -522,6 +533,7 @@
         conversationHistory = [];
         questionStep = 0;
         finalPlotText = '';
+        lastPartialPlot = '';
         userInitInput = initText;
 
         // UI 초기화
@@ -563,17 +575,22 @@
         conversationHistory = [];
         userInitInput = '';
         finalPlotText = '';
+        lastPartialPlot = '';
     }
 
     // ── AI 질문 요청 ─────────────────────────────────────────
-    async function fetchNextQuestion(epNum) {
+    async function fetchNextQuestion(epNum, skipFinalizeCheck = false) {
         const { worldText, charText, storyText, contentText } = buildContextText();
-        const historyText = buildHistoryText();
         const isFirst = conversationHistory.length === 0;
+
+        // 직전 Q&A (마지막 답변만 추출)
+        const latestQA = conversationHistory.length > 0
+            ? `Q: ${conversationHistory[conversationHistory.length - 1].q}\nA: ${conversationHistory[conversationHistory.length - 1].a}`
+            : '(none yet)';
 
         const prompt = `
 [ROLE]
-You are an expert web-novel plot designer. Guide the author step by step to build a complete episode plot through structured Q&A. After each answer, update and accumulate the plot outline.
+You are an expert web-novel plot designer. Guide the author step by step through Q&A to build a detailed episode plot. After each answer, you EXTEND (never rewrite) the accumulated plot narrative.
 
 [STORY CONTEXT]
 ## World Setting:
@@ -589,46 +606,50 @@ ${contentText}
 [GOAL]
 Design the plot for Episode ${epNum}.
 
-[AUTHOR'S INITIAL IDEA FOR THIS EPISODE]
+[AUTHOR'S INITIAL IDEA]
 ${userInitInput || "(None — derive directions from the previous story flow)"}
 
-[CONVERSATION HISTORY (all previous Q&A)]
-${historyText}
+[ACCUMULATED PLOT NARRATIVE SO FAR]
+CRITICAL: This is the single source of truth. Extend it — do NOT rewrite or contradict any part.
+---
+${lastPartialPlot || "(Empty — this is the first question, no plot yet)"}
+---
+
+[LATEST DECISION TO INCORPORATE INTO THE PLOT]
+${latestQA}
 
 [INSTRUCTIONS]
 ${isFirst ? (userInitInput ? `
 STEP 1 — Author provided an initial idea:
-- Analyze the author's initial idea with the previous story flow and character arcs.
 - Ask a single direction-choosing question (Korean).
-- Propose exactly 3 concrete directions that elaborate on the initial idea.
-- Each option format: "Story structure — Key event — Expected tone/mood"
-- Set "multiple": false.
-- "partialPlot": "" (empty string, first question)
+- Propose exactly 3 concrete directions based on the initial idea and previous story flow.
+- Each option: "Story structure — Key event — Expected tone/mood"
+- "partialPlot": "" (empty string — no decisions made yet)
 ` : `
-STEP 1 — No initial idea provided:
-- Analyze the previous story flow, unresolved subplots, character arcs, and foreshadowing.
+STEP 1 — No initial idea:
+- Analyze previous story flow, unresolved subplots, character arcs, foreshadowing.
 - Ask a single direction-choosing question for Episode ${epNum} (Korean).
 - Propose exactly 3 natural continuation directions.
-- Each option format: "Core event — Story structure — Expected emotional arc"
-- Set "multiple": false.
-- "partialPlot": "" (empty string, first question)
+- Each option: "Core event — Story structure — Expected emotional arc"
+- "partialPlot": "" (empty string — no decisions made yet)
 `) : `
 FOLLOW-UP STEP:
-- Based on ALL previous answers in the Conversation History, ask about the next unresolved story element.
-- Cover elements in this order (skip already-decided ones):
-  1. Detailed daytime/mid-episode events
-  2. Conflict or crisis moment
-  3. Episode ending / resolution
-  4. Foreshadowing for the next episode
-- Options must reflect the story setting, character personalities, and all previous choices.
-- IMPORTANT: In "partialPlot", write a Korean outline of ALL plot elements decided so far from the conversation history. This should grow with each answer and read as a coherent episode summary in progress.
+1. Take [ACCUMULATED PLOT NARRATIVE SO FAR] as your base — do NOT remove or contradict any existing line.
+2. Append ONE new short line that captures the essence of [LATEST DECISION].
+   - Format: "▶ {topic keyword}: {1-2 sentence summary of the decision}" (Korean)
+   - Do NOT expand, dramatize, or invent details beyond what the author chose.
+   - Keep it factual and concise — this is a direction memo, not a story draft.
+3. Ask the next question about the next unresolved element.
+   - Element order (skip already-covered): Mid-episode events → Conflict/crisis → Episode ending → Next-episode foreshadowing
+   - Options must reflect story setting, character personalities, and previous decisions.
 `}
 
 CRITICAL RULES:
-1. "question" and "options[].text" MUST be in Korean (한국어).
-2. "partialPlot" MUST be in Korean.
-3. Output ONLY raw JSON — no markdown, no extra text.
-4. Always exactly 3 options labeled A, B, C.
+1. "question" and "options[].text" MUST be in Korean.
+2. "partialPlot" = [ACCUMULATED PLOT NARRATIVE SO FAR] + one new short ▶ line. Nothing more.
+3. NEVER rewrite, expand, or dramatize previously established lines.
+4. Output ONLY raw JSON — no markdown fences, no extra text.
+5. Always exactly 3 options labeled A, B, C.
 
 [OUTPUT FORMAT — raw JSON only]:
 {
@@ -639,7 +660,7 @@ CRITICAL RULES:
     {"label": "C", "text": "(Korean option C — detailed)"}
   ],
   "multiple": false,
-  "partialPlot": "(Korean outline of all plot elements decided so far, or empty string on first question)"
+  "partialPlot": "(Previous lines unchanged + one new ▶ line — empty string on first question)"
 }
 `;
 
@@ -660,13 +681,24 @@ CRITICAL RULES:
             if (!jsonMatch) throw new Error("JSON 형식 오류");
             const questionObj = JSON.parse(jsonMatch[0]);
 
+            // 누적 플롯 저장
+            if (questionObj.partialPlot && questionObj.partialPlot.trim()) {
+                lastPartialPlot = questionObj.partialPlot;
+            }
+
             removeThinkingIndicator();
             questionStep++;
             currentQuestion = questionObj;
             currentQuestion._epNum = epNum;
 
-            showAIQuestion(questionObj);
-            updateProgress();
+            // 5번 이상 답변 완료 상태이면 정리/추가질문 선택 표시
+            // (단, "추가 질문 계속하기"로 호출된 경우 skipFinalizeCheck=true → 질문 표시)
+            if (!skipFinalizeCheck && conversationHistory.length >= FINALIZE_THRESHOLD) {
+                showFinalizeChoice(epNum);
+            } else {
+                showAIQuestion(questionObj);
+                updateProgress();
+            }
 
         } catch (e) {
             removeThinkingIndicator();
@@ -674,68 +706,14 @@ CRITICAL RULES:
         }
     }
 
-    // ── 최종 플롯 컴파일 AI 호출 ────────────────────────────
-    async function finalizePlot(epNum) {
-        const { worldText, charText, storyText, contentText } = buildContextText();
-        const historyText = buildHistoryText();
-
-        const prompt = `
-[ROLE]
-You are an expert web-novel plot designer. Compile all the author's decisions into a single, complete, well-structured episode plot.
-
-[STORY CONTEXT]
-## World Setting:
-${worldText}
-
-## Characters:
-${charText}
-
-## Previous Story Flow:
-${storyText}
-${contentText}
-
-[AUTHOR'S INITIAL IDEA]
-${userInitInput || "(None provided)"}
-
-[ALL Q&A DECISIONS FOR EPISODE ${epNum}]
-${historyText}
-
-[INSTRUCTIONS]
-Using ALL the decisions above, write a complete, detailed plot outline for Episode ${epNum}.
-- Synthesize all answers into a single coherent narrative flow.
-- Fill in any minor gaps naturally based on the story context.
-- Write in Korean. Format exactly as shown below.
-
-[OUTPUT FORMAT — raw JSON only]:
-{
-  "finalPlot": "[${epNum}화 플롯]\\n\\n▶ 시작: ...\\n▶ 전개: ...\\n▶ 낮 이벤트: ...\\n▶ 갈등/위기: ...\\n▶ 마무리: ...\\n\\n[다음 화 예고]\\n..."
-}
-`;
-
-        try {
-            const res = await fetch('/api/generate-text', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: "gemini-3-flash-preview",
-                    payload: { contents: [{ parts: [{ text: prompt }] }] }
-                })
-            });
-            const data = await res.json();
-            let rawText = data.candidates[0].content.parts[0].text;
-            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
-            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-            if (!jsonMatch) throw new Error("JSON 형식 오류");
-            const result = JSON.parse(jsonMatch[0]);
-
-            removeThinkingIndicator();
-            finalPlotText = result.finalPlot;
-            showFinalPlot(result.finalPlot, epNum);
-
-        } catch (e) {
-            removeThinkingIndicator();
-            addSystemMessage("⚠️ 플롯 정리 중 오류: " + e.message);
+    // ── 전체 플롯 정리 (누적된 partialPlot을 그대로 사용) ───
+    function finalizePlot(epNum) {
+        if (!lastPartialPlot) {
+            addSystemMessage("⚠️ 아직 구성된 플롯이 없습니다. 질문에 답변해주세요.");
+            return;
         }
+        finalPlotText = lastPartialPlot;
+        showFinalPlot(lastPartialPlot, epNum);
     }
 
     // ── 답변 제출 ────────────────────────────────────────────
@@ -756,10 +734,10 @@ Using ALL the decisions above, write a complete, detailed plot outline for Episo
                 addThinkingIndicator();
                 await finalizePlot(epNum);
             } else {
-                // 추가 질문
+                // 추가 질문 — 이번 한 번은 threshold 체크 건너뜀
                 addUserMessage("추가 질문 계속하기");
                 addThinkingIndicator();
-                await fetchNextQuestion(epNum);
+                await fetchNextQuestion(epNum, true);
             }
             return;
         }
@@ -806,17 +784,9 @@ Using ALL the decisions above, write a complete, detailed plot outline for Episo
 
         const epNum = currentQuestion._epNum;
 
-        // 5회 이상 답변 → 정리/추가질문 선택
-        if (conversationHistory.length >= FINALIZE_THRESHOLD) {
-            addThinkingIndicator();
-            // 잠깐 대기 후 선택지 표시 (자연스러운 흐름)
-            await new Promise(r => setTimeout(r, 400));
-            removeThinkingIndicator();
-            showFinalizeChoice(epNum);
-        } else {
-            addThinkingIndicator();
-            await fetchNextQuestion(epNum);
-        }
+        // 항상 AI 호출 — fetchNextQuestion 내부에서 임계값 확인 후 정리/추가질문 표시
+        addThinkingIndicator();
+        await fetchNextQuestion(epNum);
 
         document.getElementById('btnSubmit').disabled = false;
     }
@@ -825,15 +795,28 @@ Using ALL the decisions above, write a complete, detailed plot outline for Episo
     function showFinalizeChoice(epNum) {
         const container = document.getElementById('chatMessages');
 
-        // AI 메시지로 안내 표시
+        // 누적 플롯 미리보기 포함한 AI 메시지
+        const finalPlotId = 'plot-final-' + Date.now();
+        const plotPreview = lastPartialPlot
+            ? `<div class="partial-plot-wrap" style="margin-top:10px;">
+                <div style="font-size:0.78rem; font-weight:bold; color:#e67e22; margin-bottom:6px;">
+                    <i class="fas fa-scroll"></i> 지금까지 구성된 플롯
+                </div>
+                <div id="${finalPlotId}" class="partial-plot-body" style="display:block;"
+                     contenteditable="true"
+                     oninput="syncPartialPlot('${finalPlotId}')">${escapeHtml(lastPartialPlot)}</div>
+                <div class="plot-edit-hint"><i class="fas fa-pencil-alt"></i> 마음에 안 드는 부분을 직접 수정한 뒤 선택하세요</div>
+               </div>`
+            : '';
+
         const msgDiv = document.createElement('div');
         msgDiv.className = 'msg-ai';
         msgDiv.innerHTML = `
             <div class="ai-avatar" style="background:#e67e22;"><i class="fas fa-list-check"></i></div>
-            <div class="bubble-ai">
+            <div class="bubble-ai" style="max-width:85%;">
                 <span class="step-tag" style="background:#e67e22;">${conversationHistory.length}개 답변 완료</span><br>
-                지금까지의 답변으로 플롯의 주요 요소가 구성되었습니다.<br>
-                전체 플롯을 정리할까요, 아니면 추가 질문을 계속할까요?
+                플롯의 주요 요소가 구성되었습니다. 위 플롯을 확인하고 다음을 선택해주세요.
+                ${plotPreview}
             </div>
         `;
         container.appendChild(msgDiv);
@@ -877,13 +860,23 @@ Using ALL the decisions above, write a complete, detailed plot outline for Episo
         const msgDiv = document.createElement('div');
         msgDiv.className = 'msg-ai';
 
-        // partialPlot 섹션 (2번째 질문부터)
+        // partialPlot 섹션 — 기본 펼침, contenteditable로 직접 수정 가능
+        const plotId = 'plot-' + Date.now();
         const partialHtml = (qObj.partialPlot && qObj.partialPlot.trim())
             ? `<div class="partial-plot-wrap">
-                <div class="partial-plot-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">
-                    <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i> 지금까지 구성된 플롯 보기
+                <div class="partial-plot-toggle" onclick="
+                    const b = this.nextElementSibling;
+                    const ic = this.querySelector('i');
+                    b.style.display = b.style.display === 'none' ? 'block' : 'none';
+                    ic.className = b.style.display === 'none' ? 'fas fa-chevron-right' : 'fas fa-chevron-down';
+                    ic.style.fontSize = '0.7rem';
+                ">
+                    <i class="fas fa-chevron-down" style="font-size:0.7rem;"></i> 지금까지 구성된 플롯
                 </div>
-                <div class="partial-plot-body">${escapeHtml(qObj.partialPlot)}</div>
+                <div id="${plotId}" class="partial-plot-body" style="display:block;"
+                     contenteditable="true"
+                     oninput="syncPartialPlot('${plotId}')">${escapeHtml(qObj.partialPlot)}</div>
+                <div class="plot-edit-hint"><i class="fas fa-pencil-alt"></i> 내용을 직접 수정할 수 있습니다 — 수정 후 답변을 제출하면 반영됩니다</div>
                </div>`
             : '';
 
@@ -1024,6 +1017,15 @@ Using ALL the decisions above, write a complete, detailed plot outline for Episo
         const el = document.getElementById('chatMessages');
         setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
     }
+
+    // ── 플롯 직접 편집 동기화 ────────────────────────────────
+    // contenteditable 편집 시 lastPartialPlot에 즉시 반영
+    window.syncPartialPlot = function(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // innerText로 읽어 <br> → \n 변환
+        lastPartialPlot = el.innerText;
+    };
 
     function escapeHtml(str) {
         if (!str) return '';
