@@ -12,6 +12,7 @@
             --primary-color: #4a90e2;
             --world-color: #4a90e2;   /* 세계관 메인 컬러 */
             --char-color: #50c878;    /* 캐릭터 메인 컬러 */
+            --ep-char-color: #9b59b6; /* 회차별 캐릭터 메인 컬러 */
             --bg-color: #f4f4f9;
             --card-bg: #ffffff;
             --text-color: #333;
@@ -65,6 +66,7 @@
         
         .tab-btn.active[data-tab="world"] { background: white; color: var(--world-color); border-top-color: var(--world-color); }
         .tab-btn.active[data-tab="characters"] { background: white; color: var(--char-color); border-top-color: var(--char-color); }
+        .tab-btn.active[data-tab="ep-characters"] { background: white; color: var(--ep-char-color); border-top-color: var(--ep-char-color); }
 
         /* 탭 콘텐츠 */
         .tab-content { display: none; flex: 1; overflow-y: auto; padding: 20px; }
@@ -97,6 +99,7 @@
         
         #tab-world .section-header h2 { border-color: var(--world-color); color: var(--world-color); }
         #tab-characters .section-header h2 { border-color: var(--char-color); color: var(--char-color); }
+        #tab-ep-characters .section-header h2 { border-color: var(--ep-char-color); color: var(--ep-char-color); }
 
         .btn-add {
             color: white; border: none; padding: 10px 18px; border-radius: 25px; 
@@ -104,6 +107,7 @@
         }
         .btn-add.world { background-color: var(--world-color); }
         .btn-add.char { background-color: var(--char-color); }
+        .btn-add.ep-char { background-color: var(--ep-char-color); }
 
         /* 카드 그리드 */
         .grid-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
@@ -151,6 +155,14 @@
             display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; 
         }
 
+        /* [회차별 캐릭터] 카드 특화 */
+        .ep-char-card .card-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; color: #2c3e50; }
+        .ep-char-card .ep-badge {
+            display: inline-block; background: #f3e5f5; color: #8e44ad;
+            padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; margin-bottom: 10px;
+        }
+        .ep-char-card .char-list { font-size: 0.9rem; color: #555; line-height: 1.6; }
+
         /* 모달 스타일 */
         .modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);
@@ -178,6 +190,12 @@
         .preview-desc { font-size: 0.9rem; color: #444; white-space: pre-wrap; line-height: 1.5; }
         .preview-tag { color: #4a90e2; font-size: 0.8rem; font-weight: bold; margin-top: 5px; display:block;}
 
+        /* 미리보기 편집 영역 */
+        .preview-edit-area {
+            width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;
+            font-size: 0.9rem; font-family: inherit; resize: vertical; margin-top: 5px;
+        }
+
         /* 반응형 */
         @media (max-width: 600px) {
             .navbar { flex-direction: column; align-items: stretch; gap: 10px; }
@@ -199,6 +217,9 @@
         </button>
         <button class="tab-btn" data-tab="characters" onclick="switchTab('characters')">
             <i class="fas fa-users"></i> 등장인물 (Characters)
+        </button>
+        <button class="tab-btn" data-tab="ep-characters" onclick="switchTab('ep-characters')">
+            <i class="fas fa-list-ol"></i> 회차별 등장인물
         </button>
     </div>
 
@@ -264,6 +285,36 @@
             <div style="grid-column: 1/-1; text-align:center; padding: 40px; color: #999;">로딩 중...</div>
         </div>
     </div>
+
+    <div id="tab-ep-characters" class="tab-content">
+        <div class="ai-section">
+            <div class="ai-header" style="color:var(--ep-char-color);">
+                <i class="fas fa-robot"></i> AI 회차별 인물 요약
+            </div>
+            <div class="ai-desc">
+                특정 회차의 본문을 분석하여 등장인물과 행적을 자동으로 요약합니다.
+            </div>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <label style="font-weight:bold; color:#555;">회차 선택:</label>
+                <select id="epSelectForAi" class="form-input" style="width:auto; flex:1;"></select>
+                <button id="btnEpCharAiGen" class="btn-ai-gen" onclick="generateEpCharSummary()" style="width:auto; padding:10px 20px; background-color: var(--ep-char-color);">
+                    <i class="fas fa-magic"></i> 요약 생성
+                </button>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <h2>회차별 등장인물 메모</h2>
+            <button class="btn-add ep-char" onclick="openEpCharModal('add')"><i class="fas fa-plus"></i> 메모 추가</button>
+        </div>
+        <div class="ai-desc" style="margin-bottom: 20px;">
+            각 회차에 등장한 인물이나 특징을 메모해두고, 나중에 '등장인물 탭'으로 취합할 수 있습니다.
+        </div>
+
+        <div id="epCharGrid" class="grid-container">
+            <div style="grid-column: 1/-1; text-align:center; padding: 40px; color: #999;">로딩 중...</div>
+        </div>
+    </div>
 </div>
 
 <div id="worldModal" class="modal-overlay">
@@ -312,6 +363,29 @@
     </div>
 </div>
 
+<div id="epCharModal" class="modal-overlay">
+    <div class="modal">
+        <h3>회차별 등장인물 메모</h3>
+        <input type="hidden" id="epCharEditId">
+        <div class="form-group">
+            <label class="form-label">회차 번호</label>
+            <input type="number" id="epCharNum" class="form-input" placeholder="예: 1">
+        </div>
+        <div class="form-group">
+            <label class="form-label">등장인물 메모</label>
+            <div style="font-size:0.8rem; color:#888; margin-bottom:5px;">
+                형식: 이름 (역할) - 설명<br>
+                예: 홍길동 (주인공) - 활빈당 당수
+            </div>
+            <textarea id="epCharMemo" class="form-textarea" rows="8"></textarea>
+        </div>
+        <div class="modal-buttons">
+            <button class="btn-cancel" onclick="closeModal('epCharModal')">취소</button>
+            <button class="btn-submit" onclick="saveEpCharMemo()" style="background:var(--ep-char-color);">저장</button>
+        </div>
+    </div>
+</div>
+
 <div id="worldAiPreviewModal" class="modal-overlay">
     <div class="modal" style="max-width: 700px;">
         <h3><i class="fas fa-check-double"></i> 생성된 세계관 확인</h3>
@@ -327,7 +401,7 @@
 <div id="charAiPreviewModal" class="modal-overlay">
     <div class="modal" style="max-width: 600px;">
         <h3><i class="fas fa-check-double"></i> 생성된 인물 확인</h3>
-        <p style="font-size:0.9rem; color:#666;">저장할 인물을 선택해주세요.</p>
+        <p style="font-size:0.9rem; color:#666;">저장할 인물을 선택하고 내용을 수정할 수 있습니다.</p>
         <div id="charAiResultList" class="preview-list"></div>
         <div class="modal-buttons">
             <button class="btn-cancel" onclick="closeModal('charAiPreviewModal')">취소</button>
@@ -343,8 +417,10 @@
     // 데이터 저장소
     let worldList = []; 
     let charList = [];
+    let epCharList = []; // 회차별 캐릭터 메모 리스트 (임시 저장소, 실제로는 로컬스토리지나 별도 API 필요할 수 있음. 여기선 로컬스토리지 활용 예시)
     let worldAiData = []; // AI 세계관 결과
     let charAiData = [];  // AI 캐릭터 결과
+    let allStories = []; // 회차 목록 (AI 요약용)
 
     const worldPrompts = [
         "이 소설의 분위기에 맞는 독창적인 지리적 특성과 기후, 주요 산업 3가지를 설정해줘.",
@@ -385,6 +461,10 @@
         // 3. 데이터 로드 (필요시)
         if (tabName === 'world') loadWorldSettings();
         if (tabName === 'characters') loadCharacters();
+        if (tabName === 'ep-characters') {
+            loadEpCharacters();
+            loadStoriesForSelect();
+        }
     }
 
     // ==========================================
@@ -581,7 +661,7 @@
         const prompt = `
             [설정 제목] ${item.title}
             [내용] ${item.description}
-            위 내용을 분석하여 핵심 키워드 3~5개를 쉼표로 구분해 해시태그 형식(#키워드)으로 추출해줘. 설명 없이 키워드만 출력해.
+            위 내용을 분석하여 핵심 키워드 3~5개를 쉼표로 구분해 해시태그 형식으로 추출해줘. 설명 없이 키워드만 출력해.
         `;
 
         try {
@@ -781,32 +861,69 @@
         charAiData.forEach((char, idx) => {
             const chk = document.getElementById(`char_chk_${idx}`);
             if (chk && chk.checked) {
-                selectedChars.push({
-                    setting_id: settingId,
-                    name: char.name,
-                    role: char.role,
-                    description: char.description
-                });
+                // 사용자가 수정한 내용 반영
+                const editedDesc = document.getElementById(`char_desc_${idx}`).value;
+
+                // 기존 인물 업데이트인 경우 (mergeToCharacters에서 id를 넣어줌)
+                if (char.id) {
+                    selectedChars.push({
+                        id: char.id,
+                        setting_id: settingId,
+                        name: char.name,
+                        role: char.role,
+                        description: editedDesc,
+                        isUpdate: true
+                    });
+                } else {
+                    // 신규 생성
+                    selectedChars.push({
+                        setting_id: settingId,
+                        name: char.name,
+                        role: char.role,
+                        description: editedDesc,
+                        isUpdate: false
+                    });
+                }
             }
         });
 
         if (selectedChars.length === 0) return alert("선택된 캐릭터가 없습니다.");
 
         try {
-            const res = await fetch('/api/characters/bulk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ characters: selectedChars })
+            // 신규 생성과 업데이트를 분리하여 처리
+            const newChars = selectedChars.filter(c => !c.isUpdate);
+            const updateChars = selectedChars.filter(c => c.isUpdate);
+
+            const promises = [];
+
+            if (newChars.length > 0) {
+                promises.push(fetch('/api/characters/bulk', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ characters: newChars })
+                }));
+            }
+
+            updateChars.forEach(char => {
+                promises.push(fetch(`/api/characters/${char.id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        setting_id: settingId,
+                        name: char.name,
+                        role: char.role,
+                        description: char.description
+                    })
+                }));
             });
 
-            if (res.ok) {
-                alert(`${selectedChars.length}명의 인물이 추가되었습니다.`);
-                closeModal('charAiPreviewModal');
-                loadCharacters();
-                document.getElementById('charAiPrompt').value = '';
-            } else {
-                alert("저장 실패");
-            }
+            await Promise.all(promises);
+
+            alert("저장되었습니다.");
+            closeModal('charAiPreviewModal');
+            loadCharacters();
+            document.getElementById('charAiPrompt').value = '';
+
         } catch (e) { console.error(e); alert("오류 발생"); }
     }
 
@@ -858,6 +975,285 @@
         if(!confirm("삭제하시겠습니까?")) return;
         await fetch(`/api/characters/${id}`, { method: 'DELETE' });
         loadCharacters();
+    }
+
+    // ==========================================
+    // 📝 [회차별 캐릭터] 관련 함수들
+    // ==========================================
+
+    // 로컬 스토리지 키 생성
+    function getEpCharStorageKey() {
+        return `ep_char_memo_${settingId}`;
+    }
+
+    function loadEpCharacters() {
+        const grid = document.getElementById('epCharGrid');
+        const storedData = localStorage.getItem(getEpCharStorageKey());
+        epCharList = storedData ? JSON.parse(storedData) : [];
+
+        // 회차순 정렬
+        epCharList.sort((a, b) => a.epNum - b.epNum);
+
+        grid.innerHTML = '';
+        if (epCharList.length === 0) {
+            grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:60px; color:#aaa;">등록된 메모가 없습니다.</div>`;
+            return;
+        }
+
+        epCharList.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'item-card ep-char-card';
+            card.onclick = (e) => { if(!e.target.closest('.action-btn')) openEpCharModal('edit', index); };
+
+            // 메모 내용을 줄바꿈 처리하여 표시
+            const formattedMemo = item.memo.replace(/\n/g, '<br>');
+
+            card.innerHTML = `
+                <div class="card-title">${item.epNum}화 등장인물</div>
+                <div class="ep-badge">${item.epNum}화</div>
+                <div class="char-list">${formattedMemo}</div>
+                <div class="card-actions">
+                    <button class="action-btn" onclick="mergeToCharacters(event, ${index})"><i class="fas fa-file-import"></i> 인물 탭으로 저장</button>
+                    <button class="action-btn delete" onclick="deleteEpCharMemo(event, ${index})"><i class="fas fa-trash"></i> 삭제</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+    }
+
+    // 회차 목록 로드 (AI 요약용)
+    async function loadStoriesForSelect() {
+        try {
+            const res = await fetch(`/api/stories?setting_id=${settingId}`);
+            if (res.ok) {
+                allStories = await res.json();
+                allStories.sort((a, b) => a.episode_number - b.episode_number);
+
+                const select = document.getElementById('epSelectForAi');
+                select.innerHTML = '';
+
+                if (allStories.length === 0) {
+                    const opt = document.createElement('option');
+                    opt.text = "저장된 회차가 없습니다";
+                    select.appendChild(opt);
+                    return;
+                }
+
+                allStories.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.episode_number;
+                    opt.text = `${s.episode_number}화: ${s.title}`;
+                    select.appendChild(opt);
+                });
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    // AI 회차별 인물 요약 생성
+    async function generateEpCharSummary() {
+        const select = document.getElementById('epSelectForAi');
+        const epNum = select.value;
+        if (!epNum) return alert("회차를 선택해주세요.");
+
+        const story = allStories.find(s => String(s.episode_number) === String(epNum));
+        if (!story || !story.content) return alert("해당 회차의 본문 내용이 없습니다.");
+
+        const btn = document.getElementById('btnEpCharAiGen');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 분석 중...';
+
+        try {
+            const prompt = `
+                [본문]
+                ${story.content}
+
+                [요청]
+                위 본문에 등장하는 인물들의 이름, 역할(또는 직업), 그리고 해당 회차에서의 주요 행적을 요약해줘.
+
+                [출력 형식]
+                - 이름 (역할): 행적 요약
+                - 이름 (역할): 행적 요약
+                ...
+                (설명 없이 목록만 출력)
+            `;
+
+            const aiRes = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+            const aiData = await aiRes.json();
+            const summary = aiData.candidates[0].content.parts[0].text.trim();
+
+            // 모달을 열어 결과 표시 (추가 모드)
+            openEpCharModal('add');
+            document.getElementById('epCharNum').value = epNum;
+            document.getElementById('epCharMemo').value = summary;
+
+        } catch (e) {
+            console.error(e);
+            alert("요약 실패: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    function openEpCharModal(mode, index = null) {
+        document.getElementById('epCharModal').style.display = 'flex';
+        document.getElementById('epCharEditId').value = index !== null ? index : '';
+        document.getElementById('epCharNum').value = '';
+        document.getElementById('epCharMemo').value = '';
+
+        if (mode === 'edit' && index !== null) {
+            const item = epCharList[index];
+            if (item) {
+                document.getElementById('epCharNum').value = item.epNum;
+                document.getElementById('epCharMemo').value = item.memo;
+            }
+        }
+    }
+
+    function saveEpCharMemo() {
+        const index = document.getElementById('epCharEditId').value;
+        const epNum = parseInt(document.getElementById('epCharNum').value);
+        const memo = document.getElementById('epCharMemo').value;
+
+        if (!epNum) return alert("회차 번호를 입력해주세요.");
+        if (!memo.trim()) return alert("메모 내용을 입력해주세요.");
+
+        const newItem = { epNum, memo };
+
+        if (index !== '') {
+            // 수정
+            epCharList[index] = newItem;
+        } else {
+            // 추가 (이미 같은 회차가 있으면 덮어쓸지 물어보거나 추가할지 결정해야 함. 여기선 단순 추가)
+            epCharList.push(newItem);
+        }
+
+        localStorage.setItem(getEpCharStorageKey(), JSON.stringify(epCharList));
+        closeModal('epCharModal');
+        loadEpCharacters();
+    }
+
+    function deleteEpCharMemo(e, index) {
+        e.stopPropagation();
+        if(!confirm("삭제하시겠습니까?")) return;
+        epCharList.splice(index, 1);
+        localStorage.setItem(getEpCharStorageKey(), JSON.stringify(epCharList));
+        loadEpCharacters();
+    }
+
+    // 회차별 메모 내용을 파싱하여 '등장인물' 탭으로 일괄 저장 시도
+    async function mergeToCharacters(e, index) {
+        e.stopPropagation();
+        const item = epCharList[index];
+        if (!item) return;
+
+        if (!confirm(`${item.epNum}화 메모 내용을 분석하여 등장인물 탭에 저장하시겠습니까?`)) return;
+
+        const btn = e.target;
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 분석 중...';
+
+        try {
+            // 기존 캐릭터 목록 로드 (중복 체크 및 병합용)
+            await loadCharacters();
+
+            // 기존 캐릭터 정보를 JSON 형태로 준비 (ID 포함)
+            const existingChars = charList.map(c => ({
+                id: c.id,
+                name: c.name,
+                role: c.role,
+                description: c.description
+            }));
+
+            const prompt = `
+                [작업]
+                웹소설 등장인물 DB 업데이트
+
+                [입력 1: 이번 화 등장인물 메모]
+                ${item.memo}
+
+                [입력 2: 기존 등장인물 목록]
+                ${JSON.stringify(existingChars)}
+
+                [지시사항]
+                메모에 등장하는 인물들을 추출하여 기존 목록과 병합하세요.
+
+                1. 기존 목록에 있는 인물인 경우 (이름 일치):
+                   - id: 기존 id 값 유지
+                   - name: 기존 이름 유지
+                   - role: 기존 역할 유지 (필요시 수정)
+                   - description: **반드시 [기존 설명]을 그대로 먼저 적고**, 그 뒤에 [이번 화 메모의 내용]을 요약하여 덧붙이세요. 줄바꿈으로 구분하세요. 기존 내용을 절대 삭제하지 마세요.
+                   - isNew: false
+
+                2. 새로운 인물인 경우:
+                   - id: null
+                   - name: 이름
+                   - role: 역할
+                   - description: 설명
+                   - isNew: true
+
+                [출력]
+                JSON 배열 형식만 출력하세요.
+            `;
+
+            const aiRes = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+            const aiData = await aiRes.json();
+            let text = aiData.candidates[0].content.parts[0].text;
+            text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+            const parsedChars = JSON.parse(text);
+
+            // 미리보기 모달 재활용 (charAiPreviewModal)
+            charAiData = parsedChars; // 전역 변수에 할당
+            const listContainer = document.getElementById('charAiResultList');
+            listContainer.innerHTML = '';
+
+            charAiData.forEach((char, idx) => {
+                const div = document.createElement('div');
+                div.className = 'preview-item';
+
+                // 기존 인물인지 표시
+                const badge = char.isNew
+                    ? '<span style="background:#e3f2fd; color:#1976d2; font-size:0.7rem; padding:2px 5px; border-radius:4px; margin-left:5px;">NEW</span>'
+                    : '<span style="background:#fff3e0; color:#e65100; font-size:0.7rem; padding:2px 5px; border-radius:4px; margin-left:5px;">UPDATE</span>';
+
+                div.innerHTML = `
+                    <input type="checkbox" class="preview-check" id="char_chk_${idx}" checked>
+                    <div class="preview-content">
+                        <div class="preview-title" style="color:var(--char-color);">
+                            ${char.role || '미정'} ${badge}
+                        </div>
+                        <div class="preview-title" style="font-size:1.1rem; color:#333;">${char.name}</div>
+                        <textarea class="preview-edit-area" id="char_desc_${idx}" rows="4">${char.description}</textarea>
+                    </div>
+                `;
+                listContainer.appendChild(div);
+            });
+            document.getElementById('charAiPreviewModal').style.display = 'flex';
+
+        } catch (e) {
+            console.error(e);
+            alert("분석 실패: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
     }
 
     // ==========================================

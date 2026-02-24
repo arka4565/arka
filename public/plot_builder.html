@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="favicon.png">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>플롯 설계</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -25,6 +25,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            height: 100dvh; /* 모바일 브라우저 주소창 대응 */
             overflow: hidden;
         }
 
@@ -111,6 +112,7 @@
         /* ── 오른쪽 채팅 영역 ── */
         .chat-area {
             flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #fafafa;
+            position: relative; /* 모바일 fixed 패널 기준점 */
         }
 
         .chat-header {
@@ -291,8 +293,36 @@
 
         @media (max-width: 900px) {
             .container { flex-direction: column; }
-            .control-panel { width: 100%; max-height: 38vh; border-right: none; border-bottom: 1px solid #ddd; }
+            .control-panel {
+                width: 100%;
+                max-height: 38vh;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+                flex-shrink: 0;
+            }
+            .chat-area {
+                flex: 1; /* Let it fill the remaining space */
+                min-height: 0; /* Fix potential flexbox overflow */
+            }
             .progress-bar-wrap { display: none; }
+
+            /* 모바일에서 질문 패널 하단 고정 */
+            .question-panel {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                width: 100%;
+                z-index: 2000;
+                max-height: 60vh;
+                box-shadow: 0 -2px 15px rgba(0,0,0,0.1);
+                border-top: 2px solid var(--primary);
+            }
+
+            /* 질문 패널이 떴을 때 채팅 내용이 가려지지 않도록 여백 추가 */
+            .chat-messages {
+                padding-bottom: 300px;
+            }
         }
     </style>
 </head>
@@ -545,6 +575,12 @@
         document.getElementById('progressWrap').style.display = 'flex';
         document.getElementById('chatTitle').textContent = `제 ${epNum}화 플롯 설계`;
         document.getElementById('chatSub').textContent = 'AI가 방향 선택지를 제안합니다';
+
+        // 모바일에서 패널 닫기 (화면 확보)
+        if (window.innerWidth <= 900) {
+             // 필요하다면 여기서 왼쪽 패널을 접는 로직 추가 가능
+             // 현재는 CSS 미디어 쿼리로 높이만 조정되어 있음
+        }
 
         // 구상 입력 여부에 따라 분기
         if (initText) {

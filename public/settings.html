@@ -171,12 +171,23 @@
             <i class="fas fa-book"></i> 설정집 다운로드 (.txt)
         </button>
 
+        <div class="form-group" style="margin-top: 15px; border-top: 1px solid #eee; padding-top: 15px;">
+             <label style="margin-bottom: 5px; display:block;">다운로드할 회차 선택</label>
+             <div style="margin-bottom: 8px;">
+                 <input type="checkbox" id="selectAllEpisodes" onchange="toggleAllEpisodes(this)" checked>
+                 <label for="selectAllEpisodes" style="display:inline; font-weight:normal; cursor:pointer;">전체 선택</label>
+             </div>
+             <div id="episodeList" style="max-height: 150px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background: #fff; border-radius: 4px;">
+                 <div style="color:#888; text-align:center; padding: 10px;">로딩 중...</div>
+             </div>
+        </div>
+
         <div class="btn-group">
             <button class="export-btn" onclick="downloadTextFile()">
-                <i class="fas fa-file-alt"></i> 본문 다운로드
+                <i class="fas fa-file-alt"></i> 선택한 본문 다운로드
             </button>
             <button class="export-btn" onclick="copyToClipboard()">
-                <i class="fas fa-copy"></i> 본문 복사
+                <i class="fas fa-copy"></i> 선택한 본문 복사
             </button>
         </div>
 
@@ -265,10 +276,51 @@
             if (res.ok) {
                 globalStories = await res.json();
                 globalStories.sort((a, b) => a.episode_number - b.episode_number);
+                renderEpisodeList();
             }
         } catch (e) {
             console.error("Story load error", e);
         }
+    }
+
+    function renderEpisodeList() {
+        const listContainer = document.getElementById('episodeList');
+        listContainer.innerHTML = '';
+
+        if (globalStories.length === 0) {
+            listContainer.innerHTML = '<div style="color:#888; text-align:center;">저장된 회차가 없습니다.</div>';
+            return;
+        }
+
+        globalStories.forEach(story => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '5px';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            const val = story.id || story.episode_number;
+            checkbox.value = val;
+            checkbox.id = `ep_${val}`;
+            checkbox.checked = true;
+            checkbox.className = 'episode-checkbox';
+
+            const label = document.createElement('label');
+            label.htmlFor = `ep_${val}`;
+            label.style.display = 'inline';
+            label.style.fontWeight = 'normal';
+            label.style.marginLeft = '5px';
+            label.style.cursor = 'pointer';
+            label.textContent = `${story.episode_number}화: ${story.title}`;
+
+            div.appendChild(checkbox);
+            div.appendChild(label);
+            listContainer.appendChild(div);
+        });
+    }
+
+    function toggleAllEpisodes(source) {
+        const checkboxes = document.querySelectorAll('.episode-checkbox');
+        checkboxes.forEach(cb => cb.checked = source.checked);
     }
 
     // 데이터 저장하기
@@ -352,33 +404,57 @@
         }
     }
 
-    // 전체 본문 텍스트 다운로드
+    // 선택한 본문 텍스트 다운로드
     function downloadTextFile() {
         if (globalStories.length === 0) return alert("저장된 본문 데이터가 없습니다. 집필 탭에서 글을 작성해주세요.");
-        
+
+        const checkboxes = document.querySelectorAll('.episode-checkbox:checked');
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selectedIds.length === 0) {
+            return alert("다운로드할 회차를 선택해주세요.");
+        }
+
+        const selectedStories = globalStories.filter(s => {
+             const val = s.id || s.episode_number;
+             return selectedIds.includes(String(val));
+        });
+
         let combined = `[ ${projectTitle} ]\n\n`;
-        globalStories.forEach(s => {
+        selectedStories.forEach(s => {
             combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
         });
         
         const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `${projectTitle}_Full.txt`;
+        link.download = `${projectTitle}_Selected.txt`;
         link.click();
     }
 
-    // 🌟 [NEW] 전체 본문 클립보드 복사 함수 추가
+    // 🌟 [NEW] 선택한 본문 클립보드 복사 함수
     function copyToClipboard() {
         if (globalStories.length === 0) return alert("저장된 본문 데이터가 없습니다.");
-        
+
+        const checkboxes = document.querySelectorAll('.episode-checkbox:checked');
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selectedIds.length === 0) {
+            return alert("복사할 회차를 선택해주세요.");
+        }
+
+        const selectedStories = globalStories.filter(s => {
+             const val = s.id || s.episode_number;
+             return selectedIds.includes(String(val));
+        });
+
         let combined = `[ ${projectTitle} ]\n\n`;
-        globalStories.forEach(s => {
+        selectedStories.forEach(s => {
             combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
         });
 
         navigator.clipboard.writeText(combined).then(() => {
-            alert("전체 본문이 클립보드에 복사되었습니다.");
+            alert("선택한 본문이 클립보드에 복사되었습니다.");
         }).catch(err => {
             console.error('복사 실패:', err);
             alert("복사에 실패했습니다.");
