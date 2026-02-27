@@ -186,10 +186,14 @@
             <button class="export-btn" onclick="downloadTextFile()">
                 <i class="fas fa-file-alt"></i> 선택한 본문 다운로드
             </button>
-            <button class="export-btn" onclick="copyToClipboard()">
-                <i class="fas fa-copy"></i> 선택한 본문 복사
+            <button class="export-btn" onclick="downloadPlotFile()">
+                <i class="fas fa-list-alt"></i> 선택한 줄거리 다운로드
             </button>
         </div>
+
+        <button class="export-btn" onclick="copyToClipboard()">
+            <i class="fas fa-copy"></i> 선택한 본문 복사
+        </button>
 
         <button class="export-btn" onclick="downloadBackup()">
             <i class="fas fa-database"></i> 전체 프로젝트 백업 (.json)
@@ -420,6 +424,11 @@
              return selectedIds.includes(String(val));
         });
 
+        // 시작 회차와 종료 회차 계산
+        const epNumbers = selectedStories.map(s => s.episode_number).sort((a, b) => a - b);
+        const startEp = epNumbers[0];
+        const endEp = epNumbers[epNumbers.length - 1];
+
         let combined = `[ ${projectTitle} ]\n\n`;
         selectedStories.forEach(s => {
             combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
@@ -428,7 +437,40 @@
         const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
-        link.download = `${projectTitle}_Selected.txt`;
+        link.download = `${projectTitle}_${startEp}_${endEp}.txt`;
+        link.click();
+    }
+
+    // 🌟 [NEW] 선택한 줄거리 다운로드
+    function downloadPlotFile() {
+        if (globalStories.length === 0) return alert("저장된 데이터가 없습니다.");
+
+        const checkboxes = document.querySelectorAll('.episode-checkbox:checked');
+        const selectedIds = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selectedIds.length === 0) {
+            return alert("다운로드할 회차를 선택해주세요.");
+        }
+
+        const selectedStories = globalStories.filter(s => {
+             const val = s.id || s.episode_number;
+             return selectedIds.includes(String(val));
+        });
+
+        // 시작 회차와 종료 회차 계산
+        const epNumbers = selectedStories.map(s => s.episode_number).sort((a, b) => a - b);
+        const startEp = epNumbers[0];
+        const endEp = epNumbers[epNumbers.length - 1];
+
+        let combined = `[ ${projectTitle} - 줄거리 요약 ]\n\n`;
+        selectedStories.forEach(s => {
+            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content_plot || '(줄거리 없음)'}\n\n`;
+        });
+
+        const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `${projectTitle}_줄거리_${startEp}_${endEp}.txt`;
         link.click();
     }
 
