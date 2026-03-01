@@ -303,12 +303,45 @@
             </div>
         </div>
 
-        <div class="section-header">
+        <!-- 일괄 자동 등록 -->
+        <div class="ai-section" style="border-color: var(--ep-char-color); margin-top: 12px;">
+            <div class="ai-header" style="color:var(--ep-char-color);">
+                <i class="fas fa-sync-alt"></i> 일괄 자동 등록
+            </div>
+            <div id="bulkStatusText" class="ai-desc">로딩 중...</div>
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px;">
+                <label style="font-weight:bold; color:#555; white-space:nowrap;">처리 범위:</label>
+                <select id="bulkFromEp" class="form-input" style="width:auto; flex:1; min-width:70px;"></select>
+                <span style="color:#aaa;">화 ~</span>
+                <select id="bulkToEp" class="form-input" style="width:auto; flex:1; min-width:70px;"></select>
+                <span style="color:#aaa;">화</span>
+                <button id="btnBulkProcess" class="btn-ai-gen" onclick="bulkAutoProcess()"
+                    style="width:auto; padding:10px 16px; background-color:var(--ep-char-color); white-space:nowrap; flex-shrink:0;">
+                    <i class="fas fa-play"></i> 자동 생성 및 등록
+                </button>
+            </div>
+            <div id="bulkProgress" style="display:none; margin-top:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:5px;">
+                    <span id="bulkProgressText" style="font-size:0.85rem; color:#666;">처리 중...</span>
+                    <span id="bulkProgressCount" style="font-size:0.85rem; color:#666;">0 / 0</span>
+                </div>
+                <div style="background:#eee; border-radius:4px; height:8px; overflow:hidden;">
+                    <div id="bulkProgressBar" style="height:100%; background:var(--ep-char-color); border-radius:4px; width:0%; transition:width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section-header" style="margin-top:20px;">
             <h2>회차별 등장인물 메모</h2>
-            <button class="btn-add ep-char" onclick="openEpCharModal('add')"><i class="fas fa-plus"></i> 메모 추가</button>
+            <div style="display:flex; gap:8px;">
+                <button class="btn-add" onclick="mergeAllMemos()" style="background:var(--ep-char-color); color:white; border:none; padding:8px 14px; border-radius:6px; font-weight:bold; cursor:pointer; white-space:nowrap;">
+                    <i class="fas fa-layer-group"></i> 전체 일괄 병합
+                </button>
+                <button class="btn-add ep-char" onclick="openEpCharModal('add')"><i class="fas fa-plus"></i> 메모 추가</button>
+            </div>
         </div>
         <div class="ai-desc" style="margin-bottom: 20px;">
-            각 회차에 등장한 인물이나 특징을 메모해두고, 나중에 '등장인물 탭'으로 취합할 수 있습니다.
+            각 회차에 등장한 인물이나 특징을 메모해두고, '전체 일괄 병합'으로 한번에 등장인물 탭에 저장하세요.
         </div>
 
         <div id="epCharGrid" class="grid-container">
@@ -1013,12 +1046,13 @@
                 <div class="ep-badge">${item.epNum}화</div>
                 <div class="char-list">${formattedMemo}</div>
                 <div class="card-actions">
-                    <button class="action-btn" onclick="mergeToCharacters(event, ${index})"><i class="fas fa-file-import"></i> 인물 탭으로 저장</button>
+                    <button class="action-btn" onclick="mergeToCharacters(event, ${index})" style="font-size:0.75rem; opacity:0.7;" title="이 회차만 단독 병합"><i class="fas fa-file-import"></i> 단독 병합</button>
                     <button class="action-btn delete" onclick="deleteEpCharMemo(event, ${index})"><i class="fas fa-trash"></i> 삭제</button>
                 </div>
             `;
             grid.appendChild(card);
         });
+        initBulkSection();
     }
 
     // 회차 목록 로드 (AI 요약용)
@@ -1045,6 +1079,7 @@
                     opt.text = `${s.episode_number}화: ${s.title}`;
                     select.appendChild(opt);
                 });
+                initBulkSection();
             }
         } catch (e) { console.error(e); }
     }
@@ -1075,7 +1110,7 @@
                 - 이름 (역할): 행적 요약
                 - 이름 (역할): 행적 요약
                 ...
-                (설명 없이 목록만 출력)
+                (설명 없이 목록만 출력, 반드시 한국어로 작성)
             `;
 
             const aiRes = await fetch('/api/generate-text', {
@@ -1102,6 +1137,228 @@
             btn.innerHTML = originalText;
         }
     }
+
+    // ── 일괄 자동 등록 ──────────────────────────────────────
+
+    function initBulkSection() {
+        if (!allStories.length) return;
+
+        const registered = new Set(epCharList.map(e => e.epNum));
+        const storiesWithContent = allStories.filter(s => s.content);
+        const unregistered = storiesWithContent.filter(s => !registered.has(s.episode_number));
+
+        const statusEl = document.getElementById('bulkStatusText');
+        if (!statusEl) return;
+
+        if (registered.size === 0) {
+            statusEl.innerHTML = `전체 <strong>${storiesWithContent.length}개</strong> 회차 처리 가능합니다.`;
+        } else {
+            const regList = [...registered].sort((a, b) => a - b);
+            const maxReg = Math.max(...regList);
+            statusEl.innerHTML = `등록 완료: <strong>${regList.length}개 화</strong> (${regList[0]}화 ~ ${maxReg}화) &nbsp;·&nbsp; 미등록: <strong>${unregistered.length}개</strong> 화`;
+        }
+
+        // 범위 셀렉트 채우기
+        const fromSel = document.getElementById('bulkFromEp');
+        const toSel = document.getElementById('bulkToEp');
+        if (!fromSel || !toSel) return;
+
+        fromSel.innerHTML = '';
+        toSel.innerHTML = '';
+        storiesWithContent.forEach(s => {
+            const done = registered.has(s.episode_number);
+            const label = `${s.episode_number}화${done ? ' ✓' : ''}`;
+            [fromSel, toSel].forEach(sel => {
+                const opt = document.createElement('option');
+                opt.value = s.episode_number;
+                opt.textContent = label;
+                sel.appendChild(opt);
+            });
+        });
+
+        // 기본값: 미등록 범위
+        if (unregistered.length > 0) {
+            fromSel.value = unregistered[0].episode_number;
+            toSel.value = unregistered[unregistered.length - 1].episode_number;
+        } else if (storiesWithContent.length > 0) {
+            fromSel.value = storiesWithContent[0].episode_number;
+            toSel.value = storiesWithContent[storiesWithContent.length - 1].episode_number;
+        }
+    }
+
+    async function bulkAutoProcess() {
+        const fromEp = parseInt(document.getElementById('bulkFromEp').value);
+        const toEp = parseInt(document.getElementById('bulkToEp').value);
+        if (isNaN(fromEp) || isNaN(toEp)) return alert("처리 범위를 선택해주세요.");
+        if (fromEp > toEp) return alert("시작 화차가 끝 화차보다 클 수 없습니다.");
+
+        const targetStories = allStories.filter(s =>
+            s.episode_number >= fromEp && s.episode_number <= toEp && s.content
+        );
+        if (targetStories.length === 0) return alert("본문이 있는 회차가 없습니다.");
+
+        const registered = new Set(epCharList.map(e => e.epNum));
+        let toProcess = targetStories.filter(s => !registered.has(s.episode_number));
+
+        if (toProcess.length === 0) {
+            if (!confirm(`선택 범위(${fromEp}~${toEp}화)가 이미 모두 처리되어 있습니다.\n다시 생성하시겠습니까?`)) return;
+            // 기존 항목 제거 후 재처리
+            epCharList = epCharList.filter(e => e.epNum < fromEp || e.epNum > toEp);
+            localStorage.setItem(getEpCharStorageKey(), JSON.stringify(epCharList));
+            toProcess = targetStories;
+        }
+
+        const skipped = targetStories.length - toProcess.length;
+        let msg = `${toProcess.length}개 회차(${toProcess[0].episode_number}화 ~ ${toProcess[toProcess.length - 1].episode_number}화)의 등장인물을 자동 분석합니다.`;
+        if (skipped > 0) msg += `\n(이미 처리된 ${skipped}개 회차는 건너뜁니다)`;
+        msg += `\n\n완료 후 등장인물 탭에 일괄 병합됩니다. 계속하시겠습니까?`;
+        if (!confirm(msg)) return;
+
+        const btn = document.getElementById('btnBulkProcess');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 처리 중...';
+
+        const progressDiv = document.getElementById('bulkProgress');
+        const progressBar = document.getElementById('bulkProgressBar');
+        const progressText = document.getElementById('bulkProgressText');
+        const progressCount = document.getElementById('bulkProgressCount');
+        progressDiv.style.display = 'block';
+
+        const newMemos = [];
+
+        try {
+            for (let i = 0; i < toProcess.length; i++) {
+                const story = toProcess[i];
+                progressText.textContent = `${story.episode_number}화 분석 중...`;
+                progressCount.textContent = `${i} / ${toProcess.length}`;
+                progressBar.style.width = Math.round((i / toProcess.length) * 100) + '%';
+
+                const prompt = `
+[본문]
+${story.content}
+
+[요청]
+위 본문에 등장하는 인물들의 이름, 역할(또는 직업), 그리고 해당 회차에서의 주요 행적을 요약해줘.
+
+[출력 형식]
+- 이름 (역할): 행적 요약
+(설명 없이 목록만 출력, 반드시 한국어로 작성)`;
+
+                const aiRes = await fetch('/api/generate-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "gemini-3-flash-preview",
+                        payload: { contents: [{ parts: [{ text: prompt }] }] }
+                    })
+                });
+                const aiData = await aiRes.json();
+                const summary = aiData.candidates[0].content.parts[0].text.trim();
+
+                const memo = { epNum: story.episode_number, memo: summary };
+                newMemos.push(memo);
+                epCharList.push(memo);
+                localStorage.setItem(getEpCharStorageKey(), JSON.stringify(epCharList));
+            }
+
+            progressText.textContent = '분석 완료! 등장인물 탭에 병합 중...';
+            progressCount.textContent = `${toProcess.length} / ${toProcess.length}`;
+            progressBar.style.width = '100%';
+
+            loadEpCharacters();
+            await bulkMergeAllToCharacters(newMemos);
+
+        } catch (e) {
+            console.error(e);
+            alert("처리 중 오류 발생: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-play"></i> 자동 생성 및 등록';
+            progressDiv.style.display = 'none';
+        }
+    }
+
+    async function bulkMergeAllToCharacters(memos) {
+        if (!memos || memos.length === 0) return;
+
+        await loadCharacters();
+        const existingChars = charList.map(c => ({
+            id: c.id, name: c.name, role: c.role, description: c.description
+        }));
+
+        const combinedMemo = memos
+            .sort((a, b) => a.epNum - b.epNum)
+            .map(m => `=== ${m.epNum}화 ===\n${m.memo}`)
+            .join('\n\n');
+
+        const prompt = `
+[작업]
+여러 회차의 등장인물 메모를 분석하여 등장인물 DB를 업데이트하세요.
+
+[각 회차별 등장인물 메모]
+${combinedMemo}
+
+[기존 등장인물 목록]
+${JSON.stringify(existingChars)}
+
+[지시사항]
+메모에 등장하는 모든 인물을 추출하여 기존 목록과 병합하세요.
+
+1. 기존 인물인 경우 (이름 일치):
+   - id: 기존 id 값 유지
+   - name: 기존 이름 유지
+   - role: 기존 역할 유지 (더 구체적이면 업데이트)
+   - description: 기존 description을 먼저 쓰고, 줄바꿈 후 "[등장 회차: X화, Y화, ...]" 형식으로 등장 회차를 추가하고, 각 회차별 주요 행적을 간략히 덧붙이세요. 기존 내용을 절대 삭제하지 마세요.
+   - isNew: false
+
+2. 새 인물인 경우:
+   - id: null
+   - name: 이름
+   - role: 역할
+   - description: 행적 설명 + "\n[등장 회차: X화, Y화, ...]"
+   - isNew: true
+
+[출력]
+JSON 배열 형식만 출력 (설명 텍스트 없이, 모든 텍스트는 반드시 한국어로 작성)`;
+
+        const aiRes = await fetch('/api/generate-text', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: "gemini-3-flash-preview",
+                payload: { contents: [{ parts: [{ text: prompt }] }] }
+            })
+        });
+        const aiData = await aiRes.json();
+        let text = aiData.candidates[0].content.parts[0].text;
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+
+        charAiData = JSON.parse(text);
+        const listContainer = document.getElementById('charAiResultList');
+        listContainer.innerHTML = '';
+
+        charAiData.forEach((char, idx) => {
+            const div = document.createElement('div');
+            div.className = 'preview-item';
+            const badge = char.isNew
+                ? '<span style="background:#e3f2fd; color:#1976d2; font-size:0.7rem; padding:2px 5px; border-radius:4px; margin-left:5px;">NEW</span>'
+                : '<span style="background:#fff3e0; color:#e65100; font-size:0.7rem; padding:2px 5px; border-radius:4px; margin-left:5px;">UPDATE</span>';
+            div.innerHTML = `
+                <input type="checkbox" class="preview-check" id="char_chk_${idx}" checked>
+                <div class="preview-content">
+                    <div class="preview-title" style="color:var(--char-color);">
+                        ${char.role || '미정'} ${badge}
+                    </div>
+                    <div class="preview-title" style="font-size:1.1rem; color:#333;">${char.name}</div>
+                    <textarea class="preview-edit-area" id="char_desc_${idx}" rows="5">${char.description}</textarea>
+                </div>
+            `;
+            listContainer.appendChild(div);
+        });
+        document.getElementById('charAiPreviewModal').style.display = 'flex';
+    }
+
+    // ────────────────────────────────────────────────────────
 
     function openEpCharModal(mode, index = null) {
         document.getElementById('epCharModal').style.display = 'flex';
@@ -1147,6 +1404,24 @@
         epCharList.splice(index, 1);
         localStorage.setItem(getEpCharStorageKey(), JSON.stringify(epCharList));
         loadEpCharacters();
+    }
+
+    // 저장된 전체 메모를 일괄 병합
+    async function mergeAllMemos() {
+        if (epCharList.length === 0) return alert("저장된 회차별 메모가 없습니다.");
+        const epNums = epCharList.map(e => e.epNum).sort((a, b) => a - b);
+        if (!confirm(`저장된 ${epCharList.length}개 회차(${epNums[0]}화 ~ ${epNums[epNums.length - 1]}화)의 메모를 등장인물 탭에 일괄 병합합니다.`)) return;
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 병합 중...';
+        try {
+            await bulkMergeAllToCharacters(epCharList);
+        } catch(e) {
+            alert("병합 오류: " + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-layer-group"></i> 전체 일괄 병합';
+        }
     }
 
     // 회차별 메모 내용을 파싱하여 '등장인물' 탭으로 일괄 저장 시도
@@ -1202,7 +1477,7 @@
                    - isNew: true
 
                 [출력]
-                JSON 배열 형식만 출력하세요.
+                JSON 배열 형식만 출력하세요. 모든 텍스트는 반드시 한국어로 작성하세요.
             `;
 
             const aiRes = await fetch('/api/generate-text', {

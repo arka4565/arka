@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>멀티에이전트 스토리라인</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #9b59b6;
+            --bg: #f4f6f8;
+            --nav-bg: #2c3e50;
+            --pending-color: #bdc3c7;
+            --running-color: #3498db;
+            --done-color: #27ae60;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* NAV (from nav.html) */
+        .navbar {
+            background: var(--nav-bg); color: white; padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+        .nav-logo { font-weight: bold; font-size: 1.1rem; color: white; text-decoration: none; }
+        .nav-links { display: flex; gap: 5px; overflow-x: auto; }
+        .nav-item {
+            color: #bdc3c7; text-decoration: none; padding: 8px 12px;
+            border-radius: 4px; font-size: 0.9rem; white-space: nowrap; transition: all 0.2s;
+        }
+        .nav-item:hover { color: white; background: rgba(255,255,255,0.1); }
+        .nav-item.active { color: white; background: var(--primary); font-weight: bold; }
+
+        /* LAYOUT */
+        .container { display: flex; flex: 1; overflow: hidden; }
+
+        /* CONTROL PANEL */
+        .control-panel {
+            width: 340px; flex-shrink: 0;
+            background: white; border-right: 1px solid #ddd;
+            padding: 20px; display: flex; flex-direction: column; gap: 14px;
+            overflow-y: auto;
+        }
+        .panel-title { color: var(--primary); font-size: 1.05rem; font-weight: bold; }
+        .panel-desc { font-size: 0.82rem; color: #999; margin-top: 3px; }
+        .section-label { font-size: 0.78rem; font-weight: bold; color: #aaa; text-transform: uppercase; letter-spacing: 0.4px; }
+
+        /* MODE TOGGLE */
+        .mode-toggle { display: flex; background: #f0f0f0; border-radius: 8px; padding: 4px; gap: 4px; }
+        .mode-btn {
+            flex: 1; padding: 9px 6px; border: none; border-radius: 6px;
+            background: transparent; font-size: 0.83rem; font-weight: bold;
+            cursor: pointer; color: #999; transition: all 0.2s; line-height: 1.3;
+        }
+        .mode-btn.active {
+            background: white; color: var(--primary);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        }
+
+        /* FORM ELEMENTS */
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        label, .section-label { display: block; }
+        input[type="number"], select, textarea {
+            padding: 9px 11px; border: 1px solid #ddd; border-radius: 6px;
+            font-size: 0.9rem; font-family: inherit; width: 100%;
+            transition: border-color 0.2s;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        textarea { resize: vertical; }
+        .range-row { display: flex; align-items: center; gap: 6px; }
+        .range-row select { flex: 1; }
+        .range-sep { color: #bbb; font-size: 0.85rem; flex-shrink: 0; }
+        hr { border: none; border-top: 1px solid #eee; }
+
+        .btn-run {
+            background: var(--primary); color: white; border: none;
+            padding: 13px; border-radius: 8px; font-size: 0.95rem;
+            font-weight: bold; cursor: pointer; width: 100%; transition: opacity 0.2s;
+        }
+        .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* MAIN AREA */
+        .main-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+        .pipeline-wrap {
+            flex: 1; overflow-y: auto; padding: 20px;
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .pipeline-inner { width: 100%; max-width: 760px; display: flex; flex-direction: column; }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center; color: #ccc;
+            padding: 80px 20px; display: flex; flex-direction: column;
+            align-items: center; gap: 15px;
+        }
+        .empty-state i { font-size: 3.5rem; }
+        .empty-state p { font-size: 0.9rem; line-height: 1.6; }
+
+        /* AGENT CARD */
+        .agent-card {
+            background: white; border-radius: 12px;
+            border: 2px solid #e8e8e8; padding: 16px 20px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+            animation: fadeSlide 0.4s ease;
+        }
+        .agent-card.running {
+            border-color: var(--running-color);
+            box-shadow: 0 0 0 3px rgba(52,152,219,0.12);
+        }
+        .agent-card.done { border-color: #d5f0df; }
+
+        .agent-header { display: flex; align-items: center; justify-content: space-between; }
+        .agent-left { display: flex; align-items: center; gap: 12px; }
+
+        .agent-icon {
+            width: 42px; height: 42px; border-radius: 10px;
+            background: #f4f4f4; display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem; color: #aaa; flex-shrink: 0; transition: all 0.3s;
+        }
+        .agent-card.running .agent-icon { background: rgba(52,152,219,0.1); color: var(--running-color); }
+        .agent-card.done .agent-icon { background: rgba(39,174,96,0.1); color: var(--done-color); }
+
+        .agent-name { font-weight: bold; font-size: 0.95rem; color: #333; }
+        .agent-role { font-size: 0.78rem; color: #aaa; margin-top: 2px; }
+
+        .agent-badge {
+            font-size: 0.78rem; font-weight: bold; padding: 4px 10px;
+            border-radius: 20px; display: flex; align-items: center; gap: 5px;
+            white-space: nowrap;
+        }
+        .badge-pending { background: #f3f3f3; color: #bbb; }
+        .badge-running { background: rgba(52,152,219,0.1); color: var(--running-color); }
+        .badge-done { background: rgba(39,174,96,0.1); color: var(--done-color); }
+        .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .badge-running .badge-dot { animation: pulse 1s infinite; }
+
+        /* AGENT BODY */
+        .agent-body { display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid #f0f0f0; }
+        .agent-body.visible { display: block; animation: fadeSlide 0.3s ease; }
+
+        .agent-spinner { display: flex; align-items: center; gap: 8px; color: var(--running-color); font-size: 0.87rem; }
+
+        .agent-output {
+            font-size: 0.86rem; color: #444; white-space: pre-wrap; line-height: 1.65;
+            background: #fafafa; border: 1px solid #eee; border-radius: 6px;
+            padding: 12px 14px; max-height: 200px; overflow-y: auto;
+        }
+        .agent-output-toggle {
+            display: inline-flex; align-items: center; gap: 5px;
+            margin-top: 8px; font-size: 0.8rem; color: #999; cursor: pointer;
+            border: none; background: none; font-family: inherit;
+        }
+        .agent-output-toggle:hover { color: var(--primary); }
+
+        /* CONNECTOR */
+        .conn {
+            display: flex; align-items: center; justify-content: center;
+            height: 28px; position: relative;
+        }
+        .conn-line {
+            position: absolute; left: 50%; transform: translateX(-50%);
+            width: 2px; height: 100%; background: #e8e8e8; transition: background 0.4s;
+        }
+        .conn-line.active { background: var(--running-color); }
+        .conn-line.done { background: #d5f0df; }
+        .conn-arrow {
+            position: absolute; bottom: -2px; left: 50%; transform: translateX(-50%);
+            color: #e8e8e8; font-size: 0.7rem; transition: color 0.4s;
+        }
+        .conn-arrow.active { color: var(--running-color); }
+        .conn-arrow.done { color: var(--done-color); }
+
+        /* FINAL RESULT */
+        .final-card {
+            background: white; border-radius: 12px;
+            border: 2px solid #d5f0df; padding: 20px;
+            animation: fadeSlide 0.4s ease; display: none;
+        }
+        .final-card.visible { display: block; }
+        .final-title {
+            font-size: 1rem; font-weight: bold; color: var(--done-color);
+            display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+        }
+        .final-content {
+            font-size: 0.88rem; color: #333; white-space: pre-wrap; line-height: 1.7;
+            background: #fafafa; border: 1px solid #eee; border-radius: 8px;
+            padding: 15px; max-height: 380px; overflow-y: auto;
+        }
+        .final-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+        .btn-copy {
+            padding: 9px 16px; border-radius: 6px; border: 1px solid #ddd;
+            background: white; cursor: pointer; font-size: 0.88rem; font-weight: bold; color: #666;
+            font-family: inherit;
+        }
+        .btn-copy:hover { border-color: #bbb; }
+        .btn-save {
+            padding: 9px 16px; border-radius: 6px; border: none;
+            background: var(--done-color); color: white;
+            cursor: pointer; font-size: 0.88rem; font-weight: bold; font-family: inherit;
+        }
+        .btn-save:hover { opacity: 0.9; }
+
+        /* ANIMATIONS */
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.25; }
+        }
+
+        @media (max-width: 860px) {
+            .container { flex-direction: column; }
+            .control-panel { width: 100%; max-height: 42vh; border-right: none; border-bottom: 1px solid #ddd; }
+        }
+    </style>
+</head>
+<body>
+
+<script src="auth.js"></script>
+<script src="include.js"></script>
+<div data-include="nav.html"></div>
+
+<div class="container">
+    <!-- ── 컨트롤 패널 ── -->
+    <aside class="control-panel">
+        <div>
+            <div class="panel-title"><i class="fas fa-robot"></i> 멀티에이전트 스토리라인</div>
+            <div class="panel-desc">AI 에이전트들이 협력하여 스토리라인을 단계적으로 구성합니다.</div>
+        </div>
+
+        <div class="input-group">
+            <span class="section-label">모드</span>
+            <div class="mode-toggle">
+                <button class="mode-btn active" id="btnMain" onclick="setMode('main')">
+                    <i class="fas fa-map"></i><br>메인 스토리라인
+                </button>
+                <button class="mode-btn" id="btnEp" onclick="setMode('episode')">
+                    <i class="fas fa-file-alt"></i><br>회차별 스토리라인
+                </button>
+            </div>
+        </div>
+
+        <div class="input-group">
+            <span class="section-label">참고 줄거리 범위</span>
+            <div class="range-row">
+                <select id="plotStart"><option value="">처음부터</option></select>
+                <span class="range-sep">~</span>
+                <select id="plotEnd"><option value="">끝까지</option></select>
+            </div>
+        </div>
+
+        <div class="input-group" id="epNumGroup" style="display:none;">
+            <span class="section-label">대상 회차 번호</span>
+            <input type="number" id="targetEp" placeholder="예: 15" min="1">
+        </div>
+
+        <div class="input-group">
+            <span class="section-label">작가 지시사항 <span style="font-weight:normal;text-transform:none;">(선택)</span></span>
+            <textarea id="directive" rows="4"
+                placeholder="예: 15화 이후부터 주인공이 각성하면서 기존 동료와 멀어지는 방향으로. 라이벌과의 갈등이 핵심."></textarea>
+        </div>
+
+        <hr>
+
+        <button class="btn-run" id="btnRun" onclick="runPipeline()">
+            <i class="fas fa-play"></i> 에이전트 실행
+        </button>
+    </aside>
+
+    <!-- ── 파이프라인 영역 ── -->
+    <main class="main-area">
+        <div class="pipeline-wrap" id="pipelineWrap">
+            <div class="empty-state" id="emptyState">
+                <i class="fas fa-network-wired"></i>
+                <p>좌측에서 설정 후 '에이전트 실행'을 누르면<br>AI 에이전트들이 순서대로 스토리라인을 구성합니다.</p>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const settingId = urlParams.get('setting_id');
+
+let currentMode = 'main';
+let globalWorld = [], globalChars = [], globalStories = [];
+
+// ────────────────────────────────────────────
+// 에이전트 정의
+// ────────────────────────────────────────────
+const AGENTS_MAIN = [
+    {
+        id: 'analyst', icon: 'fas fa-search',
+        name: '분석가', role: '세계관 · 캐릭터 · 스토리 컨텍스트 분석',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 웹소설 스토리 분석 전문가입니다. 제공된 세계관, 캐릭터, 기존 줄거리를 철저히 분석하여 현재 스토리의 핵심 요소와 잠재적 발전 가능성을 정리합니다.`,
+                user: `[세계관 정보]\n${ctx.world}\n\n[캐릭터 정보]\n${ctx.chars}\n\n[기존 스토리 줄거리]\n${ctx.plot || '아직 작성된 스토리 없음.'}\n\n[작가의 방향 지시]\n${ctx.directive || '특별한 지시 없음.'}\n\n위 자료를 분석하여 다음을 정리해주세요:\n1. 현재 스토리의 핵심 테마와 장르적 특성\n2. 주요 인물 관계와 현재 갈등 구도\n3. 미해결된 복선과 서사적 씨앗\n4. 스토리 발전 방향성 3가지 (각 장단점 포함)\n5. 주의해야 할 서사적 위험 요소`
+            };
+        }
+    },
+    {
+        id: 'architect', icon: 'fas fa-drafting-compass',
+        name: '구조 설계자', role: '전체 아크 · 파트별 구조 설계',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 웹소설 서사 구조 전문가입니다. 분석 결과를 바탕으로 매력적이고 체계적인 전체 스토리 아크를 설계합니다. 각 파트는 독자를 계속 끌어당길 수 있어야 합니다.`,
+                user: `[분석 결과]\n${prev[0]}\n\n[작가의 방향 지시]\n${ctx.directive || '특별한 지시 없음.'}\n\n전체 스토리를 3~5개 파트로 나누어 아크를 설계해주세요.\n각 파트마다:\n- 파트 번호와 이름\n- 핵심 주제와 감정 키워드\n- 예상 화수 범위\n- 파트의 시작 상황\n- 파트의 주요 사건 3가지\n- 파트의 결말과 다음 파트 연결 훅`
+            };
+        }
+    },
+    {
+        id: 'conflict', icon: 'fas fa-bolt',
+        name: '갈등 엔지니어', role: '갈등 구조 · 긴장감 · 클라이맥스 설계',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 드라마틱한 갈등 구조와 긴장감 설계의 전문가입니다. 독자가 놓을 수 없게 만드는 갈등을 심고 점진적으로 폭발시키는 설계를 합니다.`,
+                user: `[스토리 아크]\n${prev[1]}\n\n위 아크를 바탕으로 갈등 구조를 설계해주세요:\n1. 메인 갈등과 심화 단계 (최소 3단계)\n2. 서브 갈등 2~3개와 메인 갈등 연계 방식\n3. 파트별 클라이맥스와 독자 감정 최고조 순간\n4. 반전 포인트 2~3개 (예상 못할 서프라이즈)\n5. 최종 갈등 해소 방향과 카타르시스`
+            };
+        }
+    },
+    {
+        id: 'charArc', icon: 'fas fa-user-circle',
+        name: '캐릭터 아크 디자이너', role: '인물 성장 · 관계 변화 · 내면 서사 설계',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 캐릭터 심리와 성장 아크 설계의 전문가입니다. 독자가 캐릭터에 감정 이입하고 함께 성장하는 느낌을 받을 수 있도록 섬세한 캐릭터 여정을 설계합니다.`,
+                user: `[캐릭터 정보]\n${ctx.chars}\n\n[스토리 아크]\n${prev[1]}\n\n[갈등 구조]\n${prev[2]}\n\n주요 캐릭터들의 전체 스토리 아크를 설계해주세요.\n각 주요 캐릭터마다:\n- 시작점 (현재 상태, 내면 결핍, 표면적 욕망, 진짜 욕망)\n- 파트별 성장/변화 계기와 내면 변화\n- 다른 캐릭터들과 관계 변화 흐름\n- 스토리 끝에서 도달하는 최종 상태`
+            };
+        }
+    },
+    {
+        id: 'editor', icon: 'fas fa-pen-nib',
+        name: '통합 편집장', role: '전체 스토리라인 최종 통합 · 완성',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 베테랑 웹소설 편집장입니다. 여러 전문가들의 분석과 설계를 종합하여 완성도 높고 매력적인 전체 스토리라인을 완성합니다. 작가가 바로 집필에 활용할 수 있도록 구체적으로 작성하세요.`,
+                user: `[컨텍스트 분석]\n${prev[0]}\n\n[스토리 아크]\n${prev[1]}\n\n[갈등 구조]\n${prev[2]}\n\n[캐릭터 아크]\n${prev[3]}\n\n[작가의 방향 지시]\n${ctx.directive || '특별한 지시 없음.'}\n\n위 모든 내용을 종합하여 완성된 메인 스토리라인을 작성해주세요.\n파트별로 명확히 구분하고, 각 파트 내에서:\n- 주요 에피소드 흐름 (구체적 사건과 장면)\n- 감정선 변화\n- 핵심 대사 또는 명장면 아이디어\n- 독자를 끌어당길 훅\n\n마지막에 작가에게 한 줄 조언을 추가해주세요.`
+            };
+        }
+    }
+];
+
+const AGENTS_EPISODE = [
+    {
+        id: 'situation', icon: 'fas fa-map-marker-alt',
+        name: '상황 분석가', role: '이전 화 분석 · 현재 스토리 위치 파악',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 스토리 컨티뉴이티(연속성) 분석 전문가입니다. 이전 화들을 꼼꼼히 분석하여 이번 화에서 이어받아야 할 요소를 정리합니다.`,
+                user: `[세계관 정보]\n${ctx.world}\n\n[캐릭터 정보]\n${ctx.chars}\n\n[이전 스토리 줄거리]\n${ctx.plot || '이전 줄거리 없음.'}\n\n[작가의 방향 지시]\n${ctx.directive || '특별한 지시 없음.'}\n\n${ctx.ep}화를 작성하기 위한 현재 상황을 분석해주세요:\n1. 이전 화 마지막의 긴장/감정 상태와 클리프행어\n2. 이번 화에서 이어받아야 할 미완의 서사 실타래\n3. 이번 화에서 활용 가능한 복선과 떡밥\n4. 현재 주요 등장인물들의 상황과 내면 상태\n5. 독자가 이번 화에서 기대하는 것`
+            };
+        }
+    },
+    {
+        id: 'goal', icon: 'fas fa-bullseye',
+        name: '회차 목표 설계자', role: '이번 화의 서사 목표 · 핵심 사건 설정',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 웹소설 회차 기획 전문가입니다. 이번 화가 달성해야 할 서사적 목표를 명확히 설정하고 핵심 사건을 기획합니다.`,
+                user: `[상황 분석]\n${prev[0]}\n\n[작가의 방향 지시]\n${ctx.directive || '특별한 지시 없음.'}\n\n${ctx.ep}화의 서사적 목표를 설계해주세요:\n1. 이번 화의 핵심 사건 (반드시 일어나야 할 것)\n2. 이번 화의 감정적 목표 (독자에게 주고 싶은 주된 감정)\n3. 이번 화에서 발전시킬 캐릭터 관계 1~2가지\n4. 심을 새로운 복선 또는 떡밥\n5. 다음 화를 향한 훅 (클리프행어 또는 기대감 유발)`
+            };
+        }
+    },
+    {
+        id: 'scene', icon: 'fas fa-film',
+        name: '씬 구성가', role: '회차를 씬 단위로 분해 · 흐름 설계',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 웹소설 씬 구성 전문가입니다. 한 회차를 매끄럽게 흐르는 씬들로 분해하고 각 씬의 역할과 목적을 명확히 합니다.`,
+                user: `[상황 분석]\n${prev[0]}\n\n[회차 목표]\n${prev[1]}\n\n${ctx.ep}화를 5~6개의 씬으로 구성해주세요.\n각 씬마다:\n- 씬 번호와 제목\n- 장소 / 시간대\n- 등장인물\n- 씬의 서사적 목적\n- 핵심 사건 또는 대화 내용 (구체적으로)\n- 씬 마무리와 다음 씬으로의 전환점`
+            };
+        }
+    },
+    {
+        id: 'emotion', icon: 'fas fa-heartbeat',
+        name: '감정 설계자', role: '감정 곡선 · 완급 조절 · 독자 몰입 포인트',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 독자 감정 경험 설계 전문가입니다. 한 회차 안에서 독자의 감정이 자연스럽게 흐르고 절정에 달하도록 감정 곡선을 설계합니다.`,
+                user: `[씬 구성]\n${prev[2]}\n\n위 씬 구성을 바탕으로 ${ctx.ep}화의 감정 설계를 해주세요:\n1. 각 씬의 긴장도 (1~10점)와 주 감정 키워드\n2. 독자 몰입을 폭발시킬 하이라이트 씬과 그 이유\n3. 완급 조절: 숨 돌릴 구간 vs 긴장 고조 구간\n4. 마지막 씬의 여운과 다음 화에 대한 기대감 설계\n5. 이번 화 전체의 감정적 리듬 요약`
+            };
+        }
+    },
+    {
+        id: 'writer', icon: 'fas fa-pen-fancy',
+        name: '통합 작가', role: '최종 회차 스토리라인 완성',
+        buildPrompt(ctx, prev) {
+            return {
+                system: `당신은 베테랑 웹소설 작가입니다. 여러 에이전트의 분석을 바탕으로 완성된 회차 스토리라인을 작성합니다. 작가가 바로 집필에 참고할 수 있도록 생생하고 구체적으로 작성하세요.`,
+                user: `[상황 분석]\n${prev[0]}\n\n[회차 목표]\n${prev[1]}\n\n[씬 구성]\n${prev[2]}\n\n[감정 설계]\n${prev[3]}\n\n[작가의 방향 지시]\n${ctx.directive || '특별한 지시 없음.'}\n\n위 모든 내용을 종합하여 ${ctx.ep}화의 완성된 스토리라인을 작성해주세요.\n씬별로 구분하고 각 씬의 내용을 구체적으로 서술하세요.\n주요 대사 아이디어와 지문 묘사 포인트도 포함해주세요.\n\n마지막에 이번 화의 핵심 감정 여정을 한 줄로 요약해주세요.`
+            };
+        }
+    }
+];
+
+// ────────────────────────────────────────────
+// INIT
+// ────────────────────────────────────────────
+async function init() {
+    if (!settingId) { alert("잘못된 접근입니다."); return; }
+    await loadData();
+}
+
+async function loadData() {
+    try {
+        const [wRes, cRes, sRes] = await Promise.all([
+            fetch(`/api/worldsettings?setting_id=${settingId}`),
+            fetch(`/api/characters?setting_id=${settingId}`),
+            fetch(`/api/stories?setting_id=${settingId}`)
+        ]);
+        globalWorld = await wRes.json();
+        globalChars = await cRes.json();
+        if (sRes.ok) {
+            globalStories = await sRes.json();
+            globalStories.sort((a, b) => a.episode_number - b.episode_number);
+            fillRangeSelects();
+        }
+    } catch (e) { console.warn("Data load fail:", e); }
+}
+
+function fillRangeSelects() {
+    ['plotStart', 'plotEnd'].forEach(id => {
+        const el = document.getElementById(id);
+        el.innerHTML = '<option value="">선택 안함</option>';
+        globalStories.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.episode_number;
+            opt.textContent = `${s.episode_number}화`;
+            el.appendChild(opt);
+        });
+    });
+}
+
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('btnMain').classList.toggle('active', mode === 'main');
+    document.getElementById('btnEp').classList.toggle('active', mode === 'episode');
+    document.getElementById('epNumGroup').style.display = mode === 'episode' ? 'flex' : 'none';
+}
+
+// ────────────────────────────────────────────
+// PIPELINE UI
+// ────────────────────────────────────────────
+function buildUI(agents) {
+    const wrap = document.getElementById('pipelineWrap');
+    wrap.innerHTML = '';
+
+    const inner = document.createElement('div');
+    inner.className = 'pipeline-inner';
+    inner.id = 'pipelineInner';
+    wrap.appendChild(inner);
+
+    agents.forEach((agent, i) => {
+        // Agent card
+        const card = document.createElement('div');
+        card.className = 'agent-card';
+        card.id = `card_${agent.id}`;
+        card.innerHTML = `
+            <div class="agent-header">
+                <div class="agent-left">
+                    <div class="agent-icon" id="icon_${agent.id}"><i class="${agent.icon}"></i></div>
+                    <div>
+                        <div class="agent-name">${agent.name}</div>
+                        <div class="agent-role">${agent.role}</div>
+                    </div>
+                </div>
+                <div class="agent-badge badge-pending" id="badge_${agent.id}">
+                    <div class="badge-dot"></div>대기중
+                </div>
+            </div>
+            <div class="agent-body" id="body_${agent.id}">
+                <div class="agent-spinner" id="spinner_${agent.id}" style="display:none;">
+                    <i class="fas fa-spinner fa-spin"></i> 분석 중...
+                </div>
+                <div class="agent-output" id="output_${agent.id}" style="display:none;"></div>
+                <button class="agent-output-toggle" id="toggle_${agent.id}" style="display:none;" onclick="toggleOutput('${agent.id}')">
+                    <i class="fas fa-chevron-up" id="toggleIcon_${agent.id}"></i> 접기
+                </button>
+            </div>
+        `;
+        inner.appendChild(card);
+
+        // Connector
+        if (i < agents.length - 1) {
+            const conn = document.createElement('div');
+            conn.className = 'conn';
+            conn.innerHTML = `
+                <div class="conn-line" id="conn_${i}"></div>
+                <i class="fas fa-chevron-down conn-arrow" id="connArr_${i}"></i>
+            `;
+            inner.appendChild(conn);
+        }
+    });
+
+    // Final connector + result
+    const lastConn = document.createElement('div');
+    lastConn.className = 'conn';
+    lastConn.innerHTML = `
+        <div class="conn-line" id="conn_final"></div>
+        <i class="fas fa-chevron-down conn-arrow" id="connArr_final"></i>
+    `;
+    inner.appendChild(lastConn);
+
+    const finalCard = document.createElement('div');
+    finalCard.className = 'final-card';
+    finalCard.id = 'finalCard';
+    finalCard.innerHTML = `
+        <div class="final-title"><i class="fas fa-star"></i> 최종 스토리라인</div>
+        <div class="final-content" id="finalContent"></div>
+        <div class="final-actions">
+            <button class="btn-copy" onclick="copyResult()"><i class="fas fa-copy"></i> 복사</button>
+            <button class="btn-save" onclick="saveResult()"><i class="fas fa-save"></i> 아이디어 보관함에 저장</button>
+        </div>
+    `;
+    inner.appendChild(finalCard);
+}
+
+function setStatus(agentId, status) {
+    const card = document.getElementById(`card_${agentId}`);
+    const badge = document.getElementById(`badge_${agentId}`);
+    const body = document.getElementById(`body_${agentId}`);
+    const spinner = document.getElementById(`spinner_${agentId}`);
+    const output = document.getElementById(`output_${agentId}`);
+    const toggle = document.getElementById(`toggle_${agentId}`);
+
+    card.classList.remove('running', 'done');
+    badge.classList.remove('badge-pending', 'badge-running', 'badge-done');
+
+    if (status === 'running') {
+        card.classList.add('running');
+        badge.classList.add('badge-running');
+        badge.innerHTML = '<div class="badge-dot"></div>실행중';
+        body.classList.add('visible');
+        spinner.style.display = 'flex';
+        output.style.display = 'none';
+        toggle.style.display = 'none';
+        card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else if (status === 'done') {
+        card.classList.add('done');
+        badge.classList.add('badge-done');
+        badge.innerHTML = '<div class="badge-dot"></div>완료';
+        spinner.style.display = 'none';
+        output.style.display = 'block';
+        toggle.style.display = 'inline-flex';
+    } else {
+        badge.classList.add('badge-pending');
+        badge.innerHTML = '<div class="badge-dot"></div>대기중';
+        body.classList.remove('visible');
+    }
+}
+
+function setConnector(idx, state) {
+    const line = document.getElementById(`conn_${idx}`);
+    const arr = document.getElementById(`connArr_${idx}`);
+    if (!line) return;
+    line.classList.remove('active', 'done');
+    arr.classList.remove('active', 'done');
+    if (state === 'active') { line.classList.add('active'); arr.classList.add('active'); }
+    else if (state === 'done') { line.classList.add('done'); arr.classList.add('done'); }
+}
+
+window.toggleOutput = function(agentId) {
+    const output = document.getElementById(`output_${agentId}`);
+    const icon = document.getElementById(`toggleIcon_${agentId}`);
+    const btn = document.getElementById(`toggle_${agentId}`);
+    const collapsed = output.style.maxHeight === '40px';
+    if (collapsed) {
+        output.style.maxHeight = '200px';
+        icon.className = 'fas fa-chevron-up';
+        btn.innerHTML = `<i class="fas fa-chevron-up" id="toggleIcon_${agentId}"></i> 접기`;
+    } else {
+        output.style.maxHeight = '40px';
+        icon.className = 'fas fa-chevron-down';
+        btn.innerHTML = `<i class="fas fa-chevron-down" id="toggleIcon_${agentId}"></i> 펼치기`;
+    }
+};
+
+// ────────────────────────────────────────────
+// AI CALL
+// ────────────────────────────────────────────
+async function callAI(system, user) {
+    const res = await fetch('/api/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: "gemini-3-flash-preview",
+            payload: {
+                contents: [{ parts: [{ text: user }] }],
+                systemInstruction: { parts: [{ text: system }] }
+            }
+        })
+    });
+    const data = await res.json();
+    return data.candidates[0].content.parts[0].text;
+}
+
+// ────────────────────────────────────────────
+// PIPELINE RUNNER
+// ────────────────────────────────────────────
+async function runPipeline() {
+    const ep = document.getElementById('targetEp').value;
+    if (currentMode === 'episode' && !ep) {
+        alert("대상 회차 번호를 입력해주세요."); return;
+    }
+
+    const btn = document.getElementById('btnRun');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 실행 중...';
+
+    const agents = currentMode === 'main' ? AGENTS_MAIN : AGENTS_EPISODE;
+    buildUI(agents);
+
+    // Build context
+    const world = globalWorld.length
+        ? globalWorld.map(w => `- ${w.title}: ${w.description || ''}`).join('\n')
+        : '세계관 정보 없음.';
+
+    const chars = globalChars.length
+        ? globalChars.map(c => `- ${c.name} (${c.role}): ${c.description || ''}`).join('\n')
+        : '캐릭터 정보 없음.';
+
+    const pStart = document.getElementById('plotStart').value;
+    const pEnd = document.getElementById('plotEnd').value;
+    let plot = '';
+
+    if (currentMode === 'episode' && ep) {
+        // 회차별 모드: 대상 회차 미만의 에피소드만 참고 (대상 회차 자체는 제외)
+        const prevStories = globalStories.filter(s => s.episode_number < +ep);
+        if (pStart && pEnd) {
+            plot = prevStories
+                .filter(s => s.episode_number >= Math.min(+pStart, +pEnd) && s.episode_number <= Math.max(+pStart, +pEnd))
+                .map(s => `(${s.episode_number}화) ${s.content_plot || ''}`)
+                .join('\n');
+        } else {
+            plot = prevStories.slice(-10).map(s => `(${s.episode_number}화) ${s.content_plot || ''}`).join('\n');
+        }
+    } else if (pStart && pEnd) {
+        const filtered = globalStories.filter(s =>
+            s.episode_number >= Math.min(+pStart, +pEnd) &&
+            s.episode_number <= Math.max(+pStart, +pEnd)
+        );
+        plot = filtered.map(s => `(${s.episode_number}화) ${s.content_plot || ''}`).join('\n');
+    } else if (globalStories.length) {
+        plot = globalStories.slice(-10).map(s => `(${s.episode_number}화) ${s.content_plot || ''}`).join('\n');
+    }
+
+    const ctx = {
+        world, chars, plot,
+        directive: document.getElementById('directive').value,
+        ep: ep || ''
+    };
+
+    const outputs = [];
+
+    try {
+        for (let i = 0; i < agents.length; i++) {
+            const agent = agents[i];
+
+            if (i > 0) setConnector(i - 1, 'active');
+            setStatus(agent.id, 'running');
+
+            const { system, user } = agent.buildPrompt(ctx, outputs);
+            const result = await callAI(system, user);
+            outputs.push(result);
+
+            document.getElementById(`output_${agent.id}`).textContent = result;
+            setStatus(agent.id, 'done');
+            if (i > 0) setConnector(i - 1, 'done');
+        }
+
+        // Show final result
+        setConnector('final', 'done');
+        const finalCard = document.getElementById('finalCard');
+        document.getElementById('finalContent').textContent = outputs[outputs.length - 1];
+        finalCard.classList.add('visible');
+        finalCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (e) {
+        console.error(e);
+        alert("에이전트 실행 중 오류: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> 에이전트 실행';
+    }
+}
+
+// ────────────────────────────────────────────
+// COPY / SAVE
+// ────────────────────────────────────────────
+window.copyResult = function() {
+    const text = document.getElementById('finalContent').textContent;
+    navigator.clipboard.writeText(text).then(() => alert("복사되었습니다!"));
+};
+
+window.saveResult = async function() {
+    const content = document.getElementById('finalContent').textContent;
+    const ep = document.getElementById('targetEp').value;
+    const type = currentMode === 'main' ? 'story_arc' : `episode_plan_${ep}화`;
+    const label = currentMode === 'main' ? '멀티에이전트 메인 스토리라인' : `멀티에이전트 ${ep}화 스토리라인`;
+
+    try {
+        const res = await fetch('/api/ideas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                setting_id: settingId,
+                type,
+                content,
+                user_input: document.getElementById('directive').value || '',
+                systemPrompt: label
+            })
+        });
+        if (res.ok) alert("아이디어 보관함에 저장되었습니다!");
+        else alert("저장 실패");
+    } catch (e) {
+        alert("저장 오류: " + e.message);
+    }
+};
+
+init();
+</script>
+</body>
+</html>
