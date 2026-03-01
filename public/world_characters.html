@@ -1282,82 +1282,107 @@ ${story.content}
         if (!memos || memos.length === 0) return;
 
         await loadCharacters();
-        // 기존 description은 AI에게 넘기지 않음 — 이름/역할만 전달
         const existingNames = charList.map(c => c.name).join(', ');
 
-        const combinedMemo = memos
-            .sort((a, b) => a.epNum - b.epNum)
-            .map(m => `=== ${m.epNum}화 ===\n${m.memo}`)
-            .join('\n\n');
+        const sortedMemos = [...memos].sort((a, b) => a.epNum - b.epNum);
 
-        // AI는 새 행적 추출만 담당 (기존 description 수정 X)
-        const prompt = `
-[작업]
-여러 회차의 등장인물 메모에서 인물 정보를 추출하세요.
+        // 프로그레스 표시
+        const progressDiv = document.getElementById('bulkProgress');
+        const progressBar = document.getElementById('bulkProgressBar');
+        const progressText = document.getElementById('bulkProgressText');
+        const progressCount = document.getElementById('bulkProgressCount');
+        if (progressDiv) progressDiv.style.display = 'block';
 
+        // ── 핵심 변경: 회차별로 개별 AI 호출 → JS에서 그룹핑 ──
+        // 한번에 보내면 AI가 여러 화를 묶어 요약해버림
+        const allExtractions = []; // { epNum, name, role, isNew, epInfo, baseDesc }
+
+        for (let i = 0; i < sortedMemos.length; i++) {
+            const memo = sortedMemos[i];
+            if (progressText) progressText.textContent = `${memo.epNum}화 인물 추출 중...`;
+            if (progressCount) progressCount.textContent = `${i + 1} / ${sortedMemos.length}`;
+            if (progressBar) progressBar.style.width = Math.round(((i + 1) / sortedMemos.length) * 100) + '%';
+
+            const prompt = `
 [기존 등장인물 이름 목록 (참고용)]
 ${existingNames || '없음'}
 
-[각 회차별 등장인물 메모]
-${combinedMemo}
+[${memo.epNum}화 등장인물 메모]
+${memo.memo}
 
 [지시사항]
-메모에 등장하는 모든 인물을 추출하여 JSON 배열로 반환하세요.
+위 메모에서 인물 정보를 추출하여 JSON 배열로 반환하세요.
 각 인물마다:
 - name: 인물 이름
 - role: 역할/직책
 - isNew: 기존 이름 목록에 없으면 true, 있으면 false
-- episodes: 등장한 회차별 행적 배열. 형식: [{"ep": 회차번호, "info": "이 회차에서 한 일 (한국어로 상세하게)"}]
+- epInfo: 이 회차에서 한 일 (한국어로 상세하게, 절대 요약·압축 금지)
 - baseDesc: isNew가 true인 경우에만 인물의 기본 특징 설명 (한국어)
 
-[주의]
-- 기존 인물이라도 episodes 배열은 반드시 채워주세요.
-- 모든 텍스트는 반드시 한국어로 작성하세요.
-- JSON 배열만 출력 (설명 텍스트 없이)`;
+[주의] 모든 텍스트는 반드시 한국어. JSON 배열만 출력.`;
 
-        const aiRes = await fetch('/api/generate-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: "gemini-3-flash-preview",
-                payload: { contents: [{ parts: [{ text: prompt }] }] }
-            })
-        });
-        const aiData = await aiRes.json();
-        let text = aiData.candidates[0].content.parts[0].text;
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+            try {
+                const aiRes = await fetch('/api/generate-text', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: "gemini-3-flash-preview",
+                        payload: { contents: [{ parts: [{ text: prompt }] }] }
+                    })
+                });
+                const aiData = await aiRes.json();
+                let text = aiData.candidates[0].content.parts[0].text;
+                text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+                const extracted = JSON.parse(text);
+                extracted.forEach(c => allExtractions.push({ ...c, epNum: memo.epNum }));
+            } catch (e) {
+                console.warn(`${memo.epNum}화 추출 실패:`, e);
+            }
+        }
 
-        const extracted = JSON.parse(text);
+        if (progressDiv) progressDiv.style.display = 'none';
 
-        // JS에서 직접 description 조합 — 기존 설명 보존
-        charAiData = extracted.map(char => {
-            const existing = charList.find(c => c.name === char.name);
+        // JS에서 캐릭터별 그룹핑
+        const charMap = new Map();
+        for (const item of allExtractions) {
+            if (!charMap.has(item.name)) {
+                const existing = charList.find(c => c.name === item.name);
+                charMap.set(item.name, {
+                    id: existing ? existing.id : null,
+                    name: item.name,
+                    role: existing ? existing.role : item.role,
+                    isNew: !existing,
+                    baseDesc: item.baseDesc || '',
+                    existingDesc: existing ? (existing.description || '') : '',
+                    episodes: []
+                });
+            }
+            charMap.get(item.name).episodes.push({ ep: item.epNum, info: item.epInfo });
+        }
+
+        // JS에서 description 조합 — 기존 설명 보존 + 회차별 행적 낱개로 추가
+        charAiData = [...charMap.values()].map(char => {
             const epLines = char.episodes
+                .sort((a, b) => a.ep - b.ep)
                 .map(e => `[${e.ep}화] ${e.info}`)
                 .join('\n');
 
-            let newDesc;
-            if (existing) {
-                // 기존 description 그대로 유지 + 새 행적 뒤에 추가
-                newDesc = (existing.description || '').trimEnd()
-                    + '\n\n' + epLines;
-            } else {
-                newDesc = (char.baseDesc || '').trimEnd()
-                    + (char.baseDesc ? '\n\n' : '') + epLines;
-            }
+            const newDesc = char.isNew
+                ? (char.baseDesc ? char.baseDesc.trimEnd() + '\n\n' : '') + epLines
+                : char.existingDesc.trimEnd() + '\n\n' + epLines;
 
             return {
-                id: existing ? existing.id : null,
+                id: char.id,
                 name: char.name,
-                role: existing ? existing.role : char.role,
+                role: char.role,
                 description: newDesc,
-                isNew: !existing
+                isNew: char.isNew
             };
         });
 
+        // 미리보기 모달
         const listContainer = document.getElementById('charAiResultList');
         listContainer.innerHTML = '';
-
         charAiData.forEach((char, idx) => {
             const div = document.createElement('div');
             div.className = 'preview-item';
