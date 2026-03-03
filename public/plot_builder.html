@@ -250,15 +250,71 @@
 
         .options-list { display: flex; flex-direction: column; gap: 7px; }
         .option-card {
-            display: flex; align-items: flex-start; gap: 10px; padding: 11px 14px;
+            display: flex; flex-direction: column; padding: 11px 14px;
             border: 1px solid #ddd; border-radius: 8px; cursor: pointer;
             transition: all 0.18s; background: #fafafa; user-select: none;
         }
         .option-card:hover { border-color: var(--primary); background: #faf0ff; }
         .option-card.selected { border-color: var(--primary); background: var(--primary-light); }
+        .option-card-row { display: flex; align-items: flex-start; gap: 10px; }
         .option-card input { flex-shrink: 0; margin-top: 3px; cursor: pointer; accent-color: var(--primary); }
         .option-lbl { font-weight: bold; color: var(--primary); flex-shrink: 0; min-width: 20px; }
-        .option-txt { color: #444; font-size: 0.88rem; line-height: 1.45; }
+        .option-txt { color: #444; font-size: 0.88rem; line-height: 1.45; flex: 1; }
+
+        .outcome-btn {
+            flex-shrink: 0; align-self: flex-start;
+            font-size: 0.73rem; color: var(--primary); background: #f0e8f8;
+            border: 1px solid var(--primary-border); border-radius: 12px;
+            padding: 2px 9px; cursor: pointer; white-space: nowrap;
+            transition: all 0.2s; font-family: inherit; line-height: 1.7;
+        }
+        .outcome-btn:hover { background: #e0cff0; border-color: var(--primary); }
+        .outcome-btn:disabled { color: #bbb; border-color: #ddd; background: #f5f5f5; cursor: wait; }
+
+        /* ── 경우의 수 마인드맵 ── */
+        .outcomes-panel {
+            display: none; margin-top: 12px;
+        }
+        .outcomes-panel.visible { display: block; animation: fadeSlideIn 0.25s ease; }
+        .outcomes-panel-title {
+            font-size: 0.77rem; font-weight: bold; color: var(--primary);
+            margin-bottom: 10px; display: flex; align-items: center; gap: 5px;
+        }
+        /* 트리 래퍼 */
+        .outcomes-tree {
+            display: flex; flex-direction: column; gap: 6px;
+            position: relative; padding-left: 18px;
+        }
+        /* 왼쪽 세로 선 */
+        .outcomes-tree::before {
+            content: ''; position: absolute; left: 6px; top: 10px;
+            bottom: 10px; width: 2px; background: #d4b8f0; border-radius: 2px;
+        }
+        /* 각 가지 */
+        .outcome-item {
+            position: relative; padding: 9px 12px;
+            background: white; border: 1.5px solid #e0cff0; border-radius: 8px;
+            font-size: 0.83rem; color: #444; line-height: 1.5;
+            cursor: pointer; transition: all 0.18s;
+            display: flex; gap: 8px; align-items: flex-start;
+        }
+        /* 가로 연결선 */
+        .outcome-item::before {
+            content: ''; position: absolute; left: -12px; top: 50%;
+            transform: translateY(-50%); width: 12px; height: 2px;
+            background: #d4b8f0;
+        }
+        /* 가지 점 */
+        .outcome-item::after {
+            content: ''; position: absolute; left: -16px; top: 50%;
+            transform: translateY(-50%); width: 8px; height: 8px;
+            background: white; border: 2px solid var(--primary); border-radius: 50%;
+        }
+        .outcome-item:hover { border-color: var(--primary); background: #faf5ff; box-shadow: 0 2px 8px rgba(155,89,182,0.12); }
+        .outcome-item.selected { border-color: var(--primary); background: var(--primary-light); }
+        .outcome-item.selected::after { background: var(--primary); }
+        .outcome-num { font-weight: bold; color: var(--primary); flex-shrink: 0; font-size: 0.75rem; padding-top: 1px; min-width: 36px; }
+        .outcome-hint { font-size: 0.72rem; color: #bbb; margin-top: 8px; text-align: center; padding-left: 18px; }
 
         .etc-row { margin-top: 8px; }
         .etc-row label { font-size: 0.83rem; color: #777; margin-bottom: 4px; display: block; }
@@ -808,6 +864,11 @@ CRITICAL RULES:
         const etcText = document.getElementById('etcInput').value.trim();
         if (etcText) selectedTexts.push(`기타: ${etcText}`);
 
+        // 경우의 수에서 선택한 전개 방향 포함
+        if (currentQuestion._selectedOutcome) {
+            selectedTexts.push(`→ 선호 전개 방향: ${currentQuestion._selectedOutcome.text}`);
+        }
+
         if (selectedTexts.length === 0) return alert("최소 하나를 선택하거나 기타 내용을 입력해주세요.");
 
         const answerText = selectedTexts.join('\n');
@@ -933,6 +994,7 @@ CRITICAL RULES:
     function renderQuestionPanel(qObj) {
         document.getElementById('questionText').textContent = qObj.question;
         document.getElementById('etcInput').value = '';
+        if (currentQuestion) delete currentQuestion._selectedOutcome;
 
         const list = document.getElementById('optionsList');
         list.innerHTML = '';
@@ -946,11 +1008,25 @@ CRITICAL RULES:
             card.dataset.label = opt.label;
             card.dataset.text = opt.text;
             card.innerHTML = `
-                <input type="${inputType}" name="opt" value="${opt.label}">
-                <span class="option-lbl">${opt.label}.</span>
-                <span class="option-txt">${escapeHtml(opt.text)}</span>
+                <div class="option-card-row">
+                    <input type="${inputType}" name="opt" value="${opt.label}">
+                    <span class="option-lbl">${opt.label}.</span>
+                    <span class="option-txt">${escapeHtml(opt.text)}</span>
+                    ${!isFinalChoice ? `<button class="outcome-btn">&#128336; 경우의 수</button>` : ''}
+                </div>
+                ${!isFinalChoice ? '<div class="outcomes-panel"></div>' : ''}
             `;
-            card.addEventListener('click', () => toggleOption(card, inputType));
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.outcome-btn') || e.target.closest('.outcomes-panel')) return;
+                toggleOption(card, inputType);
+            });
+            if (!isFinalChoice) {
+                const btn = card.querySelector('.outcome-btn');
+                if (btn) btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    fetchOutcomes(btn, opt.label, opt.text);
+                });
+            }
             list.appendChild(card);
         });
 
@@ -965,6 +1041,10 @@ CRITICAL RULES:
     }
 
     function toggleOption(card, type) {
+        // 옵션 변경 시 이전 경우의 수 선택 초기화
+        if (currentQuestion) delete currentQuestion._selectedOutcome;
+        document.querySelectorAll('.outcome-item.selected').forEach(i => i.classList.remove('selected'));
+
         if (type === 'radio') {
             document.querySelectorAll('.option-card').forEach(c => {
                 c.classList.remove('selected');
@@ -976,6 +1056,135 @@ CRITICAL RULES:
             card.classList.toggle('selected');
             card.querySelector('input').checked = card.classList.contains('selected');
         }
+    }
+
+    // ── 경우의 수 (마인드맵 분기) 조회 ───────────────────────
+    async function fetchOutcomes(btn, optionLabel, optionText) {
+        const card = btn.closest('.option-card');
+        const panel = card.querySelector('.outcomes-panel');
+
+        // 토글: 이미 열려 있으면 닫기
+        if (panel.classList.contains('visible')) {
+            panel.classList.remove('visible');
+            btn.textContent = '🕐 경우의 수';
+            return;
+        }
+        // 이미 로드됐으면 바로 표시
+        if (panel.dataset.loaded === 'true') {
+            panel.classList.add('visible');
+            btn.textContent = '접기';
+            return;
+        }
+
+        btn.textContent = '로딩중…';
+        btn.disabled = true;
+
+        const { worldText, charText, storyText } = buildContextText();
+        const epNum = currentQuestion?._epNum || '?';
+
+        const prompt = `
+[ROLE]
+You are a web-novel plot designer helping an author explore story branches.
+
+[EPISODE]
+Episode ${epNum}
+
+[STORY CONTEXT]
+## World Setting:
+${worldText}
+
+## Characters:
+${charText}
+
+## Previous Story Flow:
+${storyText}
+
+[ACCUMULATED PLOT SO FAR]
+${lastPartialPlot || "(No plot accumulated yet)"}
+
+[CURRENT QUESTION]
+${currentQuestion?.question || ''}
+
+[AUTHOR IS CONSIDERING THIS CHOICE]
+Option ${optionLabel}: ${optionText}
+
+[TASK]
+If the author picks this option, generate exactly 3 distinct concrete story branches/scenarios that could naturally follow.
+Each branch should show a clearly different direction, consequence, or twist from the same starting point.
+
+CRITICAL RULES:
+- All text MUST be in Korean
+- Each scenario: 1-2 sentences max, specific and concrete (not vague)
+- Must be grounded in the established world and character personalities
+- Each branch should feel meaningfully different from the others
+- Output ONLY raw JSON, no markdown fences
+
+[OUTPUT FORMAT]:
+{
+  "outcomes": [
+    {"label": "전개 1", "text": "(Korean scenario 1)"},
+    {"label": "전개 2", "text": "(Korean scenario 2)"},
+    {"label": "전개 3", "text": "(Korean scenario 3)"}
+  ]
+}
+`;
+        try {
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3-flash-preview",
+                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                })
+            });
+            const data = await res.json();
+            let rawText = data.candidates[0].content.parts[0].text;
+            rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+            const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("JSON 형식 오류");
+            const parsed = JSON.parse(jsonMatch[0]);
+
+            panel.innerHTML = `
+                <div class="outcomes-panel-title">
+                    <i class="fas fa-code-branch"></i>
+                    "${optionLabel}" 선택 시 가능한 전개 방향
+                </div>
+                <div class="outcomes-tree">
+                    ${parsed.outcomes.map(o => `
+                        <div class="outcome-item" data-text="${escapeHtml(o.text)}">
+                            <span class="outcome-num">${o.label}</span>
+                            <span>${escapeHtml(o.text)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <div class="outcome-hint">
+                    <i class="fas fa-hand-pointer"></i> 전개를 선택하면 답변에 함께 반영됩니다 (선택 사항)
+                </div>
+            `;
+
+            panel.querySelectorAll('.outcome-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const wasSelected = item.classList.contains('selected');
+                    panel.querySelectorAll('.outcome-item').forEach(i => i.classList.remove('selected'));
+                    if (!wasSelected) {
+                        item.classList.add('selected');
+                        if (currentQuestion) currentQuestion._selectedOutcome = { optionLabel, text: item.dataset.text };
+                    } else {
+                        if (currentQuestion) delete currentQuestion._selectedOutcome;
+                    }
+                });
+            });
+
+            panel.dataset.loaded = 'true';
+            panel.classList.add('visible');
+            btn.textContent = '접기';
+        } catch (e) {
+            panel.innerHTML = `<div style="color:#e74c3c; font-size:0.83rem; padding:4px 0;">⚠️ 로드 실패: ${e.message}</div>`;
+            panel.classList.add('visible');
+            btn.textContent = '재시도';
+        }
+        btn.disabled = false;
     }
 
     function showFinalPlot(plotText, epNum) {
