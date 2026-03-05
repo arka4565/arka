@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>테마형 3D 자동 슬라이드 사진첩</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 기본 테마 변수 설정 (테마 & 질감 공통) */
+    :root {
+      /* 커버 테마 변수 */
+      --bg-color: #f3f4f6;
+      --book-shadow: rgba(0, 0, 0, 0.2);
+      --spine-shadow: linear-gradient(to right, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0) 10%, rgba(0,0,0,0) 90%, rgba(0,0,0,0.1) 100%);
+
+      /* 속지 질감 변수 */
+      --page-bg: #ffffff;
+      --page-text: #333333;
+      --page-texture: none;
+      --page-bg-size: auto;
+      --page-line-color: transparent;
+    }
+
+    /* =========================================
+       1. 커버 테마별 배경색 설정
+       ========================================= */
+    [data-theme="default"] { --bg-color: #f3f4f6; }
+    [data-theme="leather"] { --bg-color: #8b5a2b; --book-shadow: rgba(0, 0, 0, 0.5); }
+    [data-theme="dark"] { --bg-color: #111827; --book-shadow: rgba(0, 0, 0, 0.8); }
+    [data-theme="y2k-diary"] { --bg-color: #fdf2f8; --book-shadow: rgba(244, 114, 182, 0.25); }
+    [data-theme="denim"] { --bg-color: #e0f2fe; --book-shadow: rgba(30, 58, 138, 0.3); }
+    [data-theme="hologram"] { --bg-color: #f5f3ff; --book-shadow: rgba(139, 92, 246, 0.3); }
+    [data-theme="mint-choco"] { --bg-color: #fffbeb; --book-shadow: rgba(20, 184, 166, 0.3); }
+    [data-theme="velvet"] { --bg-color: #27272a; --book-shadow: rgba(153, 27, 27, 0.6); }
+    [data-theme="clear-pvc"] { --bg-color: #f0fdf4; --book-shadow: rgba(0, 0, 0, 0.1); }
+    [data-theme="vintage-floral"] { --bg-color: #fefce8; --book-shadow: rgba(161, 98, 7, 0.3); }
+
+    /* =========================================
+       2. 속지 질감 설정 (10가지)
+       ========================================= */
+    [data-texture="plain"] {}
+    [data-texture="gingham"] {
+      --page-bg: #ffffff; --page-text: #831843;
+      --page-texture: repeating-linear-gradient(90deg, transparent, transparent 16px, rgba(244, 114, 182, 0.08) 16px, rgba(244, 114, 182, 0.08) 32px), repeating-linear-gradient(180deg, transparent, transparent 16px, rgba(244, 114, 182, 0.08) 16px, rgba(244, 114, 182, 0.08) 32px);
+    }
+    [data-texture="lined"] {
+      --page-bg: #fafafa; --page-text: #1a1a1a;
+      --page-texture: repeating-linear-gradient(#e5e7eb 0px, #e5e7eb 1px, transparent 1px, transparent 2rem); --page-line-color: rgba(239, 68, 68, 0.3);
+    }
+    [data-texture="grid"] {
+      --page-bg: #fafafa; --page-text: #374151;
+      --page-texture: linear-gradient(rgba(156, 163, 175, 0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(156, 163, 175, 0.3) 1px, transparent 1px); --page-bg-size: 20px 20px;
+    }
+    [data-texture="parchment"] {
+      --page-bg: #f4e4bc; --page-text: #5c4033;
+      --page-texture: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" opacity="0.15"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" stitchTiles="stitch"/></filter><rect width="200" height="200" filter="url(%23noise)"/></svg>');
+    }
+    [data-texture="craft"] {
+      --page-bg: #dcb897; --page-text: #3e2723;
+      --page-texture: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" opacity="0.08"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/></filter><rect width="200" height="200" filter="url(%23noise)"/></svg>');
+    }
+    [data-texture="black-paper"] { --page-bg: #262626; --page-text: #f8fafc; --page-texture: none; }
+    [data-texture="watercolor"] {
+      --page-bg: #f8fafc; --page-text: #334155;
+      --page-texture: radial-gradient(circle at 20% 30%, rgba(186,230,253,0.3), transparent 40%), radial-gradient(circle at 80% 70%, rgba(253,164,175,0.2), transparent 40%);
+    }
+    [data-texture="dotted"] { --page-bg: #fafafa; --page-text: #4b5563; --page-texture: radial-gradient(circle, #cbd5e1 1.5px, transparent 1.5px); --page-bg-size: 20px 20px; }
+    [data-texture="music"] {
+      --page-bg: #ffffff; --page-text: #000000;
+      --page-texture: repeating-linear-gradient(to bottom, transparent 0, transparent 40px, #94a3b8 40px, #94a3b8 41px, transparent 41px, transparent 48px, #94a3b8 48px, #94a3b8 49px, transparent 49px, transparent 56px, #94a3b8 56px, #94a3b8 57px, transparent 57px, transparent 64px, #94a3b8 64px, #94a3b8 65px, transparent 65px, transparent 72px, #94a3b8 72px, #94a3b8 73px, transparent 73px, transparent 100px);
+    }
+
+    /* 속지 모서리 둥글게 */
+    [data-theme="y2k-diary"] .front, [data-theme="denim"] .front, [data-theme="hologram"] .front, [data-theme="mint-choco"] .front, [data-theme="clear-pvc"] .front { border-top-right-radius: 12px; border-bottom-right-radius: 12px; }
+    [data-theme="y2k-diary"] .back, [data-theme="denim"] .back, [data-theme="hologram"] .back, [data-theme="mint-choco"] .back, [data-theme="clear-pvc"] .back { border-top-left-radius: 12px; border-bottom-left-radius: 12px; }
+
+    body {
+      background-color: var(--bg-color); transition: background-color 0.5s ease;
+      font-family: 'Pretendard', sans-serif; overflow-x: hidden;
+    }
+
+    /* 플립북 컨테이너 및 3D 속성 */
+    .book-container { display: flex; justify-content: center; align-items: center; width: 100%; height: 85vh; perspective: 4000px; }
+    .book {
+      position: relative; width: 95vw; max-width: 1600px; aspect-ratio: 2 / 1.3;
+      transform-style: preserve-3d; box-shadow: 0 20px 40px var(--book-shadow); border-radius: 4px;
+      transform: rotateZ(-5deg); transition: transform 0.5s ease;
+    }
+
+    /* 개별 페이지 애니메이션 */
+    .page {
+      position: absolute; right: 0; width: 50%; height: 100%;
+      transform-origin: left center; transform-style: preserve-3d;
+      transition: transform 0.9s cubic-bezier(0.645, 0.045, 0.355, 1); cursor: pointer;
+    }
+    .page.flipped { transform: rotateY(-180deg); }
+
+    .front, .back {
+      position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+      background-color: var(--page-bg); background-image: var(--page-texture);
+      background-size: var(--page-bg-size); color: var(--page-text);
+      padding: 2rem; box-sizing: border-box; overflow: hidden;
+      display: flex; flex-direction: column; transition: background-color 0.5s ease, color 0.5s ease;
+    }
+    .front::before, .back::before { content: ''; position: absolute; top: 0; bottom: 0; width: 2px; background-color: var(--page-line-color); z-index: 1; transition: background-color 0.5s ease; }
+    .front::before { left: 3rem; } .back::before { right: 3rem; }
+    .front::after, .back::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: var(--spine-shadow); pointer-events: none; z-index: 10; }
+    .back { transform: rotateY(180deg); }
+
+    /* 바인더 외부 커버 공통 */
+    .binder-wrapper { display: block; position: absolute; top: -3%; bottom: -3%; left: -3%; right: -5%; z-index: -2; transition: all 0.5s ease; }
+    .binder-tabs { display: flex; position: absolute; top: 10%; bottom: 10%; right: -25px; width: 25px; flex-direction: column; gap: 12px; padding: 10px 0; z-index: -1; }
+    @media (min-width: 1024px) { .binder-tabs { right: -35px; width: 35px; } }
+    .binder-tabs .tab { flex: 1; border-radius: 0 8px 8px 0; box-shadow: 2px 2px 4px rgba(0,0,0,0.15); transition: background-color 0.5s ease, border 0.5s ease; }
+
+    /* Y2K 다이어리 커버 디자인 */
+    [data-theme="y2k-diary"] .binder-wrapper { background: #ff8eb3; border-radius: 16px; box-shadow: inset 0 0 0 3px #ffb6c1, inset 0 0 15px rgba(255, 105, 180, 0.4), 10px 15px 30px rgba(244, 114, 182, 0.3); }
+    [data-theme="y2k-diary"] .binder-wrapper::before { content: ''; position: absolute; top: 10px; bottom: 10px; left: 10px; right: 10px; border: 4px dotted #ffcce6; border-radius: 12px; pointer-events: none; }
+    [data-theme="y2k-diary"] .binder-wrapper::after { content: ''; position: absolute; top: 50%; right: -30px; transform: translateY(-50%); width: 45px; height: 90px; background: #ff8eb3; border-radius: 0 16px 16px 0; box-shadow: inset -3px 0 5px rgba(255, 255, 255, 0.4), 4px 5px 10px rgba(244, 114, 182, 0.3); background-image: radial-gradient(circle at 22px 45px, #ff69b4 0%, #ff69b4 20%, #ff8eb3 25%, transparent 35%); border-left: 2px solid rgba(0,0,0,0.05); }
+    [data-theme="y2k-diary"] .binder-tabs .tab-1 { background-color: #ff69b4; } [data-theme="y2k-diary"] .binder-tabs .tab-2 { background-color: #fef08a; } [data-theme="y2k-diary"] .binder-tabs .tab-3 { background-color: #e9d5ff; } [data-theme="y2k-diary"] .binder-tabs .tab-4 { background-color: #fbcfe8; }
+
+    /* 모던 화이트 */
+    [data-theme="default"] .binder-wrapper { background: #e5e7eb; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+    [data-theme="default"] .binder-wrapper::after { content: ''; position: absolute; top: 40%; right: -25px; height: 20%; width: 30px; background: #d1d5db; border-radius: 0 6px 6px 0; box-shadow: 2px 2px 5px rgba(0,0,0,0.1), inset -1px 0 2px rgba(255,255,255,0.5); border-left: 1px solid #9ca3af; }
+    [data-theme="default"] .binder-tabs .tab { background-color: #d1d5db; }
+    /* 브라운 가죽 */
+    [data-theme="leather"] .binder-wrapper { background: #5c3a21; border-radius: 16px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.05), inset 0 0 10px rgba(0,0,0,0.5), 0 15px 25px rgba(0,0,0,0.4); }
+    [data-theme="leather"] .binder-wrapper::before { content: ''; position: absolute; top: 8px; bottom: 8px; left: 8px; right: 8px; border: 2px dashed rgba(255, 200, 150, 0.3); border-radius: 10px; pointer-events: none; }
+    [data-theme="leather"] .binder-wrapper::after { content: ''; position: absolute; top: 50%; right: -35px; transform: translateY(-50%); width: 50px; height: 80px; background: #4a2e1b; border-radius: 0 10px 10px 0; box-shadow: 4px 5px 10px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,200,150,0.1); background-image: radial-gradient(circle at 25px 40px, #d4af37 0%, #aa801e 12%, transparent 16%); }
+    [data-theme="leather"] .binder-tabs .tab { background-color: #cd853f; border-right: 1px solid rgba(0,0,0,0.2); }
+    /* 다크 모드 */
+    [data-theme="dark"] .binder-wrapper { background: #1f2937; border-radius: 12px; box-shadow: 0 15px 30px rgba(0,0,0,0.6); border: 1px solid #374151; }
+    [data-theme="dark"] .binder-wrapper::after { content: ''; position: absolute; top: 35%; right: -25px; height: 30%; width: 30px; background: #111827; border-radius: 0 8px 8px 0; border: 1px solid #374151; border-left: none; box-shadow: 4px 0 10px rgba(0,0,0,0.5); background-image: linear-gradient(to bottom, transparent 48%, #4b5563 48%, #4b5563 52%, transparent 52%); }
+    [data-theme="dark"] .binder-tabs .tab { background-color: #1f2937; border: 1px solid #374151; border-left: none; }
+    /* 기타 테마 축약 */
+    [data-theme="denim"] .binder-wrapper { background: #1e3a8a; border-radius: 16px; box-shadow: 0 15px 25px rgba(30,58,138,0.4); }
+    [data-theme="denim"] .binder-tabs .tab { background-color: #bfdbfe; }
+    [data-theme="hologram"] .binder-wrapper { background: linear-gradient(135deg, #ff9a9e, #fecfef, #a1c4fd, #c2e9fb); border-radius: 16px; box-shadow: 0 10px 30px rgba(167, 139, 250, 0.4); }
+    [data-theme="hologram"] .binder-tabs .tab { background-color: #fbcfe8; }
+    [data-theme="mint-choco"] .binder-wrapper { background: #6ee7b7; border-radius: 16px; } [data-theme="mint-choco"] .binder-tabs .tab { background-color: #451a03; }
+    [data-theme="velvet"] .binder-wrapper { background: #7f1d1d; border-radius: 12px; } [data-theme="velvet"] .binder-tabs .tab { background-color: #fef3c7; }
+    [data-theme="clear-pvc"] .binder-wrapper { background: rgba(255, 255, 255, 0.2); border-radius: 16px; border: 2px solid rgba(255,255,255,0.6); backdrop-filter: blur(8px); } [data-theme="clear-pvc"] .binder-tabs .tab { background: rgba(255,255,255,0.4); }
+    [data-theme="vintage-floral"] .binder-wrapper { background-color: #fef08a; border-radius: 12px; } [data-theme="vintage-floral"] .binder-tabs .tab { background-color: #ef4444; }
+
+    /* 바인더 중앙 링 효과 */
+    [data-theme="default"] .book::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; transform: translateX(-50%); background: linear-gradient(to right, rgba(0,0,0,0.05), rgba(0,0,0,0.1), rgba(0,0,0,0.05)); z-index: 100; pointer-events: none; }
+    [data-theme="leather"] .book::after, [data-theme="velvet"] .book::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 12px; transform: translateX(-50%); background: linear-gradient(to right, rgba(0,0,0,0.2), rgba(0,0,0,0.5), rgba(0,0,0,0.2)); z-index: 100; pointer-events: none; }
+    [data-theme="y2k-diary"] .book::after, [data-theme="denim"] .book::after, [data-theme="hologram"] .book::after, [data-theme="mint-choco"] .book::after, [data-theme="clear-pvc"] .book::after {
+      content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 60px; transform: translateX(-50%) translateZ(8px);
+      background-image: radial-gradient(ellipse at center, transparent 30%, #9ca3af 35%, #ffffff 45%, #6b7280 55%, transparent 60%), radial-gradient(ellipse at center, transparent 30%, #9ca3af 35%, #ffffff 45%, #6b7280 55%, transparent 60%), radial-gradient(ellipse at center, transparent 30%, #9ca3af 35%, #ffffff 45%, #6b7280 55%, transparent 60%), radial-gradient(ellipse at center, transparent 30%, #9ca3af 35%, #ffffff 45%, #6b7280 55%, transparent 60%), radial-gradient(ellipse at center, transparent 30%, #9ca3af 35%, #ffffff 45%, #6b7280 55%, transparent 60%), radial-gradient(ellipse at center, transparent 30%, #9ca3af 35%, #ffffff 45%, #6b7280 55%, transparent 60%), linear-gradient(to right, transparent 40%, #9ca3af 42%, #f3f4f6 50%, #d1d5db 58%, transparent 60%);
+      background-size: 100% 40px, 100% 40px, 100% 40px, 100% 40px, 100% 40px, 100% 40px, 100% 100%;
+      background-position: center 12%, center 23%, center 34%, center 66%, center 77%, center 88%, center center;
+      background-repeat: no-repeat; z-index: 100; pointer-events: none; filter: drop-shadow(2px 3px 4px rgba(0,0,0,0.3));
+    }
+
+    .content-inner { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: center;}
+
+    /* --- 사진첩 전용 디자인 (글자 없음, 사진만 가득) --- */
+    .album-page {
+      display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+      height: 100%; width: 100%; gap: 1rem; padding: 0.5rem 0;
+    }
+    .album-photo {
+      width: 95%; height: 48%; object-fit: cover; background-color: #ffffff;
+      padding: 0.5rem 0.5rem 2.5rem 0.5rem; /* 폴라로이드 스타일 하단 여백 */
+      box-shadow: 2px 6px 15px rgba(0,0,0,0.15); border: 1px solid #e5e7eb; border-radius: 2px;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+      cursor: pointer;
+    }
+    /* 사진에 마우스 올렸을 때 확대 효과 (회전 속성 제거) */
+    .album-photo:hover {
+      transform: scale(1.04) !important;
+      z-index: 20; box-shadow: 4px 12px 25px rgba(0,0,0,0.3);
+    }
+
+    @media (max-width: 640px) { .front, .back { padding: 1rem; } .front::before { left: 1.5rem; } .back::before { right: 1.5rem; } }
+  </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen" data-theme="y2k-diary" data-texture="gingham">
+
+<!-- 상단 컨트롤 패널 -->
+<header class="p-6 flex flex-col lg:flex-row justify-between items-center gap-4 bg-black/10 backdrop-blur-sm z-50">
+  <div class="flex items-center gap-4">
+    <h1 class="text-2xl font-bold text-current drop-shadow-md" style="color: var(--page-text)">내 다꾸 포토 앨범</h1>
+
+    <!-- 자동 슬라이드 버튼 -->
+    <button id="auto-play-btn" class="flex items-center gap-1 px-4 py-2 rounded-full bg-pink-500 text-white font-medium shadow-md hover:bg-pink-600 transition-colors">
+      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg>
+      <span>자동 재생</span>
+    </button>
+  </div>
+
+  <div class="flex flex-wrap justify-center items-center gap-4">
+    <div class="flex items-center gap-2">
+      <label for="theme-select" class="font-medium text-sm whitespace-nowrap" style="color: var(--page-text)">커버 (10종):</label>
+      <select id="theme-select" class="px-3 py-1.5 rounded-lg border-2 border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-400 cursor-pointer shadow-sm text-sm">
+        <option value="y2k-diary" selected>1. Y2K 하이틴 핑크</option>
+        <option value="default">2. 모던 베이직 화이트</option>
+        <option value="leather">3. 클래식 브라운 가죽</option>
+        <option value="dark">4. 시크 블랙 모드</option>
+        <option value="denim">5. 청청 데님 스티치</option>
+        <option value="hologram">6. 몽환적 홀로그램</option>
+        <option value="mint-choco">7. 달콤 민트 초코</option>
+        <option value="velvet">8. 럭셔리 레드 벨벳</option>
+        <option value="clear-pvc">9. 투명 글래스 PVC</option>
+        <option value="vintage-floral">10. 빈티지 플로럴 패턴</option>
+      </select>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <label for="texture-select" class="font-medium text-sm whitespace-nowrap" style="color: var(--page-text)">속지 (10종):</label>
+      <select id="texture-select" class="px-3 py-1.5 rounded-lg border-2 border-gray-300 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-pink-400 cursor-pointer shadow-sm text-sm">
+        <option value="gingham" selected>1. 핑크 깅엄 체크</option>
+        <option value="plain">2. 베이직 무지 (흰색)</option>
+        <option value="lined">3. 줄무늬 공책</option>
+        <option value="grid">4. 모눈종이 (그리드)</option>
+        <option value="parchment">5. 낡은 양피지</option>
+        <option value="craft">6. 감성 크라프트지</option>
+        <option value="black-paper">7. 흑색 종이 (다크)</option>
+        <option value="watercolor">8. 수채화 도화지</option>
+        <option value="dotted">9. 도트 방안지</option>
+        <option value="music">10. 음악 오선지</option>
+      </select>
+    </div>
+  </div>
+</header>
+
+<main class="flex-grow flex items-center justify-center p-4 overflow-hidden">
+  <div class="book-container">
+    <div class="book" id="book">
+
+      <div class="binder-wrapper"></div>
+      <div class="binder-tabs">
+        <div class="tab tab-1"></div>
+        <div class="tab tab-2"></div>
+        <div class="tab tab-3"></div>
+        <div class="tab tab-4"></div>
+      </div>
+
+      <!-- [페이지 1] 처음부터 열려있는 상태 (flipped) -->
+      <div class="page flipped">
+        <!-- 앞면 (책이 닫혔을 때 보이는 겉표지) -->
+        <div class="front">
+          <div class="content-inner items-center text-center p-8 border-4 border-dashed border-current opacity-70">
+            <!-- 화면 크기에 맞게 폰트 크기 반응형 조절 -->
+            <h2 class="text-4xl lg:text-5xl xl:text-7xl font-extrabold mb-4 mt-auto">나만의 포토 다꾸</h2>
+            <p class="text-lg lg:text-2xl xl:text-3xl">소중한 순간들</p>
+            <span class="mt-auto opacity-50 text-sm lg:text-base">클릭하여 넘기기</span>
+          </div>
+        </div>
+        <!-- 뒷면 (책을 열었을 때 보이는 왼쪽 페이지) -->
+        <div class="back">
+          <div class="content-inner">
+            <div class="album-page">
+              <!-- 사진이 깨지지 않도록 고해상도(800/600) 이미지 로드 & 개별 회전 효과 제거 -->
+              <img src="https://picsum.photos/seed/p1/800/600" alt="사진" class="album-photo">
+              <img src="https://picsum.photos/seed/p2/800/600" alt="사진" class="album-photo">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- [페이지 2] 펼쳤을 때 오른쪽, 넘기면 다음 왼쪽 -->
+      <div class="page">
+        <div class="front">
+          <div class="content-inner">
+            <div class="album-page">
+              <img src="https://picsum.photos/seed/p3/800/600" alt="사진" class="album-photo">
+              <img src="https://picsum.photos/seed/p4/800/600" alt="사진" class="album-photo">
+            </div>
+          </div>
+        </div>
+        <div class="back">
+          <div class="content-inner">
+            <div class="album-page">
+              <img src="https://picsum.photos/seed/p5/800/600" alt="사진" class="album-photo">
+              <img src="https://picsum.photos/seed/p6/800/600" alt="사진" class="album-photo">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- [페이지 3] -->
+      <div class="page">
+        <div class="front">
+          <div class="content-inner">
+            <div class="album-page">
+              <img src="https://picsum.photos/seed/p7/800/600" alt="사진" class="album-photo">
+              <img src="https://picsum.photos/seed/p8/800/600" alt="사진" class="album-photo">
+            </div>
+          </div>
+        </div>
+        <div class="back">
+          <div class="content-inner">
+            <div class="album-page">
+              <img src="https://picsum.photos/seed/p9/800/600" alt="사진" class="album-photo">
+              <img src="https://picsum.photos/seed/p10/800/600" alt="사진" class="album-photo">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- [페이지 4] -->
+      <div class="page">
+        <div class="front">
+          <div class="content-inner">
+            <div class="album-page">
+              <img src="https://picsum.photos/seed/p11/800/600" alt="사진" class="album-photo">
+              <img src="https://picsum.photos/seed/p12/800/600" alt="사진" class="album-photo">
+            </div>
+          </div>
+        </div>
+        <div class="back">
+          <div class="content-inner items-center text-center p-8 border-4 border-dashed border-current opacity-70">
+            <h2 class="text-4xl lg:text-5xl xl:text-7xl font-extrabold mb-4 mt-auto">The End</h2>
+            <span class="mt-auto opacity-50 text-sm lg:text-base">처음으로 돌아가기</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script>
+  // ==========================================
+  // 🕒 [사용자 설정] 자동 슬라이드 대기 시간
+  // ==========================================
+  // 배열의 숫자는 각 화면을 본 뒤 '다음 장으로 넘어가기까지의 초(시간)'입니다.
+  // 현재 구성: [표지 닫힘 상태, 첫 번째 펼침, 두 번째 펼침, 세 번째 펼침, 마지막 장]
+  const slideDurations = [
+    2,  // index 0: 책이 완전히 닫힌 표지 상태에서 대기하는 시간 (2초)
+    3,  // index 1: 첫 번째 펼쳐진 사진첩에서 대기하는 시간 (3초)
+    4,  // index 2: 두 번째 펼쳐진 사진첩에서 대기하는 시간 (4초)
+    3,  // index 3: 세 번째 펼쳐진 사진첩에서 대기하는 시간 (3초)
+    2   // index 4: 마지막 페이지 도달 후 닫히기 전 대기하는 시간 (2초)
+  ];
+  // ==========================================
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const themeSelect = document.getElementById('theme-select');
+    const textureSelect = document.getElementById('texture-select');
+    const pages = document.querySelectorAll('.page');
+    const playBtn = document.getElementById('auto-play-btn');
+
+    let isPlaying = false;
+    let autoTimer = null;
+
+    // 아이콘 SVG 문자열
+    const playIcon = `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4l12 6-12 6z"/></svg> <span>자동 재생</span>`;
+    const pauseIcon = `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4h3v12H5zm7 0h3v12h-3z"/></svg> <span>일시 정지</span>`;
+
+    // 테마 및 질감 변경
+    themeSelect.addEventListener('change', (e) => document.body.setAttribute('data-theme', e.target.value));
+    textureSelect.addEventListener('change', (e) => document.body.setAttribute('data-texture', e.target.value));
+
+    // 페이지 클릭 (수동 넘김) 및 초기 z-index 셋팅
+    pages.forEach((page, index) => {
+      page.style.zIndex = page.classList.contains('flipped') ? index + 1 : pages.length - index;
+
+      page.addEventListener('click', function() {
+        // 사용자가 수동으로 클릭하면 슬라이드 자동재생 일시정지
+        if (isPlaying) stopSlide();
+
+        const isFlipped = this.classList.contains('flipped');
+        flipAction(this, index, !isFlipped);
+      });
+    });
+
+    // 실제 페이지 넘기는 함수
+    function flipAction(page, index, forward) {
+      if (forward) {
+        page.classList.add('flipped');
+        setTimeout(() => { page.style.zIndex = index + 1; }, 450); // css transition 시간 절반
+      } else {
+        page.style.zIndex = pages.length - index;
+        page.classList.remove('flipped');
+      }
+    }
+
+    // 자동 슬라이드 로직
+    function processNextSlide() {
+      if (!isPlaying) return;
+
+      // 현재 몇 개의 페이지가 뒤집혀 있는지 확인 (= 현재 화면 번호)
+      const flippedCount = document.querySelectorAll('.page.flipped').length;
+
+      // 설정된 대기 시간 가져오기 (설정값이 없으면 기본 3초)
+      const waitTime = (slideDurations[flippedCount] || 3) * 1000;
+
+      autoTimer = setTimeout(() => {
+        if (flippedCount < pages.length) {
+          // 다음 장 넘기기
+          flipAction(pages[flippedCount], flippedCount, true);
+          processNextSlide();
+        } else {
+          // 끝까지 다 봤을 경우 -> 책 덮기 애니메이션
+          let delay = 0;
+          for (let i = pages.length - 1; i >= 0; i--) {
+            setTimeout(() => { flipAction(pages[i], i, false); }, delay);
+            delay += 250; // 차례대로 파라락 덮이는 효과
+          }
+
+          // 다 덮이고 나면 다시 첫 장 열면서 사이클 재시작
+          setTimeout(() => {
+            if (isPlaying) {
+              flipAction(pages[0], 0, true);
+              processNextSlide();
+            }
+          }, delay + 1000);
+        }
+      }, waitTime);
+    }
+
+    // 재생/일시정지 토글
+    function togglePlay() {
+      if (isPlaying) {
+        stopSlide();
+      } else {
+        isPlaying = true;
+        playBtn.innerHTML = pauseIcon;
+        playBtn.classList.replace('bg-pink-500', 'bg-gray-500');
+        playBtn.classList.replace('hover:bg-pink-600', 'hover:bg-gray-600');
+        processNextSlide();
+      }
+    }
+
+    function stopSlide() {
+      isPlaying = false;
+      clearTimeout(autoTimer);
+      playBtn.innerHTML = playIcon;
+      playBtn.classList.replace('bg-gray-500', 'bg-pink-500');
+      playBtn.classList.replace('hover:bg-gray-600', 'hover:bg-pink-600');
+    }
+
+    playBtn.addEventListener('click', togglePlay);
+  });
+</script>
+</body>
+</html>

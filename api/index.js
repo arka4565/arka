@@ -3,6 +3,7 @@ const mysql = require('mysql');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config({ quiet: true });;
 
 const app = express();
@@ -45,6 +46,8 @@ app.use((req, res, next) => {
     next();
 });
 
+// ✅ [추가됨] 정적 파일 서빙 (public 폴더)
+app.use(express.static(path.join(__dirname, '../public')));
 
 // ... (기존 DB 설정 및 미들웨어 코드들) ...
 

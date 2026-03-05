@@ -6,6 +6,10 @@
       "destination": "/api/index.js"
     },
     {
+      "source": "/diary/(.*)",
+      "destination": "/diary/$1"
+    },
+    {
       "source": "/storys1",
       "destination": "/story_plotter.html"
     },
