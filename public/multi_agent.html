@@ -596,7 +596,7 @@ async function callAI(system, user) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            model: "gemini-3-flash-preview",
+            model: "gemini-3.1-flash-lite-preview",
             payload: {
                 contents: [{ parts: [{ text: user }] }],
                 systemInstruction: { parts: [{ text: system }] }
