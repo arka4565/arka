@@ -431,7 +431,7 @@
 
         let combined = `[ ${projectTitle} ]\n\n`;
         selectedStories.forEach(s => {
-            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
+            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n====${s.episode_number}화 끝====\n\n`;
         });
         
         const blob = new Blob([combined], { type: "text/plain;charset=utf-8" });
@@ -492,7 +492,7 @@
 
         let combined = `[ ${projectTitle} ]\n\n`;
         selectedStories.forEach(s => {
-            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n`;
+            combined += `\n=== ${s.episode_number}화: ${s.title} ===\n\n${s.content}\n\n====${s.episode_number}화 끝====\n\n`;
         });
 
         navigator.clipboard.writeText(combined).then(() => {
