@@ -87,6 +87,15 @@
         .btn-start:hover { opacity: 0.88; }
         .btn-start:disabled { background: #ccc; cursor: not-allowed; }
 
+        .btn-auto {
+            background: #2980b9; color: white; border: none;
+            padding: 13px; border-radius: 8px; font-size: 0.95rem; font-weight: bold;
+            cursor: pointer; width: 100%;
+            transition: opacity 0.2s;
+        }
+        .btn-auto:hover { opacity: 0.88; }
+        .btn-auto:disabled { background: #ccc; cursor: not-allowed; }
+
         .btn-restart {
             background: #f5f5f5; color: #666; border: 1px solid #ddd;
             padding: 9px; border-radius: 6px; font-size: 0.85rem;
@@ -434,6 +443,9 @@
         <button class="btn-start" id="btnStart" onclick="startPlanning()">
             <i class="fas fa-play"></i> 플롯 설계 시작
         </button>
+        <button class="btn-auto" id="btnAuto" onclick="autoGeneratePlot()">
+            <i class="fas fa-bolt"></i> 자동 플롯 생성
+        </button>
         <button class="btn-restart" id="btnRestart" onclick="restartPlanning()">
             <i class="fas fa-redo"></i> 처음부터 다시
         </button>
@@ -495,6 +507,7 @@
     let isFinished = false;
     let userInitInput = '';        // 사용자가 입력한 이번 화 기본 구상
     let lastPartialPlot = '';      // 누적된 플롯 서술 (매 질문마다 AI가 연장)
+    let geminiContents = [];       // 멀티턴 대화 히스토리 (Gemini multi-turn format)
     const FINALIZE_THRESHOLD = 5; // 이 횟수 이상 답변 후 AI가 플롯 반영 → 정리/추가질문 표시
 
     // ── 초기화 ──────────────────────────────────────────────
@@ -593,7 +606,7 @@
             if (filtered.length > 0) {
                 contentText = "\n\n[참고 본문 발췌]\n" +
                     filtered.map(s =>
-                        `(${s.episode_number}화) ${s.content ? s.content.slice(0, 400) + "..." : ""}`
+                        `(${s.episode_number}화) ${s.content || ""}`
                     ).join('\n');
             }
         }
@@ -606,6 +619,93 @@
         return conversationHistory.map((item, i) =>
             `Q${i + 1}: ${item.q}\nA${i + 1}: ${item.a}`
         ).join('\n\n');
+    }
+
+    // ── 자동 플롯 생성 ────────────────────────────────────────
+    async function autoGeneratePlot() {
+        const epNum = document.getElementById('targetEp').value;
+        const initText = document.getElementById('userInitInput').value.trim();
+        if (!epNum || epNum < 1) return alert("회차 번호를 입력해주세요.");
+
+        // 상태 초기화
+        isFinished = false;
+        conversationHistory = [];
+        questionStep = 0;
+        finalPlotText = '';
+        lastPartialPlot = '';
+        geminiContents = [];
+        userInitInput = initText;
+
+        // UI 초기화
+        document.getElementById('chatMessages').innerHTML = '';
+        document.getElementById('savedPlotBox').style.display = 'none';
+        document.getElementById('btnStart').style.display = 'none';
+        document.getElementById('btnAuto').style.display = 'none';
+        document.getElementById('btnRestart').style.display = 'block';
+        document.getElementById('progressWrap').style.display = 'none';
+        document.getElementById('questionPanel').style.display = 'none';
+        document.getElementById('chatTitle').textContent = `제 ${epNum}화 자동 플롯 생성`;
+        document.getElementById('chatSub').textContent = 'AI가 자동으로 플롯을 구성 중입니다…';
+
+        addSystemMessage("AI가 스토리를 분석하여 자동으로 플롯을 구성합니다…");
+        addThinkingIndicator();
+
+        const { worldText, charText, storyText, contentText } = buildContextText();
+
+        const systemInstruction = `당신은 웹소설 플롯 설계 전문가입니다. 주어진 스토리 컨텍스트를 분석하여 다음 회차의 완성된 플롯을 구성합니다.
+
+[스토리 컨텍스트]
+## 세계관 설정:
+${worldText}
+
+## 등장인물:
+${charText}
+
+## 이전 스토리 흐름 (회차별 줄거리):
+${storyText}
+${contentText}`;
+
+        const userMsg = `[목표] 제 ${epNum}화의 완성된 플롯을 자동으로 구성해주세요.
+
+[작가의 초기 구상]
+${initText || "(없음 — 이전 스토리 흐름을 기반으로 자연스럽게 이어지는 방향으로 구성하세요)"}
+
+[지시사항]
+이전 스토리의 흐름, 미해결 서브플롯, 캐릭터 아크, 복선 등을 종합적으로 분석하여 제 ${epNum}화의 완성된 플롯을 직접 결정하고 구성하세요.
+아래 구조로 플롯을 작성하세요:
+- 회차 시작 상황
+- 중반부 핵심 사건 및 갈등
+- 위기/전환점
+- 회차 엔딩
+- 다음 화 복선
+
+각 항목은 "▶ {항목}: {내용}" 형식으로 작성하세요.
+반드시 순수 텍스트만 출력하세요 — JSON이나 마크다운 없이.`;
+
+        try {
+            const res = await fetch('/api/generate-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: "gemini-3.1-flash-lite-preview",
+                    payload: {
+                        contents: [{ role: "user", parts: [{ text: userMsg }] }],
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    }
+                })
+            });
+            const data = await res.json();
+            const plotText = data.candidates[0].content.parts[0].text.trim();
+
+            removeThinkingIndicator();
+            finalPlotText = plotText;
+            lastPartialPlot = plotText;
+            showFinalPlot(plotText, epNum);
+            document.getElementById('chatSub').textContent = '자동 생성 완료';
+        } catch (e) {
+            removeThinkingIndicator();
+            addSystemMessage("⚠️ 오류가 발생했습니다: " + e.message);
+        }
     }
 
     // ── 설계 시작 ────────────────────────────────────────────
@@ -627,6 +727,7 @@
         document.getElementById('chatMessages').innerHTML = '';
         document.getElementById('savedPlotBox').style.display = 'none';
         document.getElementById('btnStart').style.display = 'none';
+        document.getElementById('btnAuto').style.display = 'none';
         document.getElementById('btnRestart').style.display = 'block';
         document.getElementById('progressWrap').style.display = 'flex';
         document.getElementById('chatTitle').textContent = `제 ${epNum}화 플롯 설계`;
@@ -652,6 +753,7 @@
 
     function restartPlanning() {
         document.getElementById('btnStart').style.display = 'block';
+        document.getElementById('btnAuto').style.display = 'block';
         document.getElementById('btnRestart').style.display = 'none';
         document.getElementById('progressWrap').style.display = 'none';
         document.getElementById('questionPanel').style.display = 'none';
@@ -668,101 +770,86 @@
         userInitInput = '';
         finalPlotText = '';
         lastPartialPlot = '';
+        geminiContents = [];
     }
 
     // ── AI 질문 요청 ─────────────────────────────────────────
     async function fetchNextQuestion(epNum, skipFinalizeCheck = false) {
+        const isFirst = geminiContents.length === 0;
         const { worldText, charText, storyText, contentText } = buildContextText();
-        const isFirst = conversationHistory.length === 0;
 
-        // 직전 Q&A (마지막 답변만 추출)
-        const latestQA = conversationHistory.length > 0
-            ? `Q: ${conversationHistory[conversationHistory.length - 1].q}\nA: ${conversationHistory[conversationHistory.length - 1].a}`
-            : '(none yet)';
+        // systemInstruction: 역할 + 스토리 컨텍스트 + 출력 규칙 (매 호출마다 별도 필드로 전달)
+        const systemInstruction = `당신은 웹소설 플롯 설계 전문가입니다. Q&A 방식으로 작가와 함께 단계적으로 회차 플롯을 구성합니다. 답변이 들어올 때마다 누적 플롯 서술을 확장하세요. 기존 내용을 절대 재작성하지 마세요.
 
-        const prompt = `
-[ROLE]
-You are an expert web-novel plot designer. Guide the author step by step through Q&A to build a detailed episode plot. After each answer, you EXTEND (never rewrite) the accumulated plot narrative.
-
-[STORY CONTEXT]
-## World Setting:
+[스토리 컨텍스트]
+## 세계관 설정:
 ${worldText}
 
-## Characters:
+## 등장인물:
 ${charText}
 
-## Previous Story Flow (episode summaries):
+## 이전 스토리 흐름 (회차별 줄거리):
 ${storyText}
 ${contentText}
 
-[GOAL]
-Design the plot for Episode ${epNum}.
+[출력 규칙]
+1. "question"과 "options[].text"는 반드시 한국어로 작성하세요.
+2. "partialPlot" = 이전 누적 플롯 전체 + 새로운 ▶ 줄 하나. 첫 질문은 빈 문자열.
+3. 기존 확정 줄을 절대 재작성·확장·극적 변형하지 마세요.
+4. 반드시 순수 JSON만 출력하세요 — 마크다운 코드펜스나 부가 텍스트 없이.
+5. 선택지는 항상 A, B, C 3개입니다.
 
-[AUTHOR'S INITIAL IDEA]
-${userInitInput || "(None — derive directions from the previous story flow)"}
-
-[ACCUMULATED PLOT NARRATIVE SO FAR]
-CRITICAL: This is the single source of truth. Extend it — do NOT rewrite or contradict any part.
----
-${lastPartialPlot || "(Empty — this is the first question, no plot yet)"}
----
-
-[LATEST DECISION TO INCORPORATE INTO THE PLOT]
-${latestQA}
-
-[INSTRUCTIONS]
-${isFirst ? (userInitInput ? `
-STEP 1 — Author provided an initial idea:
-- Ask a single direction-choosing question (Korean).
-- Propose exactly 3 concrete directions based on the initial idea and previous story flow.
-- Each option: "Story structure — Key event — Expected tone/mood"
-- "partialPlot": "" (empty string — no decisions made yet)
-` : `
-STEP 1 — No initial idea:
-- Analyze previous story flow, unresolved subplots, character arcs, foreshadowing.
-- Ask a single direction-choosing question for Episode ${epNum} (Korean).
-- Propose exactly 3 natural continuation directions.
-- Each option: "Core event — Story structure — Expected emotional arc"
-- "partialPlot": "" (empty string — no decisions made yet)
-`) : `
-FOLLOW-UP STEP:
-1. Take [ACCUMULATED PLOT NARRATIVE SO FAR] as your base — do NOT remove or contradict any existing line.
-2. Append ONE new short line that captures the essence of [LATEST DECISION].
-   - Format: "▶ {topic keyword}: {1-2 sentence summary of the decision}" (Korean)
-   - Do NOT expand, dramatize, or invent details beyond what the author chose.
-   - Keep it factual and concise — this is a direction memo, not a story draft.
-3. Ask the next question about the next unresolved element.
-   - Element order (skip already-covered): Mid-episode events → Conflict/crisis → Episode ending → Next-episode foreshadowing
-   - Options must reflect story setting, character personalities, and previous decisions.
-`}
-
-CRITICAL RULES:
-1. "question" and "options[].text" MUST be in Korean.
-2. "partialPlot" = [ACCUMULATED PLOT NARRATIVE SO FAR] + one new short ▶ line. Nothing more.
-3. NEVER rewrite, expand, or dramatize previously established lines.
-4. Output ONLY raw JSON — no markdown fences, no extra text.
-5. Always exactly 3 options labeled A, B, C.
-
-[OUTPUT FORMAT — raw JSON only]:
+[출력 형식]:
 {
-  "question": "(Korean question text)",
+  "question": "(질문 텍스트)",
   "options": [
-    {"label": "A", "text": "(Korean option A — detailed)"},
-    {"label": "B", "text": "(Korean option B — detailed)"},
-    {"label": "C", "text": "(Korean option C — detailed)"}
+    {"label": "A", "text": "(선택지 A — 구체적으로)"},
+    {"label": "B", "text": "(선택지 B — 구체적으로)"},
+    {"label": "C", "text": "(선택지 C — 구체적으로)"}
   ],
   "multiple": false,
-  "partialPlot": "(Previous lines unchanged + one new ▶ line — empty string on first question)"
-}
-`;
+  "partialPlot": "(누적 플롯 — 첫 질문이면 빈 문자열)"
+}`;
+
+        if (isFirst) {
+            // 첫 호출: 목표 + 초기 구상 + 1단계 지시
+            const firstMsg = `[목표] 제 ${epNum}화 플롯을 설계합니다.
+
+[작가의 초기 구상]
+${userInitInput || "(없음 — 이전 스토리 흐름을 기반으로 방향을 도출하세요)"}
+
+[1단계 지시사항]
+${userInitInput
+    ? `초기 구상을 바탕으로 방향 선택 질문 하나를 제시하세요.
+각 선택지 형식: "스토리 구조 — 핵심 사건 — 예상 분위기/톤"
+partialPlot은 빈 문자열로 출력하세요.`
+    : `이전 스토리 흐름, 미해결 서브플롯, 캐릭터 아크, 복선 등을 분석하여 방향 선택 질문 하나를 제시하세요.
+각 선택지 형식: "핵심 사건 — 스토리 구조 — 예상 감정 흐름"
+partialPlot은 빈 문자열로 출력하세요.`}`;
+            geminiContents.push({ role: "user", parts: [{ text: firstMsg }] });
+        } else {
+            // 후속 호출: 사용자 답변만 추가
+            const latestQA = conversationHistory.length > 0
+                ? `Q: ${conversationHistory[conversationHistory.length - 1].q}\nA: ${conversationHistory[conversationHistory.length - 1].a}`
+                : '';
+            const followUpMsg = `[최신 답변]
+${latestQA}
+
+이전 partialPlot에 위 답변의 핵심을 ▶ 줄 하나로 추가하고, 다음 미결 요소에 대한 질문을 제시하세요.
+질문 순서 (이미 다룬 항목 건너뜀): 중반부 사건 → 갈등/위기 → 회차 엔딩 → 다음 화 복선`;
+            geminiContents.push({ role: "user", parts: [{ text: followUpMsg }] });
+        }
 
         try {
             const res = await fetch('/api/generate-text', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: "gemini-3-flash-preview",
-                    payload: { contents: [{ parts: [{ text: prompt }] }] }
+                    model: "gemini-3.1-flash-lite-preview",
+                    payload: {
+                        contents: geminiContents,
+                        systemInstruction: { parts: [{ text: systemInstruction }] }
+                    }
                 })
             });
             const data = await res.json();
@@ -772,6 +859,9 @@ CRITICAL RULES:
             const jsonMatch = rawText.match(/\{[\s\S]*\}/);
             if (!jsonMatch) throw new Error("JSON 형식 오류");
             const questionObj = JSON.parse(jsonMatch[0]);
+
+            // AI 응답을 멀티턴 히스토리에 저장
+            geminiContents.push({ role: "model", parts: [{ text: rawText }] });
 
             // 누적 플롯 저장
             if (questionObj.partialPlot && questionObj.partialPlot.trim()) {

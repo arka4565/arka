@@ -585,7 +585,7 @@
 				
 
             const payload = {
-                model: "gemini-3-flash-preview",
+                model: "gemini-3.1-flash-lite-preview",
                 payload: {
                     contents: [{ parts: [{ text: prompt }] }]
                 }
@@ -651,7 +651,7 @@
             fullSystemInstruction += `\n\n--- [참고할 설정] ---\n${optimizedContext}`;
 
             const payload = {
-                model: "gemini-3-flash-preview",
+                model: "gemini-3.1-flash-lite-preview",
                 payload: {
                     systemInstruction: { parts: [{ text: fullSystemInstruction }] },
                     contents: [{
@@ -702,7 +702,7 @@
 
         try {
             const payload = {
-                model: "gemini-3-flash-preview",
+                model: "gemini-3.1-flash-lite-preview",
                 payload: {
                     contents: [{
                         parts: [{ text: `원문: ${selectedText}\n지시: ${instruction}\n조건: 수정된 문장만 출력.` }]
